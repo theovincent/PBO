@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from IPython.display import clear_output
 
 
 class StateActionMesh:
@@ -9,7 +10,6 @@ class StateActionMesh:
         self.state_max = state_max
         self.n_states = n_states
 
-        self.fig, self.ax = plt.subplots()
         self.values = np.zeros((self.n_states, self.n_actions))
 
     def set_values(self, values: np.ndarray) -> None:
@@ -24,6 +24,12 @@ class StateActionMesh:
         self.set_title(title)
 
     def show(self):
+        clear_output(wait=True)
+        self.fig, self.ax = plt.subplots()
+
         colors = self.ax.pcolor(self.values)
         self.fig.colorbar(colors, ax=self.ax)
         self.fig.tight_layout()
+
+        self.fig.canvas.draw()
+        plt.show()
