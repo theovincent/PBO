@@ -19,7 +19,7 @@ class LinearQuadraticEnv(Environment):
     The reward function is given by:
 
     .. math::
-        r_t = -\\left( x_t^TQx_t + u_t^TRu_t \\right)
+        r_t = \\left( x_t^TQx_t + u_t^TRu_t + 2 x_t^TSu_t \\right)
 
     "Policy gradient approaches for multi-objective sequential decision making".
     Parisi S., Pirotta M., Smacchia N., Bascetta L., Restelli M.. 2014
