@@ -6,8 +6,10 @@ import torch
 
 
 class QFullyConnectedNet(nn.Module):
-    def __init__(self, layer_dimension: int, random_range: float, action_range: float, n_discretisation_step_action: int) -> None:
-        super().__init__()
+    def __init__(
+        self, layer_dimension: int, random_range: float, action_range: float, n_discretisation_step_action: int
+    ) -> None:
+        super(QFullyConnectedNet, self).__init__()
         self.random_range = random_range
         self.action_range = action_range
         self.n_discretisation_step_action = n_discretisation_step_action
@@ -22,13 +24,17 @@ class QFullyConnectedNet(nn.Module):
             )
         )
 
-        self.network_layers_dimension = OrderedDict()
-        self.q_weights_dimensions = 0
+        self.linear_1_weight_shape = self.network.linear_1.weight.shape
+        self.linear_1_bias_shape = self.network.linear_1.bias.shape
+        self.linear_2_weight_shape = self.network.linear_2.weight.shape
+        self.linear_2_bias_shape = self.network.linear_2.bias.shape
 
-        for name, param in self.network.named_parameters():
-            if param.requires_grad:
-                self.network_layers_dimension[name] = param.data.shape
-                self.q_weights_dimensions += np.prod(param.data.shape)
+        self.q_weights_dimensions = (
+            np.prod(self.linear_1_weight_shape)
+            + np.prod(self.linear_1_bias_shape)
+            + np.prod(self.linear_2_weight_shape)
+            + np.prod(self.linear_2_bias_shape)
+        )
 
     def forward(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         stacked_state_action = torch.hstack((state, action))
@@ -40,23 +46,44 @@ class QFullyConnectedNet(nn.Module):
     def set_weights(self, weights: torch.Tensor) -> None:
         current_index = 0
 
-        for name, shape in self.network_layers_dimension.items():
-            name_layer, name_weights = name.split(".")
-            weight_dimension = np.prod(shape)
+        weight_dimension = np.prod(self.linear_1_weight_shape)
+        self.network.linear_1.weight.data = weights[current_index : current_index + weight_dimension].reshape(
+            self.linear_1_weight_shape
+        )
+        current_index += weight_dimension
 
-            shapped_weights = weights[current_index: current_index + weight_dimension].reshape(shape)
-            self.network.__getattr__(name_layer).__getattr__(name_weights) = shapped_weights
+        weight_dimension = np.prod(self.linear_1_bias_shape)
+        self.network.linear_1.bias.data = weights[current_index : current_index + weight_dimension].reshape(
+            self.linear_1_bias_shape
+        )
+        current_index += weight_dimension
 
-            current_index += weight_dimension
+        weight_dimension = np.prod(self.linear_2_weight_shape)
+        self.network.linear_2.weight.data = weights[current_index : current_index + weight_dimension].reshape(
+            self.linear_2_weight_shape
+        )
+        current_index += weight_dimension
 
-        assert current_index == self.q_weights_dimensions, "Not all the weights have been assigned"
-    
+        weight_dimension = np.prod(self.linear_2_bias_shape)
+        self.network.linear_2.bias.data = weights[current_index : current_index + weight_dimension].reshape(
+            self.linear_2_bias_shape
+        )
+        current_index += weight_dimension
+
+        assert (
+            current_index == self.q_weights_dimensions
+        ), f"Miss match between currend index: {current_index} and q weights dimension: {self.q_weights_dimensions}."
+
     def max_value(self, state: torch.Tensor) -> torch.Tensor:
-        discrete_actions = torch.linspace(- self.action_range, self.action_range, steps=self.n_discretisation_step_action)
-        
+        discrete_actions = torch.linspace(
+            -self.action_range, self.action_range, steps=self.n_discretisation_step_action
+        ).reshape((-1, 1))
+
         max_value_batch = torch.zeros(state.shape[0])
 
         for idx_s, s in enumerate(state):
-            max_value_batch[idx_s] = self(s.repeat(self.n_discretisation_step_action), discrete_actions).max()
+            max_value_batch[idx_s] = self(
+                s.repeat(self.n_discretisation_step_action).reshape((-1, 1)), discrete_actions
+            ).max()
 
-        return max_value_batch
+        return max_value_batch.reshape((-1, 1))
