@@ -5,22 +5,22 @@ import torch
 
 class ReplayBuffer:
     def __init__(self) -> None:
-        self.state = []
-        self.action = []
-        self.reward = []
-        self.next_state = []
+        self.states = []
+        self.actions = []
+        self.rewards = []
+        self.next_states = []
 
     def __len__(self) -> int:
-        return len(self.state)
+        return len(self.states)
 
     def add(self, state: np.ndarray, action: np.ndarray, reward: np.ndarray, next_state: np.ndarray) -> None:
-        self.state.append(state)
-        self.action.append(action)
-        self.reward.append(reward)
-        self.next_state.append(next_state)
+        self.states.append(state)
+        self.actions.append(action)
+        self.rewards.append(reward)
+        self.next_states.append(next_state)
 
     def cast_to_tensor(self) -> None:
-        self.state = torch.Tensor(np.array(self.state))
-        self.action = torch.Tensor(np.array(self.action))
-        self.reward = torch.Tensor(np.array(self.reward))
-        self.next_state = torch.Tensor(np.array(self.next_state))
+        self.states = torch.Tensor(np.array(self.states))
+        self.actions = torch.Tensor(np.array(self.actions))
+        self.rewards = torch.Tensor(np.array(self.rewards))
+        self.next_states = torch.Tensor(np.array(self.next_states))
