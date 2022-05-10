@@ -6,13 +6,11 @@ import torch
 
 
 class QFullyConnectedNet(nn.Module):
-    def __init__(
-        self, layer_dimension: int, random_range: float, action_range: float, n_discretisation_step_action: int
-    ) -> None:
+    def __init__(self, layer_dimension: int, random_range: float, max_action: float, n_discrete_actions: int) -> None:
         super(QFullyConnectedNet, self).__init__()
         self.random_range = random_range
-        self.action_range = action_range
-        self.n_discretisation_step_action = n_discretisation_step_action
+        self.max_action = max_action
+        self.n_discrete_actions = n_discrete_actions
 
         self.network = nn.Sequential(
             OrderedDict(
@@ -75,15 +73,13 @@ class QFullyConnectedNet(nn.Module):
         ), f"Miss match between currend index: {current_index} and q weights dimension: {self.q_weights_dimensions}."
 
     def max_value(self, state: torch.Tensor) -> torch.Tensor:
-        discrete_actions = torch.linspace(
-            -self.action_range, self.action_range, steps=self.n_discretisation_step_action
-        ).reshape((-1, 1))
+        discrete_actions = torch.linspace(-self.max_action, self.max_action, steps=self.n_discrete_actions).reshape(
+            (-1, 1)
+        )
 
         max_value_batch = torch.zeros(state.shape[0])
 
         for idx_s, s in enumerate(state):
-            max_value_batch[idx_s] = self(
-                s.repeat(self.n_discretisation_step_action).reshape((-1, 1)), discrete_actions
-            ).max()
+            max_value_batch[idx_s] = self(s.repeat(self.n_discrete_actions).reshape((-1, 1)), discrete_actions).max()
 
         return max_value_batch.reshape((-1, 1))
