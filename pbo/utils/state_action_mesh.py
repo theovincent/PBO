@@ -1,16 +1,22 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 from IPython.display import clear_output
 
 
 class StateActionMesh:
-    def __init__(self, action_max: float, n_actions: int, state_max: float, n_states: int) -> "StateActionMesh":
-        self.action_max = action_max
-        self.n_actions = n_actions
-        self.state_max = state_max
+    def __init__(
+        self, state_max: float, n_states: int, action_max: float, n_actions: int, sleeping_time: float
+    ) -> "StateActionMesh":
         self.n_states = n_states
+        self.n_actions = n_actions
+        self.sleeping_time = sleeping_time
 
-        self.values = np.zeros((self.n_states, self.n_actions))
+        self.states = np.linspace(-state_max, state_max, n_states)
+        self.actions = np.linspace(-action_max, action_max, n_actions)
+        self.grid_action, self.grid_states = np.meshgrid(self.actions, self.states)
+
+        self.values = np.zeros((self.n_actions, self.n_states))
 
     def set_values(self, values: np.ndarray) -> None:
         assert values.shape == (
@@ -20,16 +26,21 @@ class StateActionMesh:
 
         self.values = values
 
-    def set_title(self, title: str) -> None:
-        self.set_title(title)
-
-    def show(self):
+    def show(self, title: str = "") -> None:
         clear_output(wait=True)
         self.fig, self.ax = plt.subplots()
 
-        colors = self.ax.pcolor(self.values)
+        colors = self.ax.pcolormesh(self.grid_action, self.grid_states, self.values, shading="nearest")
+
+        self.ax.set_xticks(self.actions)
+        self.ax.set_xticklabels(np.around(self.actions, 2))
+        self.ax.set_yticks(self.states)
+        self.ax.set_yticklabels(np.around(self.states, 2))
+        if title != "":
+            self.ax.set_title(title)
+
         self.fig.colorbar(colors, ax=self.ax)
         self.fig.tight_layout()
-
         self.fig.canvas.draw()
         plt.show()
+        time.sleep(self.sleeping_time)
