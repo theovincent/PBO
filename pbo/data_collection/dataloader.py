@@ -24,10 +24,10 @@ class DataLoader:
         idxs = self.indexes[start:end]
 
         return {
-            "state": self.replay_buffer.state[idxs],
-            "action": self.replay_buffer.action[idxs],
-            "reward": self.replay_buffer.reward[idxs],
-            "next_state": self.replay_buffer.next_state[idxs],
+            "state": self.replay_buffer.states[idxs],
+            "action": self.replay_buffer.actions[idxs],
+            "reward": self.replay_buffer.rewards[idxs],
+            "next_state": self.replay_buffer.next_states[idxs],
         }
 
     def shuffle(self) -> None:
