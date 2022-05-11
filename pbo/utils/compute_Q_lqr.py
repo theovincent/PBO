@@ -22,7 +22,9 @@ def get_Q_value(env: LinearQuadraticEnv, state: np.ndarray, action: np.ndarray) 
         q_value += discount_factor * reward
         step += 1
 
-    assert abs(reward) < 1e-9, f"Last reward: {reward} was not zero."
+    assert (
+        abs(reward) < 1e-9
+    ), f"Last reward: {reward} was not zero. It is most likely coming from the fact that the action are cropped before getting in the environment."
 
     return q_value
 

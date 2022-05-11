@@ -1,11 +1,8 @@
 import numpy as np
 import scipy.linalg as sc_linalg
 
-from mushroom_rl.core import Environment, MDPInfo
-from mushroom_rl.utils import spaces
 
-
-class LinearQuadraticEnv(Environment):
+class LinearQuadraticEnv:
     """
     This class implements a Linear-Quadratic Regulator.
     This task aims to minimize the undesired deviations from nominal values of
@@ -31,29 +28,21 @@ class LinearQuadraticEnv(Environment):
         self,
         max_state,
         max_action,
-        random_init=False,
+        initial_state=None,
         episodic=False,
         gamma=0.9,
-        horizon=50,
-        initial_state=None,
     ):
         """
         Constructor.
 
             Args:
-                A (np.ndarray): the state dynamics matrix;
-                B (np.ndarray): the action dynamics matrix;
-                Q (np.ndarray): reward weight matrix for state;
-                R (np.ndarray): reward weight matrix for action;
-                S (np.ndarray): cross weight matrix;
                 max_state (float): maximum value of the state;
                 max_action (float): maximum value of the action;
-                random_init (bool, False): start from a random state;
+                initial_state (bool, None): start from the given state, if None start
+                from a random state;
                 episodic (bool, False): end the episode when the state goes over
                 the threshold;
-                gamma (float, 0.9): discount factor;
-                horizon (int, 50): horizon of the mdp.
-
+                gamma (float, 0.9): discount factor.
         """
         # Generate a controllable environmnent
         controllable = False
@@ -82,38 +71,16 @@ class LinearQuadraticEnv(Environment):
 
         self.max_state = max_state
         self.max_action = max_action
+        self.initial_state = initial_state
         self.episodic = episodic
         self.gamma = gamma
-        self.random_init = random_init
-
-        self.initial_state = initial_state
-
-        # MDP properties
-        high_x = self.max_state * np.ones(self.A.shape[0])
-        low_x = -high_x
-
-        high_u = self.max_action * np.ones(self.B.shape[1])
-        low_u = -high_u
-
-        observation_space = spaces.Box(low=low_x, high=high_x)
-        action_space = spaces.Box(low=low_u, high=high_u)
-        mdp_info = MDPInfo(observation_space, action_space, gamma, horizon)
-
-        super().__init__(mdp_info)
 
     def reset(self, state=None):
         if state is None:
-            if self.random_init:
-                self.state = self._bound(
-                    np.random.uniform(-3, 3, size=self.A.shape[0]),
-                    self.info.observation_space.low,
-                    self.info.observation_space.high,
-                )
-            elif self.initial_state is not None:
+            if self.initial_state is not None:
                 self.state = self.initial_state
             else:
-                init_value = 0.9 * self.max_state if np.isfinite(self.max_state) else 10
-                self.state = init_value * np.ones(self.A.shape[0])
+                self.state = np.random.uniform(-self.max_state, self.max_state, size=self.A.shape[0])
         else:
             self.state = state
 
@@ -121,7 +88,7 @@ class LinearQuadraticEnv(Environment):
 
     def step(self, action):
         s = self.state
-        a = self._bound(action, self.info.action_space.low, self.info.action_space.high)
+        a = self._bound(action, -self.max_action, self.max_action)
 
         reward = s.T @ self.Q @ s + a.T @ self.R @ a + 2 * s.T @ self.S @ a
         self.state = self.A @ s + self.B @ a
@@ -133,9 +100,25 @@ class LinearQuadraticEnv(Environment):
                 reward = -self.max_state**2 * 10
                 absorbing = True
             else:
-                self.state = self._bound(self.state, self.info.observation_space.low, self.info.observation_space.high)
+                self.state = self._bound(self.state, -self.max_state, self.max_state)
 
         return self.state, reward, absorbing, {}
 
     def optimal_action(self) -> np.ndarray:
-        return -self.K @ self.state
+        return self._bound(-self.K @ self.state, -self.max_action, self.max_action)
+
+    @staticmethod
+    def _bound(x, min_value, max_value):
+        """
+        Method used to bound state and action variables.
+
+        Args:
+            x: the variable to bound;
+            min_value: the minimum value;
+            max_value: the maximum value;
+
+        Returns:
+            The bounded variable.
+
+        """
+        return np.maximum(min_value, np.minimum(x, max_value))
