@@ -6,9 +6,11 @@ import torch
 
 
 class QFullyConnectedNet(nn.Module):
-    def __init__(self, layer_dimension: int, random_range: float, max_action: float, n_discrete_actions: int) -> None:
+    def __init__(
+        self, layer_dimension: int, random_weights_range: float, max_action: float, n_discrete_actions: int
+    ) -> None:
         super(QFullyConnectedNet, self).__init__()
-        self.random_range = random_range
+        self.random_weights_range = random_weights_range
         self.max_action = max_action
         self.n_discrete_actions = n_discrete_actions
 
@@ -39,7 +41,9 @@ class QFullyConnectedNet(nn.Module):
         return self.network(stacked_state_action)
 
     def get_random_weights(self) -> torch.Tensor:
-        return torch.FloatTensor(self.q_weights_dimensions).uniform_(-self.random_range, self.random_range)
+        return torch.FloatTensor(self.q_weights_dimensions).uniform_(
+            -self.random_weights_range, self.random_weights_range
+        )
 
     def set_weights(self, weights: torch.Tensor) -> None:
         current_index = 0
@@ -83,3 +87,16 @@ class QFullyConnectedNet(nn.Module):
             max_value_batch[idx_s] = self(s.repeat(self.n_discrete_actions).reshape((-1, 1)), discrete_actions).max()
 
         return max_value_batch.reshape((-1, 1))
+
+    def get_discrete_Q(self, max_state: float, n_discrete_states: int) -> np.ndarray:
+        discrete_states = np.linspace(-max_state, max_state, n_discrete_states)
+        discrete_actions = np.linspace(-self.max_action, self.max_action, self.n_discrete_actions)
+
+        Q_values = np.zeros((len(discrete_states), len(discrete_actions)))
+
+        with torch.no_grad():
+            for idx_state, state in enumerate(discrete_states):
+                for idx_action, action in enumerate(discrete_actions):
+                    Q_values[idx_state, idx_action] = self(torch.Tensor([state]), torch.Tensor([action]))
+
+        return Q_values
