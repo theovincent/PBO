@@ -7,7 +7,7 @@ from IPython.display import clear_output
 class StateActionMesh:
     def __init__(
         self, max_state: float, n_states: int, max_action: float, n_actions: int, sleeping_time: float
-    ) -> "StateActionMesh":
+    ) -> None:
         self.n_states = n_states
         self.max_state = max_state
         self.n_actions = n_actions

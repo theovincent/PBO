@@ -26,23 +26,21 @@ class LinearQuadraticEnv:
 
     def __init__(
         self,
-        max_state,
-        max_action,
-        initial_state=None,
-        episodic=False,
-        gamma=0.9,
-    ):
+        max_state: float,
+        max_action: float,
+        initial_state: np.ndarray = None,
+        episodic: bool = False,
+    ) -> None:
         """
         Constructor.
 
             Args:
                 max_state (float): maximum value of the state;
                 max_action (float): maximum value of the action;
-                initial_state (bool, None): start from the given state, if None start
+                initial_state (np.ndarray, None): start from the given state, if None start
                 from a random state;
                 episodic (bool, False): end the episode when the state goes over
                 the threshold;
-                gamma (float, 0.9): discount factor.
         """
         # Generate a controllable environmnent
         controllable = False
@@ -73,9 +71,8 @@ class LinearQuadraticEnv:
         self.max_action = max_action
         self.initial_state = initial_state
         self.episodic = episodic
-        self.gamma = gamma
 
-    def reset(self, state=None):
+    def reset(self, state: np.ndarray = None) -> np.ndarray:
         if state is None:
             if self.initial_state is not None:
                 self.state = self.initial_state
@@ -86,7 +83,7 @@ class LinearQuadraticEnv:
 
         return self.state
 
-    def step(self, action):
+    def step(self, action: np.ndarray) -> tuple:
         s = self.state
         a = self._bound(action, -self.max_action, self.max_action)
 
@@ -108,7 +105,7 @@ class LinearQuadraticEnv:
         return self._bound(-self.K @ self.state, -self.max_action, self.max_action)
 
     @staticmethod
-    def _bound(x, min_value, max_value):
+    def _bound(x: np.ndarray, min_value: float, max_value: float) -> np.ndarray:
         """
         Method used to bound state and action variables.
 

@@ -3,7 +3,7 @@ import numpy as np
 from pbo.environment.linear_quadratic import LinearQuadraticEnv
 
 
-def get_Q_value(env: LinearQuadraticEnv, state: np.ndarray, action: np.ndarray) -> float:
+def get_Q_value(env: LinearQuadraticEnv, state: np.ndarray, action: np.ndarray, gamma: float) -> float:
     terminal = False
     step = 0
     reward = 0
@@ -18,7 +18,7 @@ def get_Q_value(env: LinearQuadraticEnv, state: np.ndarray, action: np.ndarray) 
         else:
             _, reward, terminal, _ = env.step(env.optimal_action())
 
-        discount_factor *= env.gamma
+        discount_factor *= gamma
         q_value += discount_factor * reward
         step += 1
 
@@ -29,7 +29,7 @@ def get_Q_value(env: LinearQuadraticEnv, state: np.ndarray, action: np.ndarray) 
     return q_value
 
 
-def compute_Q_lqr(env: LinearQuadraticEnv, n_discrete_states: int, n_discrete_actions: int) -> np.ndarray:
+def compute_Q_lqr(env: LinearQuadraticEnv, n_discrete_states: int, n_discrete_actions: int, gamma: float) -> np.ndarray:
     states = np.linspace(-env.max_state, env.max_state, n_discrete_states)
     actions = np.linspace(-env.max_action, env.max_action, n_discrete_actions)
 
@@ -37,6 +37,6 @@ def compute_Q_lqr(env: LinearQuadraticEnv, n_discrete_states: int, n_discrete_ac
 
     for idx_state, state in enumerate(states):
         for idx_action, action in enumerate(actions):
-            Q_values[idx_state, idx_action] = get_Q_value(env, np.array([state]), np.array([action]))
+            Q_values[idx_state, idx_action] = get_Q_value(env, np.array([state]), np.array([action]), gamma)
 
     return Q_values
