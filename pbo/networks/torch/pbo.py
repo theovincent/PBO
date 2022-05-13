@@ -3,7 +3,7 @@ from typing import OrderedDict
 import torch.nn as nn
 import torch
 
-from pbo.agents.q_networks import QFullyConnectedNet
+from pbo.networks.torch.q import QFullyConnectedNet
 
 
 class BasePBO(nn.Module):
