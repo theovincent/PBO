@@ -29,9 +29,16 @@ def get_Q_value(env: LinearQuadraticEnv, state: np.ndarray, action: np.ndarray, 
     return q_value
 
 
-def compute_Q_lqr(env: LinearQuadraticEnv, n_discrete_states: int, n_discrete_actions: int, gamma: float) -> np.ndarray:
-    states = np.linspace(-env.max_state, env.max_state, n_discrete_states)
-    actions = np.linspace(-env.max_action, env.max_action, n_discrete_actions)
+def compute_Q_lqr(
+    env: LinearQuadraticEnv,
+    max_discrete_state: float,
+    n_discrete_states: int,
+    max_discrete_action: float,
+    n_discrete_actions: int,
+    gamma: float,
+) -> np.ndarray:
+    states = np.linspace(-max_discrete_state, max_discrete_state, n_discrete_states)
+    actions = np.linspace(-max_discrete_action, max_discrete_action, n_discrete_actions)
 
     Q_values = np.zeros((len(states), len(actions)))
 

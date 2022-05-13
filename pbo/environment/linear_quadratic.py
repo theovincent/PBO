@@ -26,22 +26,26 @@ class LinearQuadraticEnv:
 
     def __init__(
         self,
-        max_state: float,
-        max_action: float,
         initial_state: np.ndarray = None,
-        episodic: bool = False,
+        max_init_state: float = None,
     ) -> None:
         """
         Constructor.
 
             Args:
-                max_state (float): maximum value of the state;
-                max_action (float): maximum value of the action;
                 initial_state (np.ndarray, None): start from the given state, if None start
                 from a random state;
-                episodic (bool, False): end the episode when the state goes over
-                the threshold;
+                max_init_state (float, None): if initial_state is not None, start from a random state
+                within -max_init_state, max_init_state.
+
         """
+        assert (
+            initial_state is not None or max_init_state is not None
+        ), "Either initial_state or max_init_state has to be defined"
+        assert (
+            initial_state is None or max_init_state is None
+        ), "initial_state and max_init_state can't be defined at the same time"
+
         # Generate a controllable environmnent
         controllable = False
 
@@ -67,55 +71,27 @@ class LinearQuadraticEnv:
                     f"Reward: {np.around(self.Q[0, 0], 2)}s² + {np.around(self.R[0, 0], 2)}a² + {np.around(2 * self.S[0, 0], 2)}sa"
                 )
 
-        self.max_state = max_state
-        self.max_action = max_action
         self.initial_state = initial_state
-        self.episodic = episodic
+        self.max_init_state = max_init_state
 
     def reset(self, state: np.ndarray = None) -> np.ndarray:
         if state is None:
             if self.initial_state is not None:
                 self.state = self.initial_state
             else:
-                self.state = np.random.uniform(-self.max_state, self.max_state, size=self.A.shape[0])
+                self.state = np.random.uniform(-self.max_init_state, self.max_init_state, size=self.A.shape[0])
         else:
             self.state = state
 
         return self.state
 
     def step(self, action: np.ndarray) -> tuple:
-        s = self.state
-        a = self._bound(action, -self.max_action, self.max_action)
-
-        reward = s.T @ self.Q @ s + a.T @ self.R @ a + 2 * s.T @ self.S @ a
-        self.state = self.A @ s + self.B @ a
+        reward = self.state.T @ self.Q @ self.state + action.T @ self.R @ action + 2 * self.state.T @ self.S @ action
+        self.state = self.A @ self.state + self.B @ action
 
         absorbing = False
-
-        if np.any(np.abs(self.state) > self.max_state):
-            if self.episodic:
-                reward = -self.max_state**2 * 10
-                absorbing = True
-            else:
-                self.state = self._bound(self.state, -self.max_state, self.max_state)
 
         return self.state, reward, absorbing, {}
 
     def optimal_action(self) -> np.ndarray:
-        return self._bound(-self.K @ self.state, -self.max_action, self.max_action)
-
-    @staticmethod
-    def _bound(x: np.ndarray, min_value: float, max_value: float) -> np.ndarray:
-        """
-        Method used to bound state and action variables.
-
-        Args:
-            x: the variable to bound;
-            min_value: the minimum value;
-            max_value: the maximum value;
-
-        Returns:
-            The bounded variable.
-
-        """
-        return np.maximum(min_value, np.minimum(x, max_value))
+        return -self.K @ self.state

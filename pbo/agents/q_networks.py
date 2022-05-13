@@ -88,8 +88,8 @@ class QFullyConnectedNet(nn.Module):
 
         return max_value_batch.reshape((-1, 1))
 
-    def get_discrete_Q(self, max_state: float, n_discrete_states: int) -> np.ndarray:
-        discrete_states = np.linspace(-max_state, max_state, n_discrete_states)
+    def get_discrete_Q(self, max_discrete_state: float, n_discrete_states: int) -> np.ndarray:
+        discrete_states = np.linspace(-max_discrete_state, max_discrete_state, n_discrete_states)
         discrete_actions = np.linspace(-self.max_action, self.max_action, self.n_discrete_actions)
 
         Q_values = np.zeros((len(discrete_states), len(discrete_actions)))
