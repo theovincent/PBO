@@ -6,24 +6,26 @@ from pbo.networks.jax.q import BaseQFunction
 
 
 class BasePBOFunction:
-    def __init__(self, network: hk.Module, network_key: int, gamma: float, q_weights_dimensions: int) -> None:
+    def __init__(self, network: hk.Module, network_key: int, gamma: float, q_function: BaseQFunction) -> None:
         self.gamma = gamma
-        self.q_weights_dimensions = q_weights_dimensions
+        self.q_function = q_function
 
         self.network = hk.without_apply_rng(hk.transform(network))
-        self.params = self.network.init(rng=network_key, weight=jnp.zeros((q_weights_dimensions)))
+        self.params = self.network.init(rng=network_key, weight=jnp.zeros((q_function.q_weights_dimensions)))
 
         self.loss_and_grad_loss = jax.jit(jax.value_and_grad(self.loss))
 
-    def loss(self, pbo_params: hk.Params, batch: dict, weights: jnp.ndarray, q_function: BaseQFunction) -> jnp.ndarray:
-        q_params = q_function.convert_to_params(weights)
-        target = batch["reward"] + self.gamma * q_function.max_value(q_params, batch["next_state"])
+    def loss(self, pbo_params: hk.Params, batch: dict, weights: jnp.ndarray) -> jnp.ndarray:
+        q_params = self.q_function.convert_to_params(weights)
+        target = batch["reward"] + self.gamma * self.q_function.max_value(q_params, batch["next_state"])
         target = jax.lax.stop_gradient(target)
 
         iterated_weights = self.network.apply(pbo_params, weights)
-        iterated_q_params = q_function.convert_to_params(iterated_weights)
+        iterated_q_params = self.q_function.convert_to_params(iterated_weights)
 
-        loss = jnp.linalg.norm(q_function.network.apply(iterated_q_params, batch["state"], batch["action"]) - target)
+        loss = jnp.linalg.norm(
+            self.q_function.network.apply(iterated_q_params, batch["state"], batch["action"]) - target
+        )
 
         return loss
 
@@ -43,14 +45,14 @@ class LinearPBONet(hk.Module):
 
 
 class LinearPBOFunction(BasePBOFunction):
-    def __init__(self, network_key: int, gamma: float, q_weights_dimensions: int) -> None:
+    def __init__(self, network_key: int, gamma: float, q_function: BaseQFunction) -> None:
         def network(weight: jnp.ndarray) -> jnp.ndarray:
-            return LinearPBONet(q_weights_dimensions)(weight)
+            return LinearPBONet(q_function.q_weights_dimensions)(weight)
 
-        super(LinearPBOFunction, self).__init__(network, network_key, gamma, q_weights_dimensions)
+        super(LinearPBOFunction, self).__init__(network, network_key, gamma, q_function)
 
     def get_fixed_point(self) -> jnp.ndarray:
         return (
-            -jnp.linalg.inv(self.params["LinearNet/linear"]["w"] - jnp.eye(self.q_weights_dimensions))
+            -jnp.linalg.inv(self.params["LinearNet/linear"]["w"] - jnp.eye(self.q_function.q_weights_dimensions))
             @ self.params["LinearNet/linear"]["b"]
         )
