@@ -6,7 +6,6 @@ from pbo.data_collection.replay_buffer import ReplayBuffer
 class DataLoader:
     def __init__(self, replay_buffer: ReplayBuffer, batch_size: int) -> None:
         self.replay_buffer = replay_buffer
-        self.replay_buffer.cast_to_tensor()
         self.batch_size = batch_size
 
         self.indexes = np.arange(0, len(replay_buffer))
