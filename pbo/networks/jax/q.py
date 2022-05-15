@@ -1,4 +1,3 @@
-from click import password_option
 import numpy as np
 
 import haiku as hk
@@ -39,14 +38,14 @@ class BaseQFunction:
     def max_value(self, q_params: hk.Params, state: jnp.ndarray) -> jnp.ndarray:
         discrete_actions = jnp.linspace(-self.max_action, self.max_action, num=self.n_discrete_actions).reshape((-1, 1))
 
-        max_value_batch = jnp.zeros(state.shape[0])
+        max_value_batch = np.zeros(state.shape[0])
 
         for idx_s, s in enumerate(state):
             max_value_batch[idx_s] = self.network.apply(
                 q_params, s.repeat(self.n_discrete_actions).reshape((-1, 1)), discrete_actions
             ).max()
 
-        return max_value_batch.reshape((-1, 1))
+        return jnp.array(max_value_batch).reshape((-1, 1))
 
     def get_discrete_q(self, q_params: hk.Params, max_discrete_state: float, n_discrete_states: int) -> np.ndarray:
         discrete_states = np.linspace(-max_discrete_state, max_discrete_state, n_discrete_states)
@@ -61,19 +60,7 @@ class BaseQFunction:
         return q_values
 
     def convert_to_params(self, weight: jnp.ndarray) -> hk.Params:
-        params = dict()
-        current_idx = 0
-
-        for key_layer, layer in self.params.items():
-            params[key_layer] = dict()
-            for key_weight_layer, weight_layer in layer.items():
-                params[key_layer][key_weight_layer] = weight[
-                    current_idx : current_idx + jnp.prod(weight_layer.shape)
-                ].reshape(weight_layer.shape)
-
-                current_idx += jnp.prod(weight_layer.shape)
-
-        return params
+        raise NotImplementedError
 
 
 class FullyConnectedQNet(hk.Module):
@@ -111,3 +98,30 @@ class FullyConnectedQFunction(BaseQFunction):
         super(FullyConnectedQFunction, self).__init__(
             network, network_key, random_weights_range, random_weights_key, max_action, n_discrete_actions
         )
+
+        self.weigths_information = {}
+        current_idx = 0
+
+        for key_layer, layer in self.params.items():
+            self.weigths_information[key_layer] = dict()
+            for key_weight_layer, weight_layer in layer.items():
+                self.weigths_information[key_layer][key_weight_layer] = {
+                    "begin_idx": current_idx,
+                    "end_idx": current_idx + np.prod(weight_layer.shape),
+                    "shape": weight_layer.shape,
+                }
+                current_idx += np.prod(weight_layer.shape)
+
+    def convert_to_params(self, weight: jnp.ndarray) -> hk.Params:
+        params = dict()
+
+        for key_layer, layer in self.params.items():
+            params[key_layer] = dict()
+            for key_weight_layer in layer.keys():
+                begin_idx = self.weigths_information[key_layer][key_weight_layer]["begin_idx"]
+                end_idx = self.weigths_information[key_layer][key_weight_layer]["end_idx"]
+                shape = self.weigths_information[key_layer][key_weight_layer]["shape"]
+
+                params[key_layer][key_weight_layer] = weight[begin_idx:end_idx].reshape(shape)
+
+        return params

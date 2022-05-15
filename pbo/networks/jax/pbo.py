@@ -15,11 +15,11 @@ class BasePBOFunction:
 
         self.loss_and_grad_loss = jax.jit(jax.value_and_grad(self.loss))
 
-    def loss(self, pbo_params: hk.Params, batch: dict, weights: jnp.ndarray) -> jnp.ndarray:
+    def compute_target(self, batch: dict, weights: jnp.ndarray) -> jnp.ndarray:
         q_params = self.q_function.convert_to_params(weights)
-        target = batch["reward"] + self.gamma * self.q_function.max_value(q_params, batch["next_state"])
-        target = jax.lax.stop_gradient(target)
+        return batch["reward"] + self.gamma * self.q_function.max_value(q_params, batch["next_state"])
 
+    def loss(self, pbo_params: hk.Params, batch: dict, weights: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
         iterated_weights = self.network.apply(pbo_params, weights)
         iterated_q_params = self.q_function.convert_to_params(iterated_weights)
 
