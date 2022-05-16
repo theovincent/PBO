@@ -12,13 +12,13 @@ class BaseQFunction:
         network_key: int,
         random_weights_range: float,
         random_weights_key: int,
-        max_action: float,
-        n_discrete_actions: int,
+        action_range_on_max: float,
+        n_actions_on_max: int,
     ) -> None:
         self.random_weights_range = random_weights_range
         self.random_weights_key = random_weights_key
-        self.max_action = max_action
-        self.n_discrete_actions = n_discrete_actions
+        self.action_range_on_max = action_range_on_max
+        self.n_actions_on_max = n_actions_on_max
 
         self.network = hk.without_apply_rng(hk.transform(network))
         self.params = self.network.init(rng=network_key, state=jnp.zeros((1)), action=jnp.zeros((1)))
@@ -28,6 +28,8 @@ class BaseQFunction:
             for weight in layer.values():
                 self.q_weights_dimensions += np.prod(weight.shape)
 
+        self.l1_loss_and_grad_loss = jax.jit(jax.value_and_grad(self.l1_loss))
+
     def get_random_weights(self) -> jnp.ndarray:
         self.random_weights_key, rng = jax.random.split(self.random_weights_key)
 
@@ -36,21 +38,22 @@ class BaseQFunction:
         )
 
     def max_value(self, q_params: hk.Params, state: jnp.ndarray) -> jnp.ndarray:
-        discrete_actions = jnp.linspace(-self.max_action, self.max_action, num=self.n_discrete_actions).reshape((-1, 1))
+        discrete_actions = jnp.linspace(
+            -self.action_range_on_max, self.action_range_on_max, num=self.n_actions_on_max
+        ).reshape((-1, 1))
 
         max_value_batch = np.zeros(state.shape[0])
 
         for idx_s, s in enumerate(state):
             max_value_batch[idx_s] = self.network.apply(
-                q_params, s.repeat(self.n_discrete_actions).reshape((-1, 1)), discrete_actions
+                q_params, s.repeat(self.n_actions_on_max).reshape((-1, 1)), discrete_actions
             ).max()
 
         return jnp.array(max_value_batch).reshape((-1, 1))
 
-    def get_discrete_q(self, q_params: hk.Params, max_discrete_state: float, n_discrete_states: int) -> np.ndarray:
-        discrete_states = np.linspace(-max_discrete_state, max_discrete_state, n_discrete_states)
-        discrete_actions = np.linspace(-self.max_action, self.max_action, self.n_discrete_actions)
-
+    def get_discrete_q(
+        self, q_params: hk.Params, discrete_states: np.ndarray, discrete_actions: np.ndarray
+    ) -> np.ndarray:
         q_values = np.zeros((len(discrete_states), len(discrete_actions)))
 
         for idx_state, state in enumerate(discrete_states):
@@ -61,6 +64,9 @@ class BaseQFunction:
 
     def convert_to_params(self, weight: jnp.ndarray) -> hk.Params:
         raise NotImplementedError
+
+    def l1_loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
+        return jnp.abs(self.network.apply(q_params, state, action) - target).sum()
 
 
 class FullyConnectedQNet(hk.Module):
@@ -89,14 +95,14 @@ class FullyConnectedQFunction(BaseQFunction):
         network_key: int,
         random_weights_range: float,
         random_weights_key: int,
-        max_action: float,
-        n_discrete_actions: int,
+        action_range_on_max: float,
+        n_actions_on_max: int,
     ) -> None:
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
             return FullyConnectedQNet(layer_dimension)(state, action)
 
         super(FullyConnectedQFunction, self).__init__(
-            network, network_key, random_weights_range, random_weights_key, max_action, n_discrete_actions
+            network, network_key, random_weights_range, random_weights_key, action_range_on_max, n_actions_on_max
         )
 
         self.weigths_information = {}
