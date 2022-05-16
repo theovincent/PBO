@@ -1,5 +1,6 @@
-import numpy as np
 import scipy.linalg as sc_linalg
+import jax
+import jax.numpy as jnp
 
 
 class LinearQuadraticEnv:
@@ -26,14 +27,16 @@ class LinearQuadraticEnv:
 
     def __init__(
         self,
-        initial_state: np.ndarray = None,
+        env_key: int,
+        initial_state: jnp.ndarray = None,
         max_init_state: float = None,
     ) -> None:
         """
         Constructor.
 
             Args:
-                initial_state (np.ndarray, None): start from the given state, if None start
+                env_key (int): key to generate the random parameters;
+                initial_state (jnp.ndarray, None): start from the given state, if None start
                 from a random state;
                 max_init_state (float, None): if initial_state is not None, start from a random state
                 within -max_init_state, max_init_state.
@@ -46,17 +49,24 @@ class LinearQuadraticEnv:
             initial_state is None or max_init_state is None
         ), "initial_state and max_init_state can't be defined at the same time"
 
+        self.env_key = env_key
+
         # Generate a controllable environmnent
         controllable = False
 
         while not controllable:
-            self.A = np.random.uniform(-10, 10, size=(1, 1))
-            self.B = np.random.uniform(-10, 10, size=(1, 1))
-            self.Q = np.random.uniform(-10, 0, size=(1, 1))
-            self.R = np.random.uniform(-10, 10, size=(1, 1))
-            self.S = np.random.uniform(-5, 5, size=(1, 1))
+            self.env_key, key = jax.random.split(self.env_key)
+            self.A = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
+            self.env_key, key = jax.random.split(self.env_key)
+            self.B = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
+            self.env_key, key = jax.random.split(self.env_key)
+            self.Q = jax.random.uniform(key, (1, 1), minval=-1, maxval=0)
+            self.env_key, key = jax.random.split(self.env_key)
+            self.R = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
+            self.env_key, key = jax.random.split(self.env_key)
+            self.S = jax.random.uniform(key, (1, 1), minval=-0.5, maxval=0.5)
 
-            self.P = sc_linalg.solve_discrete_are(self.A, self.B, self.Q, self.R, s=self.S)
+            self.P = jnp.array(sc_linalg.solve_discrete_are(self.A, self.B, self.Q, self.R, s=self.S))
             self.R_hat = self.R + self.B.T @ self.P @ self.B
 
             if self.R_hat < 0:
@@ -65,27 +75,30 @@ class LinearQuadraticEnv:
                 self.K = sc_linalg.inv(self.R_hat) @ self.S_hat.T
 
                 print("Transition: s' = As + Ba")
-                print(f"Transition: s' = {np.around(self.A[0, 0], 2)}s + {np.around(self.B[0, 0], 2)}a")
+                print(f"Transition: s' = {jnp.around(self.A[0, 0], 2)}s + {jnp.around(self.B[0, 0], 2)}a")
                 print("Reward: Qs² + Ra² + 2 Ssa")
                 print(
-                    f"Reward: {np.around(self.Q[0, 0], 2)}s² + {np.around(self.R[0, 0], 2)}a² + {np.around(2 * self.S[0, 0], 2)}sa"
+                    f"Reward: {jnp.around(self.Q[0, 0], 2)}s² + {jnp.around(self.R[0, 0], 2)}a² + {jnp.around(2 * self.S[0, 0], 2)}sa"
                 )
 
         self.initial_state = initial_state
         self.max_init_state = max_init_state
 
-    def reset(self, state: np.ndarray = None) -> np.ndarray:
+    def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
             if self.initial_state is not None:
                 self.state = self.initial_state
             else:
-                self.state = np.random.uniform(-self.max_init_state, self.max_init_state, size=self.A.shape[0])
+                self.env_key, key = jax.random.split(self.env_key)
+                self.state = jax.random.uniform(
+                    key, [self.A.shape[0]], minval=-self.max_init_state, maxval=self.max_init_state
+                )
         else:
             self.state = state
 
         return self.state
 
-    def step(self, action: np.ndarray) -> tuple:
+    def step(self, action: jnp.ndarray) -> tuple:
         reward = self.state.T @ self.Q @ self.state + action.T @ self.R @ action + 2 * self.state.T @ self.S @ action
         self.state = self.A @ self.state + self.B @ action
 
@@ -93,5 +106,5 @@ class LinearQuadraticEnv:
 
         return self.state, reward, absorbing, {}
 
-    def optimal_action(self) -> np.ndarray:
+    def optimal_action(self) -> jnp.ndarray:
         return -self.K @ self.state

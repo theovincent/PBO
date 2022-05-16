@@ -14,13 +14,15 @@ class StateActionMesh:
 
         self.values = np.zeros((len(self.actions), len(self.states)))
 
-    def set_values(self, values: np.ndarray) -> None:
+    def set_values(self, values: np.ndarray, zeros_to_nan: bool = False) -> None:
         assert values.shape == (
             len(self.states),
             len(self.actions),
         ), f"given shape values: {values.shape} don't match with environment values: {(len(self.states), len(self.actions))}"
 
         self.values = values
+        if zeros_to_nan:
+            self.values = np.where(self.values == 0, np.nan, self.values)
 
     def show(self, title: str = "") -> None:
         clear_output(wait=True)

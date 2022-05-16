@@ -14,7 +14,7 @@ class ReplayBuffer:
     def __len__(self) -> int:
         return len(self.states)
 
-    def add(self, state: np.ndarray, action: np.ndarray, reward: np.ndarray, next_state: np.ndarray) -> None:
+    def add(self, state: np.ndarray, action: np.ndarray, reward: float, next_state: np.ndarray) -> None:
         self.states.append(state)
         self.actions.append(action)
         self.rewards.append(reward)

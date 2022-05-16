@@ -1,14 +1,17 @@
 import numpy as np
+import jax
+import jax.numpy as jnp
 
 from pbo.data_collection.replay_buffer import ReplayBuffer
 
 
 class DataLoader:
-    def __init__(self, replay_buffer: ReplayBuffer, batch_size: int) -> None:
+    def __init__(self, replay_buffer: ReplayBuffer, batch_size: int, shuffle_key: int) -> None:
         self.replay_buffer = replay_buffer
         self.batch_size = batch_size
+        self.shuffle_key = shuffle_key
 
-        self.indexes = np.arange(0, len(replay_buffer))
+        self.indexes = jnp.arange(0, len(replay_buffer))
 
     def __len__(self) -> int:
         return np.ceil(len(self.replay_buffer) / self.batch_size).astype(int)
@@ -30,4 +33,5 @@ class DataLoader:
         }
 
     def shuffle(self) -> None:
-        np.random.shuffle(self.indexes)
+        self.shuffle_key, key = jax.random.split(self.shuffle_key)
+        self.indexes = jax.random.shuffle(key, self.indexes)
