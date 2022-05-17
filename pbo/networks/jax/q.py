@@ -31,14 +31,19 @@ class BaseQFunction:
         self.l1_loss_and_grad_loss = jax.jit(jax.value_and_grad(self.l1_loss))
 
     def get_random_weights(self) -> jnp.ndarray:
-        self.random_weights_key, rng = jax.random.split(self.random_weights_key)
+        self.random_weights_key, key = jax.random.split(self.random_weights_key)
 
         return jax.random.uniform(
-            rng, shape=(self.q_weights_dimensions,), minval=-self.random_weights_range, maxval=self.random_weights_range
+            key, shape=(self.q_weights_dimensions,), minval=-self.random_weights_range, maxval=self.random_weights_range
         )
 
+    def get_random_init_weights(self) -> jnp.ndarray:
+        self.random_weights_key, key = jax.random.split(self.random_weights_key)
+
+        return self.convert_to_weights(self.network.init(rng=key, state=jnp.zeros((1)), action=jnp.zeros((1))))
+
     def max_value(self, q_params: hk.Params, state: jnp.ndarray) -> jnp.ndarray:
-        discrete_actions = jnp.linspace(
+        discrete_actions_on_max = jnp.linspace(
             -self.action_range_on_max, self.action_range_on_max, num=self.n_actions_on_max
         ).reshape((-1, 1))
 
@@ -46,7 +51,7 @@ class BaseQFunction:
 
         for idx_s, s in enumerate(state):
             max_value_batch[idx_s] = self.network.apply(
-                q_params, s.repeat(self.n_actions_on_max).reshape((-1, 1)), discrete_actions
+                q_params, s.repeat(self.n_actions_on_max).reshape((-1, 1)), discrete_actions_on_max
             ).max()
 
         return jnp.array(max_value_batch).reshape((-1, 1))
@@ -63,6 +68,9 @@ class BaseQFunction:
         return q_values
 
     def convert_to_params(self, weight: jnp.ndarray) -> hk.Params:
+        raise NotImplementedError
+
+    def convert_to_weights(self, params: hk.Params) -> jnp.ndarray:
         raise NotImplementedError
 
     def l1_loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
@@ -118,7 +126,7 @@ class FullyConnectedQFunction(BaseQFunction):
                 }
                 current_idx += np.prod(weight_layer.shape)
 
-    def convert_to_params(self, weight: jnp.ndarray) -> hk.Params:
+    def convert_to_params(self, weights: jnp.ndarray) -> hk.Params:
         params = dict()
 
         for key_layer, layer in self.params.items():
@@ -128,6 +136,15 @@ class FullyConnectedQFunction(BaseQFunction):
                 end_idx = self.weigths_information[key_layer][key_weight_layer]["end_idx"]
                 shape = self.weigths_information[key_layer][key_weight_layer]["shape"]
 
-                params[key_layer][key_weight_layer] = weight[begin_idx:end_idx].reshape(shape)
+                params[key_layer][key_weight_layer] = weights[begin_idx:end_idx].reshape(shape)
 
         return params
+
+    def convert_to_weights(self, params: hk.Params) -> jnp.ndarray:
+        weights = []
+
+        for layer in params.values():
+            for weight_layer in layer.values():
+                weights.extend(weight_layer.flatten())
+
+        return jnp.array(weights)

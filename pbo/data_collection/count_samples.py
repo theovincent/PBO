@@ -17,7 +17,7 @@ def count_samples(
 
     # only count the state action pairs that are in the boxes
     states_inside_boxes = np.logical_and(states >= discrete_states_boxes[0], states <= discrete_states_boxes[-1])
-    actions_inside_boxes = np.logical_and(actions >= discrete_states_boxes[0], actions <= discrete_actions_boxes[-1])
+    actions_inside_boxes = np.logical_and(actions >= discrete_actions_boxes[0], actions <= discrete_actions_boxes[-1])
     states_actions_inside_boxes = np.logical_and(states_inside_boxes, actions_inside_boxes)
 
     samples_count = np.zeros((len(discrete_states_boxes) - 1, len(discrete_actions_boxes) - 1))
