@@ -17,7 +17,7 @@ class BasePBOFunction:
 
     def compute_target(self, batch: dict, weights: jnp.ndarray) -> jnp.ndarray:
         q_params = self.q_function.convert_to_params(weights)
-        return batch["reward"] + self.gamma * self.q_function.max_value(q_params, batch["next_state"])
+        return batch["reward"].reshape(-1, 1) + self.gamma * self.q_function.max_value(q_params, batch["next_state"])
 
     def loss(self, pbo_params: hk.Params, batch: dict, weights: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
         iterated_weights = self.network.apply(pbo_params, weights)
