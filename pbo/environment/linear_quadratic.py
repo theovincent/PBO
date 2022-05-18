@@ -49,21 +49,19 @@ class LinearQuadraticEnv:
             initial_state is None or max_init_state is None
         ), "initial_state and max_init_state can't be defined at the same time"
 
-        self.env_key = env_key
+        self.parameters_key, self.reset_key = jax.random.split(env_key)
 
         # Generate a controllable environmnent
         controllable = False
 
         while not controllable:
-            self.env_key, key = jax.random.split(self.env_key)
-            self.A = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
-            self.env_key, key = jax.random.split(self.env_key)
+            sekeylf.parameters_key, key = jax.random.split(self.parameters_key)
             self.B = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
-            self.env_key, key = jax.random.split(self.env_key)
+            self.parameters_key, key = jax.random.split(self.parameters_key)
             self.Q = jax.random.uniform(key, (1, 1), minval=-1, maxval=0)
-            self.env_key, key = jax.random.split(self.env_key)
+            self.parameters_key, key = jax.random.split(self.parameters_key)
             self.R = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
-            self.env_key, key = jax.random.split(self.env_key)
+            self.parameters_key, key = jax.random.split(self.parameters_key)
             self.S = jax.random.uniform(key, (1, 1), minval=-0.5, maxval=0.5)
 
             self.P = jnp.array(sc_linalg.solve_discrete_are(self.A, self.B, self.Q, self.R, s=self.S))
@@ -89,9 +87,8 @@ class LinearQuadraticEnv:
             if self.initial_state is not None:
                 self.state = self.initial_state
             else:
-                self.env_key, key = jax.random.split(self.env_key)
                 self.state = jax.random.uniform(
-                    key, [self.A.shape[0]], minval=-self.max_init_state, maxval=self.max_init_state
+                    self.reset_key, [self.A.shape[0]], minval=-self.max_init_state, maxval=self.max_init_state
                 )
         else:
             self.state = state

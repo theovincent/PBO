@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 
 
-class BaseQFunction:
+class BaseQ:
     def __init__(
         self,
         network: hk.Module,
@@ -23,21 +23,21 @@ class BaseQFunction:
         self.network = hk.without_apply_rng(hk.transform(network))
         self.params = self.network.init(rng=network_key, state=jnp.zeros((1)), action=jnp.zeros((1)))
 
-        self.q_weights_dimensions = 0
+        self.weights_dimension = 0
         for layer in self.params.values():
             for weight in layer.values():
-                self.q_weights_dimensions += np.prod(weight.shape)
+                self.weights_dimension += np.prod(weight.shape)
 
-        self.l1_loss_and_grad_loss = jax.jit(jax.value_and_grad(self.l1_loss))
+        self.l1_loss_and_grad = jax.jit(jax.value_and_grad(self.l1_loss))
 
-    def get_random_weights(self) -> jnp.ndarray:
+    def random_weights(self) -> jnp.ndarray:
         self.random_weights_key, key = jax.random.split(self.random_weights_key)
 
         return jax.random.uniform(
-            key, shape=(self.q_weights_dimensions,), minval=-self.random_weights_range, maxval=self.random_weights_range
+            key, shape=(self.weights_dimension,), minval=-self.random_weights_range, maxval=self.random_weights_range
         )
 
-    def get_random_init_weights(self) -> jnp.ndarray:
+    def random_init_weights(self) -> jnp.ndarray:
         self.random_weights_key, key = jax.random.split(self.random_weights_key)
 
         return self.convert_to_weights(self.network.init(rng=key, state=jnp.zeros((1)), action=jnp.zeros((1))))
@@ -56,9 +56,7 @@ class BaseQFunction:
 
         return jnp.array(max_value_batch).reshape((-1, 1))
 
-    def get_discrete_q(
-        self, q_params: hk.Params, discrete_states: np.ndarray, discrete_actions: np.ndarray
-    ) -> np.ndarray:
+    def discretize(self, q_params: hk.Params, discrete_states: np.ndarray, discrete_actions: np.ndarray) -> np.ndarray:
         q_values = np.zeros((len(discrete_states), len(discrete_actions)))
 
         for idx_state, state in enumerate(discrete_states):
@@ -67,10 +65,10 @@ class BaseQFunction:
 
         return q_values
 
-    def convert_to_params(self, weight: jnp.ndarray) -> hk.Params:
+    def to_params(self, weights: jnp.ndarray) -> hk.Params:
         raise NotImplementedError
 
-    def convert_to_weights(self, params: hk.Params) -> jnp.ndarray:
+    def to_weights(self, params: hk.Params) -> jnp.ndarray:
         raise NotImplementedError
 
     def l1_loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
@@ -96,7 +94,7 @@ class FullyConnectedQNet(hk.Module):
         return x
 
 
-class FullyConnectedQFunction(BaseQFunction):
+class FullyConnectedQ(BaseQ):
     def __init__(
         self,
         layer_dimension: int,
@@ -109,7 +107,7 @@ class FullyConnectedQFunction(BaseQFunction):
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
             return FullyConnectedQNet(layer_dimension)(state, action)
 
-        super(FullyConnectedQFunction, self).__init__(
+        super(FullyConnectedQ, self).__init__(
             network, network_key, random_weights_range, random_weights_key, action_range_on_max, n_actions_on_max
         )
 
@@ -126,7 +124,7 @@ class FullyConnectedQFunction(BaseQFunction):
                 }
                 current_idx += np.prod(weight_layer.shape)
 
-    def convert_to_params(self, weights: jnp.ndarray) -> hk.Params:
+    def to_params(self, weights: jnp.ndarray) -> hk.Params:
         params = dict()
 
         for key_layer, layer in self.params.items():
@@ -140,7 +138,7 @@ class FullyConnectedQFunction(BaseQFunction):
 
         return params
 
-    def convert_to_weights(self, params: hk.Params) -> jnp.ndarray:
+    def to_weights(self, params: hk.Params) -> jnp.ndarray:
         weights = []
 
         for layer in params.values():
