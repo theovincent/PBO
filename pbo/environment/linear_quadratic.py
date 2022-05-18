@@ -55,7 +55,9 @@ class LinearQuadraticEnv:
         controllable = False
 
         while not controllable:
-            sekeylf.parameters_key, key = jax.random.split(self.parameters_key)
+            self.parameters_key, key = jax.random.split(self.parameters_key)
+            self.A = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
+            self.parameters_key, key = jax.random.split(self.parameters_key)
             self.B = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
             self.parameters_key, key = jax.random.split(self.parameters_key)
             self.Q = jax.random.uniform(key, (1, 1), minval=-1, maxval=0)
@@ -73,11 +75,9 @@ class LinearQuadraticEnv:
                 self.K = sc_linalg.inv(self.R_hat) @ self.S_hat.T
 
                 print("Transition: s' = As + Ba")
-                print(f"Transition: s' = {jnp.around(self.A[0, 0], 2)}s + {jnp.around(self.B[0, 0], 2)}a")
+                print(f"Transition: s' = {self.A[0, 0]}s + {self.B[0, 0]}a")
                 print("Reward: Qs² + Ra² + 2 Ssa")
-                print(
-                    f"Reward: {jnp.around(self.Q[0, 0], 2)}s² + {jnp.around(self.R[0, 0], 2)}a² + {jnp.around(2 * self.S[0, 0], 2)}sa"
-                )
+                print(f"Reward: {self.Q[0, 0]}s² + {self.R[0, 0]}a² + {2 * self.S[0, 0]}sa")
 
         self.initial_state = initial_state
         self.max_init_state = max_init_state

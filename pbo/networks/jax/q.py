@@ -40,7 +40,7 @@ class BaseQ:
     def random_init_weights(self) -> jnp.ndarray:
         self.random_weights_key, key = jax.random.split(self.random_weights_key)
 
-        return self.convert_to_weights(self.network.init(rng=key, state=jnp.zeros((1)), action=jnp.zeros((1))))
+        return self.to_weights(self.network.init(rng=key, state=jnp.zeros((1)), action=jnp.zeros((1))))
 
     def max_value(self, q_params: hk.Params, state: jnp.ndarray) -> jnp.ndarray:
         discrete_actions_on_max = jnp.linspace(
