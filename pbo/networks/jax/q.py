@@ -47,12 +47,14 @@ class BaseQ:
             -self.action_range_on_max, self.action_range_on_max, num=self.n_actions_on_max
         ).reshape((-1, 1))
 
-        max_value_batch = np.zeros(state.shape[0])
+        max_value_batch = jnp.zeros(state.shape[0])
 
         for idx_s, s in enumerate(state):
-            max_value_batch[idx_s] = self.network.apply(
-                q_params, s.repeat(self.n_actions_on_max).reshape((-1, 1)), discrete_actions_on_max
-            ).max()
+            max_value_batch.at[idx_s].set(
+                self.network.apply(
+                    q_params, s.repeat(self.n_actions_on_max).reshape((-1, 1)), discrete_actions_on_max
+                ).max()
+            )
 
         return jnp.array(max_value_batch).reshape((-1, 1))
 
