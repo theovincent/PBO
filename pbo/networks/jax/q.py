@@ -74,7 +74,7 @@ class BaseQFunction:
         raise NotImplementedError
 
     def l1_loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
-        return jnp.abs(self.network.apply(q_params, state, action) - target).sum()
+        return jnp.linalg.norm(self.network.apply(q_params, state, action) - target, ord=1)
 
 
 class FullyConnectedQNet(hk.Module):

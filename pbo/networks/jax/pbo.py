@@ -11,21 +11,41 @@ class BasePBOFunction:
         self.q_function = q_function
 
         self.network = hk.without_apply_rng(hk.transform(network))
-        self.params = self.network.init(rng=network_key, weight=jnp.zeros((q_function.q_weights_dimensions)))
+        self.params = self.network.init(rng=network_key, weights=jnp.zeros((q_function.q_weights_dimensions)))
 
         self.loss_and_grad_loss = jax.jit(jax.value_and_grad(self.loss))
 
     def compute_target(self, batch: dict, weights: jnp.ndarray) -> jnp.ndarray:
-        q_params = self.q_function.convert_to_params(weights)
-        return batch["reward"].reshape(-1, 1) + self.gamma * self.q_function.max_value(q_params, batch["next_state"])
+        sample_batch_size = batch["reward"].shape[0]
+        weights_batch_size = weights.shape[0]
+
+        target = jnp.zeros((sample_batch_size * weights_batch_size, 1))
+
+        for idx_weights in range(weights_batch_size):
+            q_params = self.q_function.convert_to_params(weights[idx_weights])
+            target_weights = batch["reward"] + self.gamma * self.q_function.max_value(q_params, batch["next_state"])
+
+            target = target.at[idx_weights * sample_batch_size : (idx_weights + 1) * sample_batch_size].set(
+                target_weights
+            )
+
+        return target
 
     def loss(self, pbo_params: hk.Params, batch: dict, weights: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
-        iterated_weights = self.network.apply(pbo_params, weights)
-        iterated_q_params = self.q_function.convert_to_params(iterated_weights)
+        sample_batch_size = batch["reward"].shape[0]
+        weights_batch_size = weights.shape[0]
+        loss = 0
 
-        loss = jnp.linalg.norm(
-            self.q_function.network.apply(iterated_q_params, batch["state"], batch["action"]) - target
-        )
+        iterated_weights = self.network.apply(pbo_params, weights)
+
+        for idx_weights in range(weights_batch_size):
+            iterated_q_params = self.q_function.convert_to_params(iterated_weights[idx_weights])
+
+            loss += jnp.linalg.norm(
+                self.q_function.network.apply(iterated_q_params, batch["state"], batch["action"])
+                - target[idx_weights * sample_batch_size : (idx_weights + 1) * sample_batch_size],
+                ord=1,
+            )
 
         return loss
 
@@ -38,16 +58,16 @@ class LinearPBONet(hk.Module):
         super().__init__(name="LinearNet")
         self.layer_dimension = layer_dimension
 
-    def __call__(self, weight: jnp.ndarray) -> jnp.ndarray:
-        x = hk.Linear(self.layer_dimension, name="linear")(weight)
+    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        x = hk.Linear(self.layer_dimension, name="linear")(weights)
 
         return x
 
 
 class LinearPBOFunction(BasePBOFunction):
     def __init__(self, network_key: int, gamma: float, q_function: BaseQFunction) -> None:
-        def network(weight: jnp.ndarray) -> jnp.ndarray:
-            return LinearPBONet(q_function.q_weights_dimensions)(weight)
+        def network(weights: jnp.ndarray) -> jnp.ndarray:
+            return LinearPBONet(q_function.q_weights_dimensions)(weights)
 
         super(LinearPBOFunction, self).__init__(network, network_key, gamma, q_function)
 
