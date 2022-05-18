@@ -3,10 +3,10 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
-from pbo.data_collection.replay_buffer import ReplayBuffer
+from pbo.sample_collection.replay_buffer import ReplayBuffer
 
 
-class DataLoader:
+class SampleDataLoader:
     def __init__(self, replay_buffer: ReplayBuffer, batch_size: int, shuffle_key: int) -> None:
         self.replay_buffer = replay_buffer
         self.batch_size = batch_size
