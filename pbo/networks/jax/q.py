@@ -17,8 +17,8 @@ class BaseQ:
     ) -> None:
         self.random_weights_range = random_weights_range
         self.random_weights_key = random_weights_key
-        self.action_range_on_max = action_range_on_max
         self.n_actions_on_max = n_actions_on_max
+        self.discrete_actions_on_max = jnp.linspace(-action_range_on_max, action_range_on_max, num=n_actions_on_max)
 
         self.network = hk.without_apply_rng(hk.transform(network))
         self.params = self.network.init(rng=network_key, state=jnp.zeros((1)), action=jnp.zeros((1)))
@@ -42,30 +42,29 @@ class BaseQ:
 
         return self.to_weights(self.network.init(rng=key, state=jnp.zeros((1)), action=jnp.zeros((1))))
 
-    def max_value(self, q_params: hk.Params, state: jnp.ndarray) -> jnp.ndarray:
-        discrete_actions_on_max = jnp.linspace(
-            -self.action_range_on_max, self.action_range_on_max, num=self.n_actions_on_max
-        ).reshape((-1, 1))
+    def max_value(self, q_params: hk.Params, batch_states: jnp.ndarray) -> jnp.ndarray:
+        states_mesh, actions_mesh = jnp.meshgrid(batch_states.flatten(), self.discrete_actions_on_max, indexing="ij")
+        states = states_mesh.reshape((-1, 1))
+        actions = actions_mesh.reshape((-1, 1))
 
-        max_value_batch = jnp.zeros(state.shape[0])
+        # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        batch_values = self.network.apply(q_params, states, actions).reshape(
+            (batch_states.shape[0], self.n_actions_on_max)
+        )
 
-        for idx_s, s in enumerate(state):
-            max_value_batch.at[idx_s].set(
-                self.network.apply(
-                    q_params, s.repeat(self.n_actions_on_max).reshape((-1, 1)), discrete_actions_on_max
-                ).max()
-            )
+        return batch_values.max(axis=1).reshape((-1, 1))
 
-        return jnp.array(max_value_batch).reshape((-1, 1))
+    def discretize(
+        self, batch_weights: jnp.ndarray, discrete_states: np.ndarray, discrete_actions: np.ndarray
+    ) -> jnp.ndarray:
+        states_mesh, actions_mesh = jnp.meshgrid(discrete_states, discrete_actions, indexing="ij")
+        states = states_mesh.reshape((-1, 1))
+        actions = actions_mesh.reshape((-1, 1))
 
-    def discretize(self, q_params: hk.Params, discrete_states: np.ndarray, discrete_actions: np.ndarray) -> np.ndarray:
-        q_values = np.zeros((len(discrete_states), len(discrete_actions)))
-
-        for idx_state, state in enumerate(discrete_states):
-            for idx_action, action in enumerate(discrete_actions):
-                q_values[idx_state, idx_action] = self.network.apply(q_params, jnp.array([state]), jnp.array([action]))
-
-        return q_values
+        # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        return jax.vmap(lambda weights: self.network.apply(self.to_params(weights), states, actions))(
+            batch_weights
+        ).reshape((-1, len(discrete_states), len(discrete_actions)))
 
     def to_params(self, weights: jnp.ndarray) -> hk.Params:
         raise NotImplementedError

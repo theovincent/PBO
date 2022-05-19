@@ -1,7 +1,7 @@
 import numpy as np
 
 
-from pbo.data_collection.replay_buffer import ReplayBuffer
+from pbo.sample_collection.replay_buffer import ReplayBuffer
 
 
 def count_samples(

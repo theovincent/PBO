@@ -9,15 +9,16 @@ from pbo.sample_collection.replay_buffer import ReplayBuffer
 class SampleDataLoader:
     def __init__(self, replay_buffer: ReplayBuffer, batch_size: int, shuffle_key: int) -> None:
         self.replay_buffer = replay_buffer
+        self.n_samples = len(replay_buffer)
         self.batch_size = batch_size
         self.shuffle_key = shuffle_key
 
-        self.indexes = jnp.arange(0, len(replay_buffer))
+        self.indexes = jnp.arange(0, self.n_samples)
 
         self.jitted_getitem = jax.jit(self.getitem)
 
     def __len__(self) -> int:
-        return np.ceil(len(self.replay_buffer) / self.batch_size).astype(int)
+        return np.ceil(self.n_samples / self.batch_size).astype(int)
 
     def getitem(self, idxs) -> dict:
         return {
@@ -33,7 +34,7 @@ class SampleDataLoader:
             raise StopIteration
 
         start = idx * self.batch_size
-        end = jnp.minimum((idx + 1) * self.batch_size, len(self.replay_buffer))
+        end = jnp.minimum((idx + 1) * self.batch_size, self.n_samples)
         idxs = self.indexes[start:end]
 
         return self.jitted_getitem(idxs)

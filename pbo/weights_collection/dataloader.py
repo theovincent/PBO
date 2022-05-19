@@ -7,15 +7,16 @@ import jax.numpy as jnp
 class WeightsDataLoader:
     def __init__(self, weights: jnp.ndarray, batch_size: int, shuffle_key: int) -> None:
         self.weights = weights
+        self.n_weights = weights.shape[0]
         self.batch_size = batch_size
         self.shuffle_key = shuffle_key
 
-        self.indexes = jnp.arange(0, len(weights))
+        self.indexes = jnp.arange(0, self.n_weights)
 
         self.jitted_getitem = jax.jit(self.getitem)
 
     def __len__(self) -> int:
-        return np.ceil(self.weights.shape[0] / self.batch_size).astype(int)
+        return np.ceil(self.n_weights / self.batch_size).astype(int)
 
     def getitem(self, idxs) -> dict:
         return self.weights[idxs]
@@ -26,7 +27,7 @@ class WeightsDataLoader:
             raise StopIteration
 
         start = idx * self.batch_size
-        end = jnp.minimum((idx + 1) * self.batch_size, len(self.replay_buffer))
+        end = jnp.minimum((idx + 1) * self.batch_size, self.n_weights)
         idxs = self.indexes[start:end]
 
         return self.jitted_getitem(idxs)

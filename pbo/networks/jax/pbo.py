@@ -1,12 +1,13 @@
 import haiku as hk
 import jax.numpy as jnp
 import jax
+import optax
 
 from pbo.networks.jax.q import BaseQ
 
 
 class BasePBO:
-    def __init__(self, network: hk.Module, network_key: int, gamma: float, q: BaseQ) -> None:
+    def __init__(self, network: hk.Module, network_key: int, gamma: float, q: BaseQ, learning_rate: float) -> None:
         self.gamma = gamma
         self.q = q
 
@@ -16,37 +17,32 @@ class BasePBO:
         self.compute_target = jax.jit(self.compute_target_)
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
-    def compute_target_(self, sample: dict, weights: jnp.ndarray) -> jnp.ndarray:
-        batch_size_sample = sample["reward"].shape[0]
-        batch_size_weights = weights.shape[0]
+        self.optimizer = optax.sgd(learning_rate=learning_rate)
+        self.optimizer_state = self.optimizer.init(self.params)
 
-        target = jnp.zeros((batch_size_sample * batch_size_weights, 1))
+    def compute_target_(self, batch_samples: dict, batch_weights: jnp.ndarray) -> jnp.ndarray:
+        return jax.vmap(
+            lambda weights: batch_samples["reward"]
+            + self.gamma * self.q.max_value(self.q.to_params(weights), batch_samples["next_state"])
+        )(batch_weights)
 
-        for idx_weights in range(batch_size_weights):
-            q_params = self.q.to_params(weights[idx_weights])
-            target_weights = sample["reward"] + self.gamma * self.q.max_value(q_params, sample["next_state"])
+    def loss(
+        self, pbo_params: hk.Params, sample: dict, batch_weights: jnp.ndarray, batch_targets: jnp.ndarray
+    ) -> jnp.ndarray:
+        batch_iterated_weights = self.network.apply(pbo_params, batch_weights)
 
-            target = target.at[idx_weights * batch_size_sample : (idx_weights + 1) * batch_size_sample].set(
-                target_weights
-            )
+        q_values = jax.vmap(
+            lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
+        )(batch_iterated_weights)
 
-        return target
+        return jnp.linalg.norm((q_values - batch_targets).flatten(), ord=1)
 
-    def loss(self, pbo_params: hk.Params, sample: dict, weights: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
-        batch_size_sample = sample["state"].shape[0]
-        batch_size_weights = weights.shape[0]
-        loss = 0
+    def learn_on_batch(self, batch_samples: jnp.ndarray, batch_weights: jnp.ndarray) -> jnp.ndarray:
+        batch_targets = self.compute_target(batch_samples, batch_weights)
 
-        iterated_weights = self.network.apply(pbo_params, weights)
-
-        for idx_weights in range(batch_size_weights):
-            iterated_q_params = self.q.to_params(iterated_weights[idx_weights])
-
-            loss += jnp.linalg.norm(
-                self.q.network.apply(iterated_q_params, sample["state"], sample["action"])
-                - target[idx_weights * batch_size_sample : (idx_weights + 1) * batch_size_sample],
-                ord=1,
-            )
+        loss, grad_loss = self.loss_and_grad(self.params, batch_samples, batch_weights, batch_targets)
+        updates, self.optimizer_state = self.optimizer.update(grad_loss, self.optimizer_state)
+        self.params = optax.apply_updates(self.params, updates)
 
         return loss
 
@@ -66,11 +62,11 @@ class LinearPBONet(hk.Module):
 
 
 class LinearPBO(BasePBO):
-    def __init__(self, network_key: int, gamma: float, q: BaseQ) -> None:
+    def __init__(self, network_key: int, gamma: float, q: BaseQ, learning_rate: float) -> None:
         def network(weights: jnp.ndarray) -> jnp.ndarray:
             return LinearPBONet(q.weights_dimension)(weights)
 
-        super(LinearPBO, self).__init__(network, network_key, gamma, q)
+        super(LinearPBO, self).__init__(network, network_key, gamma, q, learning_rate)
 
     def get_fixed_point(self) -> jnp.ndarray:
         return (
