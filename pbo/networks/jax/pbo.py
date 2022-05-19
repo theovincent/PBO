@@ -35,7 +35,7 @@ class BasePBO:
             lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
         )(batch_iterated_weights)
 
-        return jnp.linalg.norm((q_values - batch_targets).flatten(), ord=1)
+        return jnp.abs(q_values - batch_targets).sum()
 
     def learn_on_batch(self, batch_samples: jnp.ndarray, batch_weights: jnp.ndarray) -> jnp.ndarray:
         batch_targets = self.compute_target(batch_samples, batch_weights)

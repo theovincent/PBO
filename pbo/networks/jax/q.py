@@ -3,6 +3,7 @@ import numpy as np
 import haiku as hk
 import jax
 import jax.numpy as jnp
+from pandas import array
 
 
 class BaseQ:
@@ -73,7 +74,7 @@ class BaseQ:
         raise NotImplementedError
 
     def l1_loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
-        return jnp.linalg.norm(self.network.apply(q_params, state, action) - target, ord=1)
+        return jnp.abs(self.network.apply(q_params, state, action) - target).sum()
 
 
 class FullyConnectedQNet(hk.Module):
@@ -128,22 +129,25 @@ class FullyConnectedQ(BaseQ):
     def to_params(self, weights: jnp.ndarray) -> hk.Params:
         params = dict()
 
-        for key_layer, layer in self.params.items():
+        for key_layer, layer_info in self.weigths_information.items():
             params[key_layer] = dict()
-            for key_weight_layer in layer.keys():
-                begin_idx = self.weigths_information[key_layer][key_weight_layer]["begin_idx"]
-                end_idx = self.weigths_information[key_layer][key_weight_layer]["end_idx"]
-                shape = self.weigths_information[key_layer][key_weight_layer]["shape"]
+            for key_weight_layer, weight_layer_info in layer_info.items():
+                begin_idx = weight_layer_info["begin_idx"]
+                end_idx = weight_layer_info["end_idx"]
+                shape = weight_layer_info["shape"]
 
                 params[key_layer][key_weight_layer] = weights[begin_idx:end_idx].reshape(shape)
 
         return params
 
     def to_weights(self, params: hk.Params) -> jnp.ndarray:
-        weights = []
+        weights = jnp.zeros(self.weights_dimension)
 
-        for layer in params.values():
-            for weight_layer in layer.values():
-                weights.extend(weight_layer.flatten())
+        for key_layer, layer in params.items():
+            for key_weight_layer, weight_layer in layer.items():
+                begin_idx = self.weigths_information[key_layer][key_weight_layer]["begin_idx"]
+                end_idx = self.weigths_information[key_layer][key_weight_layer]["end_idx"]
+
+                weights = weights.at[begin_idx:end_idx].set(weight_layer.flatten())
 
         return jnp.array(weights)
