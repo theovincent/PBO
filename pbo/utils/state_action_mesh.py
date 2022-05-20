@@ -40,6 +40,7 @@ class StateActionMesh:
         self.ax.set_ylim(self.states[0], self.states[-1])
         self.ax.set_ylabel("States")
 
+        self.ax.set_aspect("equal", "box")
         if title != "":
             self.ax.set_title(title)
 
