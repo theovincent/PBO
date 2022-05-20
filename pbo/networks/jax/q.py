@@ -78,20 +78,22 @@ class BaseQ:
 
 
 class FullyConnectedQNet(hk.Module):
-    def __init__(self, layer_dimension: int) -> None:
+    def __init__(self, layers_dimension: list) -> None:
         super().__init__(name="FullyConnectedNet")
-        self.layer_dimension = layer_dimension
+        self.layers_dimension = layers_dimension
 
     def __call__(
         self,
         state: jnp.ndarray,
         action: jnp.ndarray,
     ) -> jnp.ndarray:
-        stacked_state_action = jnp.hstack((state, action))
+        x = jnp.hstack((state, action))
 
-        x = hk.Linear(self.layer_dimension, name="linear_1")(stacked_state_action)
-        x = jax.nn.relu(x)
-        x = hk.Linear(1, name="linear_2")(x)
+        for idx, layer_dimension in enumerate(self.layers_dimension, start=1):
+            x = hk.Linear(layer_dimension, name=f"linear_{idx}")(x)
+            x = jax.nn.relu(x)
+
+        x = hk.Linear(1, name="linear_last")(x)
 
         return x
 
@@ -99,7 +101,7 @@ class FullyConnectedQNet(hk.Module):
 class FullyConnectedQ(BaseQ):
     def __init__(
         self,
-        layer_dimension: int,
+        layers_dimension: list,
         network_key: int,
         random_weights_range: float,
         random_weights_key: int,
@@ -107,7 +109,7 @@ class FullyConnectedQ(BaseQ):
         n_actions_on_max: int,
     ) -> None:
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
-            return FullyConnectedQNet(layer_dimension)(state, action)
+            return FullyConnectedQNet(layers_dimension)(state, action)
 
         super(FullyConnectedQ, self).__init__(
             network, network_key, random_weights_range, random_weights_key, action_range_on_max, n_actions_on_max
