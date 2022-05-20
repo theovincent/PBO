@@ -52,7 +52,7 @@ class BasePBO:
 
         return params, optimizer_state, loss
 
-    def get_fixed_point(self) -> jnp.ndarray:
+    def fixed_point(self) -> jnp.ndarray:
         raise NotImplementedError
 
 
@@ -74,8 +74,11 @@ class LinearPBO(BasePBO):
 
         super(LinearPBO, self).__init__(network, network_key, gamma, q, learning_rate)
 
-    def get_fixed_point(self) -> jnp.ndarray:
+    def fixed_point(self) -> jnp.ndarray:
         return (
             -jnp.linalg.inv(self.params["LinearNet/linear"]["w"] - jnp.eye(self.q.weights_dimension))
             @ self.params["LinearNet/linear"]["b"]
         )
+
+    def contracting(self) -> float:
+        return jnp.linalg.norm(self.params["LinearNet/linear"]["w"], ord=1)
