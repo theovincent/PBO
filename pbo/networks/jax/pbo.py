@@ -1,3 +1,5 @@
+from functools import partial
+
 import haiku as hk
 import jax.numpy as jnp
 import jax
@@ -7,7 +9,15 @@ from pbo.networks.jax.q import BaseQ
 
 
 class BasePBO:
-    def __init__(self, network: hk.Module, network_key: int, gamma: float, q: BaseQ, learning_rate: float) -> None:
+    def __init__(
+        self,
+        network: hk.Module,
+        network_key: int,
+        gamma: float,
+        q: BaseQ,
+        learning_rate: float,
+        max_bellman_iterations: int,
+    ) -> None:
         self.gamma = gamma
         self.q = q
 
@@ -17,6 +27,13 @@ class BasePBO:
         self.compute_target = jax.jit(self.compute_target_)
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
         self.learn_on_batch = jax.jit(self.learn_on_batch_)
+
+        self.iteration_loss_and_grad = []
+        for n_iterations in range(max_bellman_iterations):
+            self.iteration_loss_and_grad.append(
+                jax.jit(jax.value_and_grad(partial(self.iteration_loss, n_iterations=n_iterations)))
+            )
+        self.learn_iterations_on_batch = jax.jit(self.learn_iterations_on_batch_, static_argnames="n_iterations")
 
         learning_rate_schedule = optax.linear_schedule(
             learning_rate["first"], learning_rate["last"], learning_rate["duration"]
@@ -52,6 +69,36 @@ class BasePBO:
 
         return params, optimizer_state, loss
 
+    def iteration_loss(
+        self, pbo_params: hk.Params, sample: dict, batch_weights: jnp.ndarray, n_iterations: int
+    ) -> jnp.ndarray:
+        batch_iterated_weights = batch_weights
+        for _ in jnp.arange(0, n_iterations):
+            batch_iterated_weights = self.network.apply(pbo_params, batch_iterated_weights)
+        batch_targets = self.compute_target(sample, batch_iterated_weights)
+
+        batch_iterated_again_weights = self.network.apply(pbo_params, batch_iterated_weights)
+
+        q_values = jax.vmap(
+            lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
+        )(batch_iterated_again_weights)
+
+        return jnp.abs(q_values - batch_targets).sum()
+
+    def learn_iterations_on_batch_(
+        self,
+        params: hk.Params,
+        optimizer_state: tuple,
+        batch_samples: jnp.ndarray,
+        batch_weights: jnp.ndarray,
+        n_iterations: int,
+    ) -> tuple:
+        loss, grad_loss = self.iteration_loss_and_grad[n_iterations](params, batch_samples, batch_weights)
+        updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
+        params = optax.apply_updates(params, updates)
+
+        return params, optimizer_state, loss
+
     def fixed_point(self) -> jnp.ndarray:
         raise NotImplementedError
 
@@ -68,11 +115,13 @@ class LinearPBONet(hk.Module):
 
 
 class LinearPBO(BasePBO):
-    def __init__(self, network_key: int, gamma: float, q: BaseQ, learning_rate: float) -> None:
+    def __init__(
+        self, network_key: int, gamma: float, q: BaseQ, learning_rate: float, max_bellman_iterations: int
+    ) -> None:
         def network(weights: jnp.ndarray) -> jnp.ndarray:
             return LinearPBONet(q.weights_dimension)(weights)
 
-        super(LinearPBO, self).__init__(network, network_key, gamma, q, learning_rate)
+        super(LinearPBO, self).__init__(network, network_key, gamma, q, learning_rate, max_bellman_iterations)
 
     def fixed_point(self) -> jnp.ndarray:
         return (
