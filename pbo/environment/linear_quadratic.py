@@ -3,6 +3,10 @@ import jax
 import jax.numpy as jnp
 
 
+def check_ricatti_equation(P: float, A: float, B: float, Q: float, R: float, S: float):
+    return abs(Q + A**2 * P - (S + A * P * B) ** 2 / (R + B**2 * P) - P) < 1e-8
+
+
 class LinearQuadraticEnv:
     """
     This class implements a Linear-Quadratic Regulator.
@@ -55,6 +59,7 @@ class LinearQuadraticEnv:
         controllable = False
 
         while not controllable:
+            print("sdfskldjf")
             self.parameters_key, key = jax.random.split(self.parameters_key)
             self.A = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
             self.parameters_key, key = jax.random.split(self.parameters_key)
@@ -67,9 +72,17 @@ class LinearQuadraticEnv:
             self.S = jax.random.uniform(key, (1, 1), minval=-0.5, maxval=0.5)
 
             self.P = jnp.array(sc_linalg.solve_discrete_are(self.A, self.B, self.Q, self.R, s=self.S))
+            c = check_ricatti_equation(
+                self.P[0, 0], self.A[0, 0], self.B[0, 0], self.Q[0, 0], self.R[0, 0], self.S[0, 0]
+            )
+            print(
+                check_ricatti_equation(
+                    self.P[0, 0], self.A[0, 0], self.B[0, 0], self.Q[0, 0], self.R[0, 0], self.S[0, 0]
+                )
+            )
             self.R_hat = self.R + self.B.T @ self.P @ self.B
 
-            if self.R_hat < 0:
+            if self.R_hat < 0 and c:
                 controllable = True
                 self.S_hat = self.S + self.A.T @ self.P @ self.B
                 self.K = sc_linalg.inv(self.R_hat) @ self.S_hat.T
@@ -81,6 +94,13 @@ class LinearQuadraticEnv:
 
         self.initial_state = initial_state
         self.max_init_state = max_init_state
+
+        print(
+            check_ricatti_equation(self.P[0, 0], self.A[0, 0], self.B[0, 0], self.Q[0, 0], self.R[0, 0], self.S[0, 0])
+        )
+        assert check_ricatti_equation(
+            self.P[0, 0], self.A[0, 0], self.B[0, 0], self.Q[0, 0], self.R[0, 0], self.S[0, 0]
+        ), "The Riccati equation is not respected"
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:

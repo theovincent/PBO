@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import jax
 import optax
 
-from pbo.networks.jax.q import BaseQ
+from pbo.networks.q import BaseQ
 
 
 class BasePBO:
