@@ -19,27 +19,22 @@ def get_Q_value(env: LinearQuadraticEnv, state: np.ndarray, action: np.ndarray, 
             _, reward, terminal, _ = env.step(env.optimal_action())
 
         discount_factor *= gamma
-        q_value += discount_factor * reward
+        q_value += discount_factor * reward[0]
         step += 1
 
     assert (
-        abs(reward) < 1e-9
-    ), f"Last reward: {reward} was not zero. It is most likely coming from the fact that the action are cropped before getting in the environment."
+        abs(reward[0]) < 1e-9
+    ), f"Last reward: {reward[0]} was not zero. It is most likely coming from the fact that the action are cropped before getting in the environment."
 
     return q_value
 
 
 def compute_Q_lqr(
     env: LinearQuadraticEnv,
-    max_discrete_state: float,
-    n_discrete_states: int,
-    max_discrete_action: float,
-    n_discrete_actions: int,
+    states: np.ndarray,
+    actions: np.ndarray,
     gamma: float,
 ) -> np.ndarray:
-    states = np.linspace(-max_discrete_state, max_discrete_state, n_discrete_states)
-    actions = np.linspace(-max_discrete_action, max_discrete_action, n_discrete_actions)
-
     Q_values = np.zeros((len(states), len(actions)))
 
     for idx_state, state in enumerate(states):
