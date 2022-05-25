@@ -1,4 +1,3 @@
-from functools import partial
 import numpy as np
 
 import haiku as hk
@@ -24,13 +23,24 @@ class BaseQ:
         self.network = hk.without_apply_rng(hk.transform(network))
         self.params = self.network.init(rng=network_key, state=jnp.zeros((1)), action=jnp.zeros((1)))
 
-        self.weights_dimension = 0
-        for layer in self.params.values():
-            for weight in layer.values():
-                self.weights_dimension += np.prod(weight.shape)
-
         self.l1_loss_and_grad = jax.jit(jax.value_and_grad(self.l1_loss))
         self.l2_loss_and_grad = jax.jit(jax.value_and_grad(self.l2_loss))
+
+        self.weights_information = {}
+        self.weights_dimension = 0
+
+        for key_layer, layer in self.params.items():
+            self.weights_information[key_layer] = dict()
+            for key_weight_layer, weight_layer in layer.items():
+                # int if weight_layer.shape = () happens
+                weight_layer_dimensions = int(np.prod(weight_layer.shape))
+
+                self.weights_information[key_layer][key_weight_layer] = {
+                    "begin_idx": self.weights_dimension,
+                    "end_idx": self.weights_dimension + weight_layer_dimensions,
+                    "shape": weight_layer.shape,
+                }
+                self.weights_dimension += weight_layer_dimensions
 
     def random_weights(self) -> jnp.ndarray:
         self.random_weights_key, key = jax.random.split(self.random_weights_key)
@@ -69,10 +79,30 @@ class BaseQ:
         ).reshape((-1, len(discrete_states), len(discrete_actions)))
 
     def to_params(self, weights: jnp.ndarray) -> hk.Params:
-        raise NotImplementedError
+        params = dict()
+
+        for key_layer, layer_info in self.weights_information.items():
+            params[key_layer] = dict()
+            for key_weight_layer, weight_layer_info in layer_info.items():
+                begin_idx = weight_layer_info["begin_idx"]
+                end_idx = weight_layer_info["end_idx"]
+                shape = weight_layer_info["shape"]
+
+                params[key_layer][key_weight_layer] = weights[begin_idx:end_idx].reshape(shape)
+
+        return params
 
     def to_weights(self, params: hk.Params) -> jnp.ndarray:
-        raise NotImplementedError
+        weights = jnp.zeros(self.weights_dimension)
+
+        for key_layer, layer in params.items():
+            for key_weight_layer, weight_layer in layer.items():
+                begin_idx = self.weights_information[key_layer][key_weight_layer]["begin_idx"]
+                end_idx = self.weights_information[key_layer][key_weight_layer]["end_idx"]
+
+                weights = weights.at[begin_idx:end_idx].set(weight_layer.flatten())
+
+        return jnp.array(weights)
 
     def l1_loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
         return jnp.abs(self.network.apply(q_params, state, action) - target).sum()
@@ -119,41 +149,35 @@ class FullyConnectedQ(BaseQ):
             network, network_key, random_weights_range, random_weights_key, action_range_on_max, n_actions_on_max
         )
 
-        self.weigths_information = {}
-        current_idx = 0
 
-        for key_layer, layer in self.params.items():
-            self.weigths_information[key_layer] = dict()
-            for key_weight_layer, weight_layer in layer.items():
-                self.weigths_information[key_layer][key_weight_layer] = {
-                    "begin_idx": current_idx,
-                    "end_idx": current_idx + np.prod(weight_layer.shape),
-                    "shape": weight_layer.shape,
-                }
-                current_idx += np.prod(weight_layer.shape)
+class TheoreticalQNet(hk.Module):
+    def __init__(self) -> None:
+        super().__init__(name="TheoreticalQNet")
 
-    def to_params(self, weights: jnp.ndarray) -> hk.Params:
-        params = dict()
+    def __call__(
+        self,
+        state: jnp.ndarray,
+        action: jnp.ndarray,
+    ) -> jnp.ndarray:
+        k = hk.get_parameter("k", (), state.dtype, init=hk.initializers.TruncatedNormal())
+        i = hk.get_parameter("i", (), state.dtype, init=hk.initializers.TruncatedNormal())
+        m = hk.get_parameter("m", (), state.dtype, init=hk.initializers.TruncatedNormal())
 
-        for key_layer, layer_info in self.weigths_information.items():
-            params[key_layer] = dict()
-            for key_weight_layer, weight_layer_info in layer_info.items():
-                begin_idx = weight_layer_info["begin_idx"]
-                end_idx = weight_layer_info["end_idx"]
-                shape = weight_layer_info["shape"]
+        return state**2 * k + 2 * state * action * i + action**2 * m
 
-                params[key_layer][key_weight_layer] = weights[begin_idx:end_idx].reshape(shape)
 
-        return params
+class TheoreticalQ(BaseQ):
+    def __init__(
+        self,
+        network_key: int,
+        random_weights_range: float,
+        random_weights_key: int,
+        action_range_on_max: float,
+        n_actions_on_max: int,
+    ) -> None:
+        def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
+            return TheoreticalQNet()(state, action)
 
-    def to_weights(self, params: hk.Params) -> jnp.ndarray:
-        weights = jnp.zeros(self.weights_dimension)
-
-        for key_layer, layer in params.items():
-            for key_weight_layer, weight_layer in layer.items():
-                begin_idx = self.weigths_information[key_layer][key_weight_layer]["begin_idx"]
-                end_idx = self.weigths_information[key_layer][key_weight_layer]["end_idx"]
-
-                weights = weights.at[begin_idx:end_idx].set(weight_layer.flatten())
-
-        return jnp.array(weights)
+        super(TheoreticalQ, self).__init__(
+            network, network_key, random_weights_range, random_weights_key, action_range_on_max, n_actions_on_max
+        )

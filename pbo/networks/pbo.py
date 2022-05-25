@@ -6,6 +6,7 @@ import jax
 import optax
 
 from pbo.networks.q import BaseQ
+from pbo.environment.linear_quadratic import LinearQuadraticEnv
 
 
 class BasePBO:
@@ -127,3 +128,25 @@ class LinearPBO(BasePBO):
 
     def contracting(self) -> float:
         return jnp.linalg.norm(self.params["LinearNet/linear"]["w"], ord=1)
+
+
+class OptimalPBO:
+    def __init__(self, env: LinearQuadraticEnv):
+        self.A = env.A[0, 0]
+        self.B = env.B[0, 0]
+        self.Q = env.Q[0, 0]
+        self.R = env.R[0, 0]
+        self.S = env.S[0, 0]
+
+    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        # a batch of weights comes with shape (b_s, 3)
+        # estimated_p is of shape (b_s)
+        estimated_p = weights.T[0] - weights.T[1] ** 2 / weights.T[2]
+
+        return jnp.array(
+            [
+                self.Q + self.A**2 * estimated_p,
+                self.S + self.A * self.B * estimated_p,
+                self.R + self.B**2 * estimated_p,
+            ]
+        ).T
