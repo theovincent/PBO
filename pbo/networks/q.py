@@ -1,9 +1,9 @@
+from functools import partial
 import numpy as np
 
 import haiku as hk
 import jax
 import jax.numpy as jnp
-from pandas import array
 
 
 class BaseQ:
@@ -30,6 +30,7 @@ class BaseQ:
                 self.weights_dimension += np.prod(weight.shape)
 
         self.l1_loss_and_grad = jax.jit(jax.value_and_grad(self.l1_loss))
+        self.l2_loss_and_grad = jax.jit(jax.value_and_grad(self.l2_loss))
 
     def random_weights(self) -> jnp.ndarray:
         self.random_weights_key, key = jax.random.split(self.random_weights_key)
@@ -75,6 +76,9 @@ class BaseQ:
 
     def l1_loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
         return jnp.abs(self.network.apply(q_params, state, action) - target).sum()
+
+    def l2_loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
+        return jnp.linalg.norm(self.network.apply(q_params, state, action) - target)
 
 
 class FullyConnectedQNet(hk.Module):
