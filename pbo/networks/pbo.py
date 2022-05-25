@@ -13,27 +13,22 @@ class BasePBO:
         self,
         network: hk.Module,
         network_key: int,
-        gamma: float,
         q: BaseQ,
         learning_rate: float,
         max_bellman_iterations: int,
     ) -> None:
-        self.gamma = gamma
         self.q = q
 
         self.network = hk.without_apply_rng(hk.transform(network))
         self.params = self.network.init(rng=network_key, weights=jnp.zeros((q.weights_dimension)))
 
-        self.compute_target = jax.jit(self.compute_target_)
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
-        self.learn_on_batch = jax.jit(self.learn_on_batch_)
 
         self.iteration_loss_and_grad = []
         for n_iterations in range(max_bellman_iterations):
             self.iteration_loss_and_grad.append(
                 jax.jit(jax.value_and_grad(partial(self.iteration_loss, n_iterations=n_iterations)))
             )
-        self.learn_iterations_on_batch = jax.jit(self.learn_iterations_on_batch_, static_argnames="n_iterations")
 
         learning_rate_schedule = optax.linear_schedule(
             learning_rate["first"], learning_rate["last"], learning_rate["duration"]
@@ -41,10 +36,11 @@ class BasePBO:
         self.optimizer = optax.adam(learning_rate_schedule)
         self.optimizer_state = self.optimizer.init(self.params)
 
-    def compute_target_(self, batch_samples: dict, batch_weights: jnp.ndarray) -> jnp.ndarray:
+    @partial(jax.jit, static_argnames="self")
+    def compute_target(self, batch_samples: dict, batch_weights: jnp.ndarray) -> jnp.ndarray:
         return jax.vmap(
             lambda weights: batch_samples["reward"]
-            + self.gamma * self.q.max_value(self.q.to_params(weights), batch_samples["next_state"])
+            + self.q.max_value(self.q.to_params(weights), batch_samples["next_state"])
         )(batch_weights)
 
     def loss(
@@ -56,9 +52,10 @@ class BasePBO:
             lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
         )(batch_iterated_weights)
 
-        return jnp.abs(q_values - batch_targets).sum()
+        return jnp.linalg.norm(q_values - batch_targets)
 
-    def learn_on_batch_(
+    @partial(jax.jit, static_argnames="self")
+    def learn_on_batch(
         self, params: hk.Params, optimizer_state: tuple, batch_samples: jnp.ndarray, batch_weights: jnp.ndarray
     ) -> tuple:
         batch_targets = self.compute_target(batch_samples, batch_weights)
@@ -83,9 +80,10 @@ class BasePBO:
             lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
         )(batch_iterated_again_weights)
 
-        return jnp.abs(q_values - batch_targets).sum()
+        return jnp.linalg.norm(q_values - batch_targets)
 
-    def learn_iterations_on_batch_(
+    @partial(jax.jit, static_argnames=("self", "n_iterations"))
+    def learn_iterations_on_batch(
         self,
         params: hk.Params,
         optimizer_state: tuple,
@@ -115,13 +113,11 @@ class LinearPBONet(hk.Module):
 
 
 class LinearPBO(BasePBO):
-    def __init__(
-        self, network_key: int, gamma: float, q: BaseQ, learning_rate: float, max_bellman_iterations: int
-    ) -> None:
+    def __init__(self, network_key: int, q: BaseQ, learning_rate: float, max_bellman_iterations: int) -> None:
         def network(weights: jnp.ndarray) -> jnp.ndarray:
             return LinearPBONet(q.weights_dimension)(weights)
 
-        super(LinearPBO, self).__init__(network, network_key, gamma, q, learning_rate, max_bellman_iterations)
+        super(LinearPBO, self).__init__(network, network_key, q, learning_rate, max_bellman_iterations)
 
     def fixed_point(self) -> jnp.ndarray:
         return (
