@@ -104,7 +104,7 @@ class BasePBO:
 
 class LinearPBONet(hk.Module):
     def __init__(self, layer_dimension: int) -> None:
-        super().__init__(name="LinearNet")
+        super().__init__(name="LinearPBONet")
         self.layer_dimension = layer_dimension
 
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
@@ -121,22 +121,21 @@ class LinearPBO(BasePBO):
         super(LinearPBO, self).__init__(network, network_key, q, learning_rate, max_bellman_iterations)
 
     def fixed_point(self) -> jnp.ndarray:
-        return (
-            -jnp.linalg.inv(self.params["LinearNet/linear"]["w"] - jnp.eye(self.q.weights_dimension))
-            @ self.params["LinearNet/linear"]["b"]
+        return self.params["LinearPBONet/linear"]["b"] @ jnp.linalg.inv(
+            jnp.eye(self.q.weights_dimension) - self.params["LinearPBONet/linear"]["w"]
         )
 
     def contracting(self) -> float:
-        return jnp.linalg.norm(self.params["LinearNet/linear"]["w"], ord=1)
+        return jnp.linalg.norm(self.params["LinearPBONet/linear"]["w"], ord=1)
 
 
 class OptimalPBO:
-    def __init__(self, env: LinearQuadraticEnv):
-        self.A = env.A[0, 0]
-        self.B = env.B[0, 0]
-        self.Q = env.Q[0, 0]
-        self.R = env.R[0, 0]
-        self.S = env.S[0, 0]
+    def __init__(self, A: float, B: float, Q: float, R: float, S: float) -> None:
+        self.A = A
+        self.B = B
+        self.Q = Q
+        self.R = R
+        self.S = S
 
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
         # a batch of weights comes with shape (b_s, 3)
@@ -150,3 +149,18 @@ class OptimalPBO:
                 self.R + self.B**2 * estimated_p,
             ]
         ).T
+
+
+from sklearn.linear_model import LinearRegression
+
+
+class OptimalLinearPBO:
+    def __init__(self, weights: jnp.ndarray, optimal_iterations: jnp.ndarray) -> None:
+        self.fitted_regressor = LinearRegression().fit(weights, optimal_iterations)
+
+        self.params = {
+            "OptimalLinearPBONet/linear": {"w": self.fitted_regressor.coef_.T, "b": self.fitted_regressor.intercept_}
+        }
+
+    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        return weights @ self.params["OptimalLinearPBONet/linear"]["w"] + self.params["OptimalLinearPBONet/linear"]["b"]

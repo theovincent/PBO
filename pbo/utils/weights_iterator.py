@@ -6,32 +6,54 @@ from IPython.display import clear_output
 import jax.numpy as jnp
 import haiku as hk
 
-from pbo.environment.linear_quadratic import LinearQuadraticEnv
-from pbo.networks.pbo import BasePBO, OptimalPBO
+from pbo.networks.pbo import OptimalPBO, OptimalLinearPBO
 
 
 class WeightsIterator:
     def __init__(
-        self, env: LinearQuadraticEnv, pbo: BasePBO, n_iterations: int, weights: jnp.ndarray, sleeping_time: float
+        self,
+        pbo_apply: function,
+        pbo_optimal: OptimalPBO,
+        pbo_optimal_linear: OptimalLinearPBO,
+        weights: jnp.ndarray,
+        n_iterations: int,
+        A: float,
+        B: float,
+        Q: float,
+        R: float,
+        S: float,
+        P: float,
+        sleeping_time: float,
     ) -> None:
+        self.pbo_apply = pbo_apply
+        self.n_iterations = n_iterations
+
         self.optimal_weights = [
-            env.Q[0, 0] + env.A[0, 0] ** 2 * env.P[0, 0],
-            env.S[0, 0] + env.A[0, 0] * env.B[0, 0] * env.P[0, 0],
-            env.R[0, 0] + env.B[0, 0] ** 2 * env.P[0, 0],
+            Q + A**2 * P,
+            S + A * B * P,
+            R + B**2 * P,
         ]
 
-        self.pbo_apply = pbo.network.apply
-        self.optimal_pbo = OptimalPBO(env)
-
-        self.n_iterations = n_iterations
-        self.iterated_weights = np.zeros((n_iterations, weights.shape[0]))
+        self.iterated_weights = np.zeros((n_iterations, weights.shape[0], weights.shape[1]))
         self.iterated_weights[0] = weights
 
-        self.optimal_iterated_weights = np.zeros((n_iterations, weights.shape[0]))
-        self.optimal_iterated_weights[0] = weights
+        self.iterated_weights_optimal = np.zeros((n_iterations, weights.shape[0], weights.shape[1]))
+        self.iterated_weights_optimal[0] = weights
+        self.iterated_weights_optimal_linear = np.zeros((n_iterations, weights.shape[0], weights.shape[1]))
+        self.iterated_weights_optimal_linear[0] = weights
 
         for iteration in range(1, self.n_iterations):
-            self.optimal_iterated_weights[iteration] = self.optimal_pbo(self.optimal_iterated_weights[iteration - 1])
+            self.iterated_weights_optimal[iteration] = pbo_optimal(self.iterated_weights_optimal[iteration - 1])
+            self.iterated_weights_optimal_linear[iteration] = pbo_optimal_linear(
+                self.iterated_weights_optimal_linear[iteration - 1]
+            )
+
+        self.iterated_optimal_error = np.linalg.norm(
+            self.iterated_weights_optimal - self.iterated_weights_optimal_linear, axis=2
+        ).mean(axis=1)
+        self.iterated_optimal_error_std = np.linalg.norm(
+            self.iterated_weights_optimal - self.iterated_weights_optimal_linear, axis=2
+        ).std(axis=1)
 
         self.sleeping_time = sleeping_time
 
@@ -43,6 +65,8 @@ class WeightsIterator:
 
     def show(self, title: str = "") -> None:
         clear_output(wait=True)
+
+        # Plot the iterations on the first weight
         fig, axes = plt.subplots(3, 1)
         labels = ["k", "i", " m"]
 
@@ -51,12 +75,12 @@ class WeightsIterator:
             ax.axhline(y=self.fixed_point[idx_ax], color="grey", label="Fixed point", linestyle="--")
             ax.scatter(
                 np.arange(self.n_iterations),
-                self.optimal_iterated_weights[:, idx_ax],
+                self.iterated_weights_optimal[:, 0, idx_ax],
                 color="black",
                 label="Optimally iterated weights",
             )
             ax.scatter(
-                np.arange(self.n_iterations), self.iterated_weights[:, idx_ax], color="r", label="Iterated weights"
+                np.arange(self.n_iterations), self.iterated_weights[:, 0, idx_ax], color="r", label="Iterated weights"
             )
 
             ax.set_ylim(
@@ -75,5 +99,9 @@ class WeightsIterator:
 
         fig.tight_layout()
         fig.canvas.draw()
+
+        # Plot the errors on all weights
+        fig, axes = plt.subplots(3, 1)
+
         plt.show()
         time.sleep(self.sleeping_time)
