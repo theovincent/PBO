@@ -6,7 +6,6 @@ import jax
 import optax
 
 from pbo.networks.q import BaseQ
-from pbo.environment.linear_quadratic import LinearQuadraticEnv
 
 
 class BasePBO:
@@ -71,7 +70,7 @@ class BasePBO:
         self, pbo_params: hk.Params, sample: dict, batch_weights: jnp.ndarray, n_iterations: int
     ) -> jnp.ndarray:
         batch_iterated_weights = batch_weights
-        for _ in jnp.arange(0, n_iterations):
+        for _ in jnp.arange(n_iterations):
             batch_iterated_weights = self.network.apply(pbo_params, batch_iterated_weights)
         batch_targets = self.compute_target(sample, batch_iterated_weights)
         batch_targets = jax.lax.stop_gradient(batch_targets)
@@ -152,10 +151,81 @@ class OptimalPBO:
         ).T
 
 
+class BaseOptimalPBO:
+    def __init__(
+        self,
+        network: hk.Module,
+        network_key: int,
+        q_weights_dimension: int,
+        learning_rate: float,
+        pbo_optimal: OptimalPBO,
+        max_bellman_iterations: int,
+    ) -> None:
+        self.q_weights_dimension = q_weights_dimension
+        self.pbo_optimal = pbo_optimal
+        self.max_bellman_iterations = max_bellman_iterations
+
+        self.network = hk.without_apply_rng(hk.transform(network))
+        self.params = self.network.init(rng=network_key, weights=jnp.zeros((q_weights_dimension)))
+
+        self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
+
+        learning_rate_schedule = optax.linear_schedule(
+            learning_rate["first"], learning_rate["last"], learning_rate["duration"]
+        )
+        self.optimizer = optax.sgd(learning_rate_schedule)
+        self.optimizer_state = self.optimizer.init(self.params)
+
+    def loss(self, pbo_params: hk.Params, batch_weights: jnp.ndarray) -> jnp.ndarray:
+        loss = 0
+
+        batch_weights_iterated = batch_weights
+        batch_weights_optimal_iterated = batch_weights
+
+        for _ in jnp.arange(self.max_bellman_iterations):
+            batch_weights_iterated = self.network.apply(pbo_params, batch_weights_iterated)
+            batch_weights_optimal_iterated = self.pbo_optimal(batch_weights_optimal_iterated)
+            batch_weights_optimal_iterated = jax.lax.stop_gradient(batch_weights_optimal_iterated)
+
+            loss += jnp.linalg.norm(batch_weights_optimal_iterated - batch_weights_iterated)
+
+        return loss
+
+    @partial(jax.jit, static_argnames=("self", "n_iterations"))
+    def learn_on_batch(self, params: hk.Params, optimizer_state: tuple, batch_weights: jnp.ndarray) -> tuple:
+        loss, grad_loss = self.loss_and_grad(params, batch_weights)
+        updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
+        params = optax.apply_updates(params, updates)
+
+        return params, optimizer_state, loss, grad_loss
+
+
+class OptimalLinearPBO(BaseOptimalPBO):
+    def __init__(
+        self,
+        network_key: int,
+        q_weights_dimension: int,
+        learning_rate: float,
+        pbo_optimal: OptimalPBO,
+        max_bellman_iterations: int,
+    ) -> None:
+        def network(weights: jnp.ndarray) -> jnp.ndarray:
+            return LinearPBONet(q_weights_dimension)(weights)
+
+        super(OptimalLinearPBO, self).__init__(
+            network, network_key, q_weights_dimension, learning_rate, pbo_optimal, max_bellman_iterations
+        )
+
+    def fix_point(self) -> jnp.ndarray:
+        return self.params["LinearPBONet/linear"]["b"] @ jnp.linalg.inv(
+            jnp.eye(self.q_weights_dimension) - self.params["LinearPBONet/linear"]["w"]
+        )
+
+
 from sklearn.linear_model import LinearRegression
 
 
-class OptimalLinearPBO:
+class OptimalLinearPBOSKlearn:
     def __init__(self, weights: jnp.ndarray, optimal_iterations: jnp.ndarray) -> None:
         self.fitted_regressor = LinearRegression().fit(weights, optimal_iterations)
 
