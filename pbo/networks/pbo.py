@@ -26,7 +26,7 @@ class BasePBO:
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
         self.iteration_loss_and_grad = []
-        for n_iterations in range(max_bellman_iterations):
+        for n_iterations in range(max_bellman_iterations + 1):
             self.iteration_loss_and_grad.append(
                 jax.jit(jax.value_and_grad(partial(self.iteration_loss, n_iterations=n_iterations)))
             )
@@ -74,6 +74,7 @@ class BasePBO:
         for _ in jnp.arange(0, n_iterations):
             batch_iterated_weights = self.network.apply(pbo_params, batch_iterated_weights)
         batch_targets = self.compute_target(sample, batch_iterated_weights)
+        batch_targets = jax.lax.stop_gradient(batch_targets)
 
         batch_iterated_again_weights = self.network.apply(pbo_params, batch_iterated_weights)
 
