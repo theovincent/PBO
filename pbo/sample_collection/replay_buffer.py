@@ -1,6 +1,5 @@
 import numpy as np
 
-import torch
 import jax.numpy as jnp
 
 
@@ -19,12 +18,6 @@ class ReplayBuffer:
         self.actions.append(action)
         self.rewards.append(reward)
         self.next_states.append(next_state)
-
-    def cast_to_tensor(self) -> None:
-        self.states = torch.Tensor(np.array(self.states))
-        self.actions = torch.Tensor(np.array(self.actions))
-        self.rewards = torch.Tensor(np.array(self.rewards))
-        self.next_states = torch.Tensor(np.array(self.next_states))
 
     def cast_to_jax_array(self) -> None:
         self.states = jnp.array(self.states)

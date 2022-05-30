@@ -1,13 +1,14 @@
-from operator import getitem
-import numpy as np
 import jax
 import jax.numpy as jnp
 
+from pbo.networks.pbo import BasePBO
+from pbo.weights_collection.weights_buffer import WeightsBuffer
+
 
 class WeightsDataLoader:
-    def __init__(self, weights: jnp.ndarray, batch_size: int, shuffle_key: int) -> None:
-        self.weights = weights
-        self.n_weights = weights.shape[0]
+    def __init__(self, weights_buffer: WeightsBuffer, batch_size: int, shuffle_key: int) -> None:
+        self.weights = weights_buffer.weights
+        self.n_weights = len(weights_buffer)
         self.batch_size = batch_size
         self.shuffle_key = shuffle_key
 
@@ -16,7 +17,7 @@ class WeightsDataLoader:
         self.jitted_getitem = jax.jit(self.getitem)
 
     def __len__(self) -> int:
-        return np.ceil(self.n_weights / self.batch_size).astype(int)
+        return jnp.ceil(self.n_weights / self.batch_size).astype(int)
 
     def getitem(self, idxs) -> dict:
         return self.weights[idxs]

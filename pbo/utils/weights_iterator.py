@@ -103,8 +103,8 @@ class WeightsIterator:
             )
 
             ax.set_ylim(
-                self.optimal_weights[idx_ax] - 10 * self.optimal_weights[idx_ax],
-                self.optimal_weights[idx_ax] + 10 * self.optimal_weights[idx_ax],
+                self.optimal_weights[idx_ax] - 2 * abs(self.optimal_weights[idx_ax]),
+                self.optimal_weights[idx_ax] + 2 * abs(self.optimal_weights[idx_ax]),
             )
             ax.set_ylabel(labels[idx_ax])
             if idx_ax != 2:
@@ -143,16 +143,19 @@ class WeightsIterator:
             self.iterated_optimal_error,
             yerr=self.iterated_optimal_error_std,
             color="grey",
-            ecolor="darkgrey",
+            ecolor="dimgrey",
             label="||T*(w) - T*_linear(w)||",
-            alpha=0.8,
+            alpha=0.7,
         )
         plt.axhline(y=np.linalg.norm(self.optimal_weights - self.fix_point), color="g", label="||opt_w - fix_point||")
         plt.axhline(y=self.optimal_weights_error, color="grey", label="||opt_w - fix_point_linear||")
 
         plt.ylabel("errors")
         plt.xlabel("iteration")
-        plt.ylim(0, max(iterated_error.max() + iterated_error_std.max(), 1))
+        plt.ylim(0, iterated_error.max() + iterated_error_std.max())
+        plt.title(
+            f"PBO error: {str(jnp.round(iterated_error.sum(), 2))}, Optimal linear error: {str(jnp.round(self.iterated_optimal_error.sum(), 2))}"
+        )
         plt.legend()
         plt.show()
 
