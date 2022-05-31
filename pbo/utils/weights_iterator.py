@@ -36,7 +36,7 @@ class WeightsIterator:
             ]
         )
 
-        self.optimal_linear_weights = pbo_optimal_linear.fix_point()
+        self.optimal_linear_weights = pbo_optimal_linear.fixed_point()
         self.optimal_weights_error = np.linalg.norm(self.optimal_weights - self.optimal_linear_weights)
 
         self.iterated_weights = np.zeros((n_iterations, weights.shape[0], weights.shape[1]))
@@ -64,11 +64,11 @@ class WeightsIterator:
 
         self.sleeping_time = sleeping_time
 
-    def iterate_on_params(self, params: hk.Params, fix_point: jnp.ndarray) -> None:
+    def iterate_on_params(self, params: hk.Params, fixed_point: jnp.ndarray) -> None:
         for iteration in range(1, self.n_iterations):
             self.iterated_weights[iteration] = self.pbo_apply(params, self.iterated_weights[iteration - 1])
 
-        self.fix_point = fix_point
+        self.fixed_point = fixed_point
 
     def show(self, title: str = "") -> None:
         clear_output(wait=True)
@@ -79,8 +79,10 @@ class WeightsIterator:
 
         for idx_ax, ax in enumerate(axes):
             ax.axhline(y=self.optimal_weights[idx_ax], color="black", label="Optimal weights")
-            ax.axhline(y=self.optimal_linear_weights[idx_ax], color="grey", label="Optimal weights", linestyle="--")
-            ax.axhline(y=self.fix_point[idx_ax], color="g", label="fix point", linestyle="--")
+            ax.axhline(
+                y=self.optimal_linear_weights[idx_ax], color="grey", label="Optimal linear weights", linestyle="--"
+            )
+            ax.axhline(y=self.fixed_point[idx_ax], color="g", label="fixed point", linestyle="--")
             ax.scatter(
                 range(self.n_iterations),
                 self.iterated_weights_optimal[:, 0, idx_ax],
@@ -147,12 +149,15 @@ class WeightsIterator:
             label="||T*(w) - T*_linear(w)||",
             alpha=0.7,
         )
-        plt.axhline(y=np.linalg.norm(self.optimal_weights - self.fix_point), color="g", label="||opt_w - fix_point||")
-        plt.axhline(y=self.optimal_weights_error, color="grey", label="||opt_w - fix_point_linear||")
+        plt.axhline(
+            y=np.linalg.norm(self.optimal_weights - self.fixed_point), color="g", label="||opt_w - fixed_point||"
+        )
+        plt.axhline(y=self.optimal_weights_error, color="grey", label="||opt_w - fixed_point_linear||")
 
         plt.ylabel("errors")
         plt.xlabel("iteration")
-        plt.ylim(0, iterated_error.max() + iterated_error_std.max())
+        not_nan = tuple(~jnp.isnan(iterated_error + iterated_error_std))
+        plt.ylim(0, iterated_error[not_nan].max() + iterated_error_std[not_nan].max())
         plt.title(
             f"PBO error: {str(jnp.round(iterated_error.sum(), 2))}, Optimal linear error: {str(jnp.round(self.iterated_optimal_error.sum(), 2))}"
         )

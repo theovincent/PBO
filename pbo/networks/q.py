@@ -23,8 +23,7 @@ class BaseQ:
         self.network = hk.without_apply_rng(hk.transform(network))
         self.params = self.network.init(rng=network_key, state=jnp.zeros((1)), action=jnp.zeros((1)))
 
-        self.l1_loss_and_grad = jax.jit(jax.value_and_grad(self.l1_loss))
-        self.l2_loss_and_grad = jax.jit(jax.value_and_grad(self.l2_loss))
+        self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
         self.weights_information = {}
         self.weights_dimension = 0
@@ -104,10 +103,7 @@ class BaseQ:
 
         return jnp.array(weights)
 
-    def l1_loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
-        return jnp.abs(self.network.apply(q_params, state, action) - target).sum()
-
-    def l2_loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
+    def loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
         return jnp.linalg.norm(self.network.apply(q_params, state, action) - target)
 
 
