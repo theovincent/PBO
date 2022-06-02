@@ -59,7 +59,7 @@ class BasePBO:
         loss /= self.max_bellman_iterations
 
         if self.add_infinity:
-            fixed_point = self.fixed_point(pbo_params).reshape((1, -1))
+            fixed_point = self.safe_fixed_point(pbo_params).reshape((1, -1))
             batch_targets = self.compute_target(fixed_point, sample)
             batch_targets = jax.lax.stop_gradient(batch_targets)
 
@@ -154,6 +154,9 @@ class BasePBO:
     def fixed_point(self, params: hk.Params) -> jnp.ndarray:
         raise NotImplementedError
 
+    def safe_fixed_point(self, params: hk.Params) -> jnp.ndarray:
+        raise NotImplementedError
+
 
 class LinearPBONet(hk.Module):
     def __init__(self, layer_dimension: int) -> None:
@@ -179,6 +182,12 @@ class LinearPBO(BasePBO):
         return params["LinearPBONet/linear"]["b"] @ jnp.linalg.inv(
             jnp.eye(self.q.weights_dimension) - params["LinearPBONet/linear"]["w"]
         )
+
+    def safe_fixed_point(self, params: hk.Params) -> jnp.ndarray:
+        return jnp.linalg.solve(
+            jnp.eye(self.q.weights_dimension) - params["LinearPBONet/linear"]["w"].T,
+            params["LinearPBONet/linear"]["b"].T,
+        ).T
 
     def contracting_factor(self) -> float:
         return jnp.linalg.norm(self.params["LinearPBONet/linear"]["w"], ord=1)
@@ -311,6 +320,9 @@ class BaseOptimalPBO:
     def fixed_point(self, params: hk.Params) -> jnp.ndarray:
         raise NotImplementedError
 
+    def safe_fixed_point(self, params: hk.Params) -> jnp.ndarray:
+        raise NotImplementedError
+
 
 class OptimalLinearPBO(BaseOptimalPBO):
     def __init__(
@@ -333,3 +345,9 @@ class OptimalLinearPBO(BaseOptimalPBO):
         return params["LinearPBONet/linear"]["b"] @ jnp.linalg.inv(
             jnp.eye(self.q_weights_dimension) - params["LinearPBONet/linear"]["w"]
         )
+
+    def safe_fixed_point(self, params: hk.Params) -> jnp.ndarray:
+        return jnp.linalg.solve(
+            jnp.eye(self.q_weights_dimension) - params["LinearPBONet/linear"]["w"].T,
+            params["LinearPBONet/linear"]["b"].T,
+        ).T
