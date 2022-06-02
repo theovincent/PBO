@@ -26,26 +26,26 @@ class StateActionMesh:
 
     def show(self, title: str = "") -> None:
         clear_output(wait=True)
-        self.fig, self.ax = plt.subplots()
+        fig, ax = plt.subplots()
 
-        colors = self.ax.pcolormesh(self.grid_action, self.grid_states, self.values, shading="nearest")
+        colors = ax.pcolormesh(self.grid_action, self.grid_states, self.values, shading="nearest")
 
-        self.ax.set_xticks(self.actions)
-        self.ax.set_xticklabels(np.around(self.actions, 2))
-        self.ax.set_xlim(self.actions[0], self.actions[-1])
-        self.ax.set_xlabel("Actions")
+        ax.set_xticks(self.actions)
+        ax.set_xticklabels(np.around(self.actions, 2))
+        ax.set_xlim(self.actions[0], self.actions[-1])
+        ax.set_xlabel("Actions")
 
-        self.ax.set_yticks(self.states)
-        self.ax.set_yticklabels(np.around(self.states, 2))
-        self.ax.set_ylim(self.states[0], self.states[-1])
-        self.ax.set_ylabel("States")
+        ax.set_yticks(self.states)
+        ax.set_yticklabels(np.around(self.states, 2))
+        ax.set_ylim(self.states[0], self.states[-1])
+        ax.set_ylabel("States")
 
-        self.ax.set_aspect("equal", "box")
+        ax.set_aspect("equal", "box")
         if title != "":
-            self.ax.set_title(title)
+            ax.set_title(title)
 
-        self.fig.colorbar(colors, ax=self.ax)
-        self.fig.tight_layout()
-        self.fig.canvas.draw()
+        fig.colorbar(colors, ax=ax)
+        fig.tight_layout()
+        fig.canvas.draw()
         plt.show()
         time.sleep(self.sleeping_time)

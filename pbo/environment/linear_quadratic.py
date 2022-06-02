@@ -1,3 +1,5 @@
+from functools import partial
+
 import scipy.linalg as sc_linalg
 import jax
 import jax.numpy as jnp
@@ -67,9 +69,13 @@ class LinearQuadraticEnv:
             self.S = jax.random.uniform(key, (1, 1), minval=-0.5, maxval=0.5)
 
             self.P = jnp.array(sc_linalg.solve_discrete_are(self.A, self.B, self.Q, self.R, s=self.S))
+
+            riccati_respected = self.check_riccati_equation(
+                self.P[0, 0], self.A[0, 0], self.B[0, 0], self.Q[0, 0], self.R[0, 0], self.S[0, 0]
+            )
             self.R_hat = self.R + self.B.T @ self.P @ self.B
 
-            if self.R_hat < 0:
+            if self.R_hat < 0 and riccati_respected:
                 controllable = True
                 self.S_hat = self.S + self.A.T @ self.P @ self.B
                 self.K = sc_linalg.inv(self.R_hat) @ self.S_hat.T
@@ -81,6 +87,10 @@ class LinearQuadraticEnv:
 
         self.initial_state = initial_state
         self.max_init_state = max_init_state
+
+    @staticmethod
+    def check_riccati_equation(P: float, A: float, B: float, Q: float, R: float, S: float) -> bool:
+        return abs(Q + A**2 * P - (S + A * P * B) ** 2 / (R + B**2 * P) - P) < 1e-8
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
@@ -105,3 +115,20 @@ class LinearQuadraticEnv:
 
     def optimal_action(self) -> jnp.ndarray:
         return -self.K @ self.state
+
+    def optimal_Q_value(self, state: float, action: float) -> float:
+        k = self.Q[0, 0] + self.A[0, 0] ** 2 * self.P[0, 0]
+        i = self.S[0, 0] + self.A[0, 0] * self.B[0, 0] * self.P[0, 0]
+        m = self.R[0, 0] + self.B[0, 0] ** 2 * self.P[0, 0]
+
+        return state**2 * k + 2 * state * action * i + action**2 * m
+
+    @partial(jax.jit, static_argnames="self")
+    def optimal_Q_values(self, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
+        return jax.vmap(lambda state, action: self.optimal_Q_value(state, action))(states, actions)
+
+    def optimal_Q_mesh(self, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
+        states_mesh, actions_mesh = jnp.meshgrid(states, actions, indexing="ij")
+
+        # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        return self.optimal_Q_values(states_mesh, actions_mesh).reshape((states.shape[0], actions.shape[0]))
