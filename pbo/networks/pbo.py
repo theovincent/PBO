@@ -193,6 +193,44 @@ class LinearPBO(BasePBO):
         return jnp.linalg.norm(self.params["LinearPBONet/linear"]["w"], ord=1)
 
 
+class Linear1ParamPBONet(hk.Module):
+    def __init__(self) -> None:
+        super().__init__(name="Linear1ParamPBONet")
+
+    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        estimated_p = weights[:, 0] - weights[:, 1] ** 2 / weights[:, 2]
+
+        x = hk.Linear(3, name="linear")(estimated_p.reshape((-1, 1)))
+
+        return x
+
+
+class Linear1ParamPBO(BasePBO):
+    def __init__(
+        self, network_key: int, q: BaseQ, learning_rate: float, max_bellman_iterations: int, add_infinity: bool
+    ) -> None:
+        def network(weights: jnp.ndarray) -> jnp.ndarray:
+            return LinearPBONet()(weights)
+
+        super(Linear1ParamPBO, self).__init__(
+            network, network_key, q, learning_rate, max_bellman_iterations, add_infinity
+        )
+
+    def fixed_point(self, params: hk.Params) -> jnp.ndarray:
+        return params["LinearPBONet/linear"]["b"] @ jnp.linalg.inv(
+            jnp.eye(self.q.weights_dimension) - params["LinearPBONet/linear"]["w"]
+        )
+
+    def safe_fixed_point(self, params: hk.Params) -> jnp.ndarray:
+        return jnp.linalg.solve(
+            jnp.eye(self.q.weights_dimension) - params["LinearPBONet/linear"]["w"].T,
+            params["LinearPBONet/linear"]["b"].T,
+        ).T
+
+    def contracting_factor(self) -> float:
+        return jnp.linalg.norm(self.params["LinearPBONet/linear"]["w"], ord=1)
+
+
 class OptimalPBO:
     def __init__(self, A: float, B: float, Q: float, R: float, S: float, P: float) -> None:
         self.A = A
@@ -262,7 +300,7 @@ class OptimalPBO:
         )
 
 
-class BaseOptimalPBO:
+class BaseWeightsOptimalPBO:
     def __init__(
         self,
         network: hk.Module,
@@ -324,7 +362,7 @@ class BaseOptimalPBO:
         raise NotImplementedError
 
 
-class OptimalLinearPBO(BaseOptimalPBO):
+class WeightsOptimalLinearPBO(BaseWeightsOptimalPBO):
     def __init__(
         self,
         network_key: int,
@@ -337,7 +375,7 @@ class OptimalLinearPBO(BaseOptimalPBO):
         def network(weights: jnp.ndarray) -> jnp.ndarray:
             return LinearPBONet(q_weights_dimension)(weights)
 
-        super(OptimalLinearPBO, self).__init__(
+        super(WeightsOptimalLinearPBO, self).__init__(
             network, network_key, q_weights_dimension, learning_rate, pbo_optimal, max_bellman_iterations, add_infinity
         )
 
