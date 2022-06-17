@@ -14,11 +14,15 @@ class BaseQ:
         random_weights_key: int,
         action_range_on_max: float,
         n_actions_on_max: int,
+        continuous_actions: bool = True,
     ) -> None:
         self.random_weights_range = random_weights_range
         self.random_weights_key = random_weights_key
         self.n_actions_on_max = n_actions_on_max
-        self.discrete_actions_on_max = jnp.linspace(-action_range_on_max, action_range_on_max, num=n_actions_on_max)
+        if continuous_actions:
+            self.discrete_actions_on_max = jnp.linspace(-action_range_on_max, action_range_on_max, num=n_actions_on_max)
+        else:
+            self.discrete_actions_on_max = jnp.arange(n_actions_on_max)
 
         self.network = hk.without_apply_rng(hk.transform(network))
         self.params = self.network.init(rng=network_key, state=jnp.zeros((1)), action=jnp.zeros((1)))
@@ -62,8 +66,6 @@ class BaseQ:
         batch_values = self.network.apply(q_params, states, actions).reshape(
             (batch_states.shape[0], self.n_actions_on_max)
         )
-
-        # print("arg max", actions[batch_values.argmax()])
 
         return batch_values.max(axis=1).reshape((-1, 1))
 
@@ -178,4 +180,45 @@ class TheoreticalQ(BaseQ):
 
         super(TheoreticalQ, self).__init__(
             network, network_key, random_weights_range, random_weights_key, action_range_on_max, n_actions_on_max
+        )
+
+
+class TableQNet(hk.Module):
+    def __init__(self, n_states: int, n_actions: int) -> None:
+        super().__init__(name="TableQNet")
+        self.n_states = n_states
+        self.n_actions = n_actions
+
+    def __call__(
+        self,
+        state: jnp.ndarray,
+        action: jnp.ndarray,
+    ) -> jnp.ndarray:
+        table = hk.get_parameter(
+            "table", (self.n_states, self.n_actions), state.dtype, init=hk.initializers.TruncatedNormal()
+        )
+
+        return jax.vmap(lambda state_, action_: table[state_, action_])(state.astype(int), action.astype(int))
+
+
+class TableQ(BaseQ):
+    def __init__(
+        self,
+        network_key: int,
+        random_weights_range: float,
+        random_weights_key: int,
+        n_states: int,
+        n_actions: int,
+    ) -> None:
+        def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
+            return TableQNet(n_states, n_actions)(state, action)
+
+        super(TableQ, self).__init__(
+            network,
+            network_key,
+            random_weights_range,
+            random_weights_key,
+            None,
+            n_actions,
+            continuous_actions=False,
         )

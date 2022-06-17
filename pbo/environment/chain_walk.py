@@ -1,16 +1,14 @@
-import numpy as np
-
 import jax
 import jax.numpy as jnp
 
 
-class ChainWalk:
+class ChainWalkEnv:
     def __init__(
         self,
+        env_key: int,
         n_states: int,
         sucess_probability: float,
         gamma: float,
-        env_key: int,
         initial_state: jnp.ndarray = None,
     ) -> None:
         self.n_states = n_states
@@ -20,9 +18,9 @@ class ChainWalk:
 
         self.initial_state = initial_state
 
-        self.rewards = np.zeros(self.n_states)
-        self.rewards[0] = 1
-        self.rewards[-1] = 1
+        self.rewards = jnp.zeros(self.n_states)
+        self.rewards = self.rewards.at[0].set(1)
+        self.rewards = self.rewards.at[-1].set(1)
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
@@ -48,29 +46,42 @@ class ChainWalk:
 
         return self.state, jnp.array([reward]), absorbing, {}
 
-    def apply_bellman_operator(self, q: np.ndarray) -> None:
+    def apply_bellman_operator(self, q: jnp.ndarray) -> jnp.array:
+        iterated_q = q.copy()
+
         # left_shift_q = q on the first and last states
-        left_shift_q = q.copy()
-        left_shift_q[1:-1] = q[:-2]
-        q[:, 0] = self.rewards + self.gamma * (
-            self.sucess_probability * jnp.max(left_shift_q, axis=1) + (1 - self.sucess_probability) * jnp.max(q, axis=1)
+        left_shift_q = iterated_q.copy()
+        left_shift_q = left_shift_q.at[1:-1].set(iterated_q[:-2])
+        iterated_q = iterated_q.at[:, 0].set(
+            self.rewards
+            + self.gamma
+            * (
+                self.sucess_probability * jnp.max(left_shift_q, axis=1)
+                + (1 - self.sucess_probability) * jnp.max(iterated_q, axis=1)
+            )
         )
 
         # right_shift_q = q on the first and last states
-        right_shift_q = q.copy()
-        right_shift_q[1:-1] = q[2:, :]
-        q[:, 1] = self.rewards + self.gamma * (
-            self.sucess_probability * jnp.max(right_shift_q, axis=1)
-            + (1 - self.sucess_probability) * jnp.max(q, axis=1)
+        right_shift_q = iterated_q.copy()
+        right_shift_q = right_shift_q.at[1:-1].set(iterated_q[2:, :])
+        iterated_q = iterated_q.at[:, 1].set(
+            self.rewards
+            + self.gamma
+            * (
+                self.sucess_probability * jnp.max(right_shift_q, axis=1)
+                + (1 - self.sucess_probability) * jnp.max(iterated_q, axis=1)
+            )
         )
 
+        return iterated_q
+
     def optimal_Q_mesh(self) -> jnp.ndarray:
-        q = np.zeros((self.n_states, 2))
+        q = jnp.zeros((self.n_states, 2))
         changes = float("inf")
 
         while changes > 1e-9:
             old_q = q.copy()
-            self.apply_bellman_operator(q)
-            changes = np.linalg.norm(q - old_q)
+            q = self.apply_bellman_operator(q)
+            changes = jnp.linalg.norm(q - old_q)
 
         return jnp.array(q)

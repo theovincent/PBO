@@ -6,14 +6,14 @@ from IPython.display import clear_output
 import jax.numpy as jnp
 import haiku as hk
 
-from pbo.networks.pbo import BaseOptimalPBO, BaseWeightsOptimalPBO
+from pbo.networks.pbo import OptimalPBO, BaseWeightsOptimalPBO
 
 
 class WeightsIterator:
     def __init__(
         self,
         pbo_apply,
-        pbo_optimal: BaseOptimalPBO,
+        pbo_optimal: OptimalPBO,
         pbo_optimal_linear: BaseWeightsOptimalPBO,
         weights: jnp.ndarray,
         n_iterations: int,

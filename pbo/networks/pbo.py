@@ -17,10 +17,12 @@ class BasePBO:
         learning_rate: float,
         max_bellman_iterations: int,
         add_infinity: bool,
+        importance_iteration: list,
     ) -> None:
         self.q = q
         self.max_bellman_iterations = max_bellman_iterations
         self.add_infinity = add_infinity
+        self.importance_iteration = jnp.array(importance_iteration)
 
         self.network = hk.without_apply_rng(hk.transform(network))
         self.params = self.network.init(rng=network_key, weights=jnp.zeros((q.weights_dimension)))
@@ -44,7 +46,7 @@ class BasePBO:
         loss = 0
         batch_iterated_weights = batch_weights
 
-        for _ in jnp.arange(1, self.max_bellman_iterations + 1):
+        for idx_iteration in jnp.arange(self.max_bellman_iterations):
             batch_targets = self.compute_target(batch_iterated_weights, sample)
             batch_targets = jax.lax.stop_gradient(batch_targets)
 
@@ -54,7 +56,7 @@ class BasePBO:
                 lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
             )(batch_iterated_weights)
 
-            loss += jnp.linalg.norm(q_values - batch_targets)
+            loss += self.importance_iteration[idx_iteration] * jnp.linalg.norm(q_values - batch_targets)
 
         loss /= self.max_bellman_iterations
 
@@ -67,7 +69,7 @@ class BasePBO:
                 lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
             )(fixed_point)
 
-            loss += jnp.linalg.norm(q_values - batch_targets)
+            loss += self.importance_iteration[-1] * jnp.linalg.norm(q_values - batch_targets)
 
         return loss
 
@@ -76,7 +78,7 @@ class BasePBO:
         loss = 0
         batch_iterated_weights = batch_weights
 
-        for _ in jnp.arange(1, self.max_bellman_iterations + 1):
+        for idx_iteration in jnp.arange(self.max_bellman_iterations):
             batch_targets = self.compute_target(batch_iterated_weights, sample)
 
             batch_iterated_weights = self.network.apply(pbo_params, batch_iterated_weights)
@@ -85,7 +87,7 @@ class BasePBO:
                 lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
             )(batch_iterated_weights)
 
-            loss += jnp.abs(q_values - batch_targets).mean()
+            loss += self.importance_iteration[idx_iteration] * jnp.abs(q_values - batch_targets).mean()
 
         loss /= self.max_bellman_iterations
 
@@ -97,7 +99,7 @@ class BasePBO:
                 lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
             )(fixed_point)
 
-            loss += jnp.abs(q_values - batch_targets).mean()
+            loss += self.importance_iteration[-1] * jnp.abs(q_values - batch_targets).mean()
 
         return loss
 
@@ -113,7 +115,7 @@ class BasePBO:
         loss_mesh = jnp.zeros((n_discrete_states, n_discrete_actions))
         batch_iterated_weights = batch_weights
 
-        for _ in jnp.arange(1, self.max_bellman_iterations + 1):
+        for idx_iteration in jnp.arange(self.max_bellman_iterations):
             batch_targets = self.compute_target(batch_iterated_weights, sample).reshape(
                 (-1, n_discrete_states, n_discrete_actions)
             )
@@ -123,7 +125,9 @@ class BasePBO:
                 lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
             )(batch_iterated_weights).reshape((-1, n_discrete_states, n_discrete_actions))
 
-            loss_mesh = loss_mesh.at[:].add(jnp.abs(q_values - batch_targets).mean(axis=0))
+            loss_mesh = loss_mesh.at[:].add(
+                self.importance_iteration[idx_iteration] * jnp.abs(q_values - batch_targets).mean(axis=0)
+            )
 
         loss_mesh /= self.max_bellman_iterations
 
@@ -137,7 +141,9 @@ class BasePBO:
                 lambda weights: self.q.network.apply(self.q.to_params(weights), sample["state"], sample["action"])
             )(fixed_point).reshape((-1, n_discrete_states, n_discrete_actions))
 
-            loss_mesh = loss_mesh.at[:].add(jnp.abs(q_values - batch_targets).mean(axis=0))
+            loss_mesh = loss_mesh.at[:].add(
+                self.importance_iteration[-1] * jnp.abs(q_values - batch_targets).mean(axis=0)
+            )
 
         return loss_mesh
 
@@ -171,12 +177,20 @@ class LinearPBONet(hk.Module):
 
 class LinearPBO(BasePBO):
     def __init__(
-        self, network_key: int, q: BaseQ, learning_rate: float, max_bellman_iterations: int, add_infinity: bool
+        self,
+        network_key: int,
+        q: BaseQ,
+        learning_rate: float,
+        max_bellman_iterations: int,
+        add_infinity: bool,
+        importance_iteration: list,
     ) -> None:
         def network(weights: jnp.ndarray) -> jnp.ndarray:
             return LinearPBONet(q.weights_dimension)(weights)
 
-        super(LinearPBO, self).__init__(network, network_key, q, learning_rate, max_bellman_iterations, add_infinity)
+        super(LinearPBO, self).__init__(
+            network, network_key, q, learning_rate, max_bellman_iterations, add_infinity, importance_iteration
+        )
 
     def fixed_point(self, params: hk.Params) -> jnp.ndarray:
         return params["LinearPBONet/linear"]["b"] @ jnp.linalg.inv(
@@ -207,13 +221,19 @@ class Linear1ParamPBONet(hk.Module):
 
 class Linear1ParamPBO(BasePBO):
     def __init__(
-        self, network_key: int, q: BaseQ, learning_rate: float, max_bellman_iterations: int, add_infinity: bool
+        self,
+        network_key: int,
+        q: BaseQ,
+        learning_rate: float,
+        max_bellman_iterations: int,
+        add_infinity: bool,
+        importance_iteration: list,
     ) -> None:
         def network(weights: jnp.ndarray) -> jnp.ndarray:
             return LinearPBONet()(weights)
 
         super(Linear1ParamPBO, self).__init__(
-            network, network_key, q, learning_rate, max_bellman_iterations, add_infinity
+            network, network_key, q, learning_rate, max_bellman_iterations, add_infinity, importance_iteration
         )
 
     def fixed_point(self, params: hk.Params) -> jnp.ndarray:
@@ -232,13 +252,14 @@ class Linear1ParamPBO(BasePBO):
 
 
 class OptimalPBO:
-    def __init__(self, A: float, B: float, Q: float, R: float, S: float, P: float) -> None:
+    def __init__(self, A: float, B: float, Q: float, R: float, S: float, P: float, importance_iteration: list) -> None:
         self.A = A
         self.B = B
         self.Q = Q
         self.R = R
         self.S = S
         self.P = P
+        self.importance_iteration = jnp.array(importance_iteration)
 
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
         # a batch of weights comes with shape (b_s, 3)
@@ -265,7 +286,7 @@ class OptimalPBO:
         loss = 0
         batch_iterated_weights = batch_weights
 
-        for _ in jnp.arange(1, max_bellman_iterations + 1):
+        for idx_iteration in jnp.arange(max_bellman_iterations):
             batch_targets = pbo.compute_target(batch_iterated_weights, sample)
 
             batch_iterated_weights = self(batch_iterated_weights)
@@ -274,7 +295,7 @@ class OptimalPBO:
                 lambda weights: q.network.apply(q.to_params(weights), sample["state"], sample["action"])
             )(batch_iterated_weights)
 
-            loss += jnp.abs(q_values - batch_targets).mean()
+            loss += self.importance_iteration[idx_iteration] * jnp.abs(q_values - batch_targets).mean()
 
         loss / max_bellman_iterations
 
@@ -286,7 +307,7 @@ class OptimalPBO:
                 lambda weights: q.network.apply(q.to_params(weights), sample["state"], sample["action"])
             )(fixed_point)
 
-            loss += jnp.abs(q_values - batch_targets).mean()
+            loss += self.importance_iteration[-1] * jnp.abs(q_values - batch_targets).mean()
 
         return loss
 
@@ -310,11 +331,13 @@ class BaseWeightsOptimalPBO:
         pbo_optimal: OptimalPBO,
         max_bellman_iterations: int,
         add_infinity: bool,
+        importance_iteration: list,
     ) -> None:
         self.q_weights_dimension = q_weights_dimension
         self.pbo_optimal = pbo_optimal
         self.max_bellman_iterations = max_bellman_iterations
         self.add_infinity = add_infinity
+        self.importance_iteration = jnp.array(importance_iteration)
 
         self.network = hk.without_apply_rng(hk.transform(network))
         self.params = self.network.init(rng=network_key, weights=jnp.zeros((q_weights_dimension)))
@@ -332,22 +355,24 @@ class BaseWeightsOptimalPBO:
         batch_weights_iterated = batch_weights
         batch_weights_optimal_iterated = batch_weights
 
-        for _ in jnp.arange(1, self.max_bellman_iterations + 1):
+        for idx_iteration in jnp.arange(self.max_bellman_iterations):
             batch_weights_iterated = self.network.apply(pbo_params, batch_weights_iterated)
             batch_weights_optimal_iterated = self.pbo_optimal(batch_weights_optimal_iterated)
             batch_weights_optimal_iterated = jax.lax.stop_gradient(batch_weights_optimal_iterated)
 
-            loss += jnp.linalg.norm(batch_weights_optimal_iterated - batch_weights_iterated)
+            loss += self.importance_iteration[idx_iteration] * jnp.linalg.norm(
+                batch_weights_optimal_iterated - batch_weights_iterated
+            )
 
         loss /= self.max_bellman_iterations
 
         if self.add_infinity:
             batch_fixed_point = self.fixed_point(pbo_params)
-            loss += jnp.linalg.norm(batch_fixed_point - self.pbo_optimal.fixed_point())
+            loss += self.importance_iteration[-1] * jnp.linalg.norm(batch_fixed_point - self.pbo_optimal.fixed_point())
 
         return loss
 
-    @partial(jax.jit, static_argnames=("self", "n_iterations"))
+    @partial(jax.jit, static_argnames="self")
     def learn_on_batch(self, params: hk.Params, optimizer_state: tuple, batch_weights: jnp.ndarray) -> tuple:
         loss, grad_loss = self.loss_and_grad(params, batch_weights)
         updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
@@ -371,12 +396,176 @@ class WeightsOptimalLinearPBO(BaseWeightsOptimalPBO):
         pbo_optimal: OptimalPBO,
         max_bellman_iterations: int,
         add_infinity: bool,
+        importance_iteration: list,
     ) -> None:
         def network(weights: jnp.ndarray) -> jnp.ndarray:
             return LinearPBONet(q_weights_dimension)(weights)
 
         super(WeightsOptimalLinearPBO, self).__init__(
-            network, network_key, q_weights_dimension, learning_rate, pbo_optimal, max_bellman_iterations, add_infinity
+            network,
+            network_key,
+            q_weights_dimension,
+            learning_rate,
+            pbo_optimal,
+            max_bellman_iterations,
+            add_infinity,
+            importance_iteration,
+        )
+
+    def fixed_point(self, params: hk.Params) -> jnp.ndarray:
+        return params["LinearPBONet/linear"]["b"] @ jnp.linalg.inv(
+            jnp.eye(self.q_weights_dimension) - params["LinearPBONet/linear"]["w"]
+        )
+
+    def safe_fixed_point(self, params: hk.Params) -> jnp.ndarray:
+        return jnp.linalg.solve(
+            jnp.eye(self.q_weights_dimension) - params["LinearPBONet/linear"]["w"].T,
+            params["LinearPBONet/linear"]["b"].T,
+        ).T
+
+
+class OptimalTablePBO:
+    def __init__(self, q: BaseQ, optimal_bellman_operator, optimal_q: jnp.ndarray, importance_iteration: list) -> None:
+        self.q = q
+        self.optimal_bellman_operator = optimal_bellman_operator
+        self.optimal_q = optimal_q
+        self.importance_iteration = jnp.array(importance_iteration)
+
+    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        return jax.vmap(
+            lambda weights_: self.optimal_bellman_operator(self.q.to_params(weights_)["TableQNet"]["table"]).flatten()
+        )(weights)
+
+    def l1_loss(
+        self,
+        pbo: BasePBO,
+        q: BaseQ,
+        batch_weights: jnp.ndarray,
+        sample: dict,
+        max_bellman_iterations: int,
+        add_infinity: bool,
+    ) -> float:
+        loss = 0
+        batch_iterated_weights = batch_weights
+
+        for idx_iteration in jnp.arange(max_bellman_iterations):
+            batch_targets = pbo.compute_target(batch_iterated_weights, sample)
+
+            batch_iterated_weights = self(batch_iterated_weights)
+
+            q_values = jax.vmap(
+                lambda weights: q.network.apply(q.to_params(weights), sample["state"], sample["action"])
+            )(batch_iterated_weights)
+
+            loss += self.importance_iteration[idx_iteration] * jnp.abs(q_values - batch_targets).mean()
+
+        loss / max_bellman_iterations
+
+        if add_infinity:
+            fixed_point = self.fixed_point().reshape((1, -1))
+            batch_targets = pbo.compute_target(fixed_point, sample)
+
+            q_values = jax.vmap(
+                lambda weights: q.network.apply(q.to_params(weights), sample["state"], sample["action"])
+            )(fixed_point)
+
+            loss += self.importance_iteration[-1] * jnp.abs(q_values - batch_targets).mean()
+
+        return loss
+
+    def fixed_point(self) -> jnp.ndarray:
+        return self.optimal_q
+
+
+class BaseWeightsOptimalTablePBO:
+    def __init__(
+        self,
+        network: hk.Module,
+        network_key: int,
+        q_weights_dimension: int,
+        learning_rate: float,
+        pbo_optimal: OptimalTablePBO,
+        max_bellman_iterations: int,
+        add_infinity: bool,
+        importance_iteration: list,
+    ) -> None:
+        self.q_weights_dimension = q_weights_dimension
+        self.pbo_optimal = pbo_optimal
+        self.max_bellman_iterations = max_bellman_iterations
+        self.add_infinity = add_infinity
+        self.importance_iteration = jnp.array(importance_iteration)
+
+        self.network = hk.without_apply_rng(hk.transform(network))
+        self.params = self.network.init(rng=network_key, weights=jnp.zeros((q_weights_dimension)))
+
+        self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
+
+        learning_rate_schedule = optax.linear_schedule(
+            learning_rate["first"], learning_rate["last"], learning_rate["duration"]
+        )
+        self.optimizer = optax.sgd(learning_rate_schedule)
+        self.optimizer_state = self.optimizer.init(self.params)
+
+    def loss(self, pbo_params: hk.Params, batch_weights: jnp.ndarray) -> jnp.ndarray:
+        loss = 0
+        batch_weights_iterated = batch_weights
+        batch_weights_optimal_iterated = batch_weights
+
+        for idx_iteration in jnp.arange(self.max_bellman_iterations):
+            batch_weights_iterated = self.network.apply(pbo_params, batch_weights_iterated)
+            batch_weights_optimal_iterated = self.pbo_optimal(batch_weights_optimal_iterated)
+            batch_weights_optimal_iterated = jax.lax.stop_gradient(batch_weights_optimal_iterated)
+
+            loss += self.importance_iteration[idx_iteration] * jnp.linalg.norm(
+                batch_weights_optimal_iterated - batch_weights_iterated
+            )
+
+        loss /= self.max_bellman_iterations
+
+        if self.add_infinity:
+            batch_fixed_point = self.fixed_point(pbo_params)
+            loss += self.importance_iteration[-1] * jnp.linalg.norm(batch_fixed_point - self.pbo_optimal.fixed_point())
+
+        return loss
+
+    @partial(jax.jit, static_argnames="self")
+    def learn_on_batch(self, params: hk.Params, optimizer_state: tuple, batch_weights: jnp.ndarray) -> tuple:
+        loss, grad_loss = self.loss_and_grad(params, batch_weights)
+        updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
+        params = optax.apply_updates(params, updates)
+
+        return params, optimizer_state, loss, grad_loss
+
+    def fixed_point(self, params: hk.Params) -> jnp.ndarray:
+        raise NotImplementedError
+
+    def safe_fixed_point(self, params: hk.Params) -> jnp.ndarray:
+        raise NotImplementedError
+
+
+class WeightsOptimalLinearTablePBO(BaseWeightsOptimalTablePBO):
+    def __init__(
+        self,
+        network_key: int,
+        q_weights_dimension: int,
+        learning_rate: float,
+        pbo_optimal: OptimalTablePBO,
+        max_bellman_iterations: int,
+        add_infinity: bool,
+        importance_iteration: list,
+    ) -> None:
+        def network(weights: jnp.ndarray) -> jnp.ndarray:
+            return LinearPBONet(q_weights_dimension)(weights)
+
+        super(WeightsOptimalLinearTablePBO, self).__init__(
+            network,
+            network_key,
+            q_weights_dimension,
+            learning_rate,
+            pbo_optimal,
+            max_bellman_iterations,
+            add_infinity,
+            importance_iteration,
         )
 
     def fixed_point(self, params: hk.Params) -> jnp.ndarray:
