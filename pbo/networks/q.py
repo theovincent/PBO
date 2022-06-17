@@ -63,6 +63,8 @@ class BaseQ:
             (batch_states.shape[0], self.n_actions_on_max)
         )
 
+        # print("arg max", actions[batch_values.argmax()])
+
         return batch_values.max(axis=1).reshape((-1, 1))
 
     def discretize(
@@ -148,7 +150,7 @@ class FullyConnectedQ(BaseQ):
 
 class TheoreticalQNet(hk.Module):
     def __init__(self) -> None:
-        super().__init__(name="TheoreticalQNet")
+        super().__init__(name="Theoretical3DQNet")
 
     def __call__(
         self,
