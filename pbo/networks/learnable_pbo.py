@@ -1,5 +1,5 @@
 from functools import partial
-from lib2to3.pytree import Base
+
 import jax.numpy as jnp
 import jax
 import haiku as hk

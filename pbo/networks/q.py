@@ -1,5 +1,6 @@
-import numpy as np
+from functools import partial
 
+import numpy as np
 import haiku as hk
 import jax
 import jax.numpy as jnp
@@ -35,7 +36,7 @@ class BaseQ:
         for key_layer, layer in self.params.items():
             self.weights_information[key_layer] = dict()
             for key_weight_layer, weight_layer in layer.items():
-                # int if weight_layer.shape = () happens
+                # int because weight_layer.shape = () can happen
                 weight_layer_dimensions = int(np.prod(weight_layer.shape))
 
                 self.weights_information[key_layer][key_weight_layer] = {
@@ -57,18 +58,22 @@ class BaseQ:
 
         return self.to_weights(self.network.init(rng=key, state=jnp.zeros((1)), action=jnp.zeros((1))))
 
+    @partial(jax.jit, static_argnames="self")
+    def __call__(self, params: hk.Params, weights: jnp.ndarray) -> jnp.ndarray:
+        return self.network.apply(params, weights)
+
+    @partial(jax.jit, static_argnames="self")
     def max_value(self, q_params: hk.Params, batch_states: jnp.ndarray) -> jnp.ndarray:
         states_mesh, actions_mesh = jnp.meshgrid(batch_states.flatten(), self.discrete_actions_on_max, indexing="ij")
         states = states_mesh.reshape((-1, 1))
         actions = actions_mesh.reshape((-1, 1))
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        batch_values = self.network.apply(q_params, states, actions).reshape(
-            (batch_states.shape[0], self.n_actions_on_max)
-        )
+        batch_values = self(q_params, states, actions).reshape((batch_states.shape[0], self.n_actions_on_max))
 
         return batch_values.max(axis=1).reshape((-1, 1))
 
+    @partial(jax.jit, static_argnames="self")
     def discretize(
         self, batch_weights: jnp.ndarray, discrete_states: np.ndarray, discrete_actions: np.ndarray
     ) -> jnp.ndarray:
@@ -77,10 +82,11 @@ class BaseQ:
         actions = actions_mesh.reshape((-1, 1))
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return jax.vmap(lambda weights: self.network.apply(self.to_params(weights), states, actions))(
-            batch_weights
-        ).reshape((-1, len(discrete_states), len(discrete_actions)))
+        return jax.vmap(lambda weights: self(self.to_params(weights), states, actions))(batch_weights).reshape(
+            (-1, len(discrete_states), len(discrete_actions))
+        )
 
+    @partial(jax.jit, static_argnames="self")
     def to_params(self, weights: jnp.ndarray) -> hk.Params:
         params = dict()
 
@@ -95,6 +101,7 @@ class BaseQ:
 
         return params
 
+    @partial(jax.jit, static_argnames="self")
     def to_weights(self, params: hk.Params) -> jnp.ndarray:
         weights = jnp.zeros(self.weights_dimension)
 
@@ -107,8 +114,9 @@ class BaseQ:
 
         return jnp.array(weights)
 
+    @partial(jax.jit, static_argnames="self")
     def loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
-        return jnp.linalg.norm(self.network.apply(q_params, state, action) - target)
+        return jnp.linalg.norm(self(q_params, state, action) - target)
 
 
 class FullyConnectedQNet(hk.Module):
@@ -145,12 +153,12 @@ class FullyConnectedQ(BaseQ):
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
             return FullyConnectedQNet(layers_dimension)(state, action)
 
-        super(FullyConnectedQ, self).__init__(
+        super().__init__(
             network, network_key, random_weights_range, random_weights_key, action_range_on_max, n_actions_on_max
         )
 
 
-class TheoreticalQNet(hk.Module):
+class LQRQNet(hk.Module):
     def __init__(self) -> None:
         super().__init__(name="Theoretical3DQNet")
 
@@ -166,7 +174,7 @@ class TheoreticalQNet(hk.Module):
         return state**2 * k + 2 * state * action * i + action**2 * m
 
 
-class TheoreticalQ(BaseQ):
+class LQRQ(BaseQ):
     def __init__(
         self,
         network_key: int,
@@ -176,9 +184,9 @@ class TheoreticalQ(BaseQ):
         n_actions_on_max: int,
     ) -> None:
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
-            return TheoreticalQNet()(state, action)
+            return LQRQNet()(state, action)
 
-        super(TheoreticalQ, self).__init__(
+        super().__init__(
             network, network_key, random_weights_range, random_weights_key, action_range_on_max, n_actions_on_max
         )
 
@@ -213,7 +221,7 @@ class TableQ(BaseQ):
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
             return TableQNet(n_states, n_actions)(state, action)
 
-        super(TableQ, self).__init__(
+        super().__init__(
             network,
             network_key,
             random_weights_range,
