@@ -1,7 +1,6 @@
 import jax
 import jax.numpy as jnp
 
-from pbo.networks.pbo import BasePBO
 from pbo.weights_collection.weights_buffer import WeightsBuffer
 
 

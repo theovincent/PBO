@@ -6,7 +6,8 @@ import haiku as hk
 import optax
 
 from pbo.networks.q import BaseQ
-from pbo.networks.base_pbo import BasePBO, BaseOptimalPBO
+from pbo.networks.base_pbo import BasePBO
+from pbo.networks.optimal_pbo import OptimalPBO
 
 
 class LearnablePBO(BasePBO):
@@ -96,7 +97,7 @@ class LearnableOnWeightsPBO(LearnablePBO):
         network: hk.Module,
         network_key: int,
         learning_rate: float,
-        pbo_optimal: BaseOptimalPBO,
+        pbo_optimal: OptimalPBO,
     ) -> None:
         super().__init__(
             q, max_bellman_iterations, add_infinity, importance_iteration, network, network_key, learning_rate
@@ -153,18 +154,17 @@ class LinearPBOOnWeights(LearnableOnWeightsPBO):
     def __init__(
         self,
         q: BaseQ,
-        pbo_optimal: BaseOptimalPBO,
         max_bellman_iterations: int,
         add_infinity: bool,
         importance_iteration: list,
         network_key: int,
         learning_rate: float,
+        pbo_optimal: OptimalPBO,
     ) -> None:
         def network(weights: jnp.ndarray) -> jnp.ndarray:
             return LinearPBONet(q.weights_dimension)(weights)
 
         super().__init__(
-            self,
             q,
             max_bellman_iterations,
             add_infinity,

@@ -59,8 +59,8 @@ class BaseQ:
         return self.to_weights(self.network.init(rng=key, state=jnp.zeros((1)), action=jnp.zeros((1))))
 
     @partial(jax.jit, static_argnames="self")
-    def __call__(self, params: hk.Params, weights: jnp.ndarray) -> jnp.ndarray:
-        return self.network.apply(params, weights)
+    def __call__(self, params: hk.Params, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
+        return self.network.apply(params, states, actions)
 
     @partial(jax.jit, static_argnames="self")
     def max_value(self, q_params: hk.Params, batch_states: jnp.ndarray) -> jnp.ndarray:

@@ -1,4 +1,3 @@
-from operator import getitem
 import numpy as np
 import jax
 import jax.numpy as jnp
