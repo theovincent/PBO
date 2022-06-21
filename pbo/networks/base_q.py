@@ -9,6 +9,7 @@ import jax.numpy as jnp
 class BaseQ:
     def __init__(
         self,
+        gamma: float,
         network: hk.Module,
         network_key: int,
         random_weights_range: float,
@@ -17,6 +18,7 @@ class BaseQ:
         n_actions_on_max: int,
         continuous_actions: bool = True,
     ) -> None:
+        self.gamma = gamma
         self.random_weights_range = random_weights_range
         self.random_weights_key = random_weights_key
         self.n_actions_on_max = n_actions_on_max
@@ -61,6 +63,13 @@ class BaseQ:
     @partial(jax.jit, static_argnames="self")
     def __call__(self, params: hk.Params, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
         return self.network.apply(params, states, actions)
+
+    @partial(jax.jit, static_argnames="self")
+    def compute_target(self, batch_weights: jnp.ndarray, batch_samples: dict) -> jnp.ndarray:
+        return jax.vmap(
+            lambda weights: batch_samples["reward"]
+            + self.gamma * self.max_value(self.to_params(weights), batch_samples["next_state"])
+        )(batch_weights)
 
     @partial(jax.jit, static_argnames="self")
     def max_value(self, q_params: hk.Params, batch_states: jnp.ndarray) -> jnp.ndarray:
@@ -114,119 +123,11 @@ class BaseQ:
 
         return jnp.array(weights)
 
-    @partial(jax.jit, static_argnames="self")
-    def loss(self, q_params: hk.Params, state: jnp.ndarray, action: jnp.ndarray, target: jnp.ndarray) -> jnp.ndarray:
-        return jnp.linalg.norm(self(q_params, state, action) - target)
+    @partial(jax.jit, static_argnames=("self", "ord"))
+    def loss(self, q_params: hk.Params, q_params_target, sample: dict, ord: int = 2) -> jnp.ndarray:
+        target = self.compute_target(self.to_weights(q_params_target).reshape((-1, self.weights_dimension)), sample)[0]
 
-
-class FullyConnectedQNet(hk.Module):
-    def __init__(self, layers_dimension: list) -> None:
-        super().__init__(name="FullyConnectedNet")
-        self.layers_dimension = layers_dimension
-
-    def __call__(
-        self,
-        state: jnp.ndarray,
-        action: jnp.ndarray,
-    ) -> jnp.ndarray:
-        x = jnp.hstack((state, action))
-
-        for idx, layer_dimension in enumerate(self.layers_dimension, start=1):
-            x = hk.Linear(layer_dimension, name=f"linear_{idx}")(x)
-            x = jax.nn.relu(x)
-
-        x = hk.Linear(1, name="linear_last")(x)
-
-        return x
-
-
-class FullyConnectedQ(BaseQ):
-    def __init__(
-        self,
-        layers_dimension: list,
-        network_key: int,
-        random_weights_range: float,
-        random_weights_key: int,
-        action_range_on_max: float,
-        n_actions_on_max: int,
-    ) -> None:
-        def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
-            return FullyConnectedQNet(layers_dimension)(state, action)
-
-        super().__init__(
-            network, network_key, random_weights_range, random_weights_key, action_range_on_max, n_actions_on_max
-        )
-
-
-class LQRQNet(hk.Module):
-    def __init__(self) -> None:
-        super().__init__(name="Theoretical3DQNet")
-
-    def __call__(
-        self,
-        state: jnp.ndarray,
-        action: jnp.ndarray,
-    ) -> jnp.ndarray:
-        k = hk.get_parameter("k", (), state.dtype, init=hk.initializers.TruncatedNormal())
-        i = hk.get_parameter("i", (), state.dtype, init=hk.initializers.TruncatedNormal())
-        m = hk.get_parameter("m", (), state.dtype, init=hk.initializers.TruncatedNormal())
-
-        return state**2 * k + 2 * state * action * i + action**2 * m
-
-
-class LQRQ(BaseQ):
-    def __init__(
-        self,
-        network_key: int,
-        random_weights_range: float,
-        random_weights_key: int,
-        action_range_on_max: float,
-        n_actions_on_max: int,
-    ) -> None:
-        def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
-            return LQRQNet()(state, action)
-
-        super().__init__(
-            network, network_key, random_weights_range, random_weights_key, action_range_on_max, n_actions_on_max
-        )
-
-
-class TableQNet(hk.Module):
-    def __init__(self, n_states: int, n_actions: int) -> None:
-        super().__init__(name="TableQNet")
-        self.n_states = n_states
-        self.n_actions = n_actions
-
-    def __call__(
-        self,
-        state: jnp.ndarray,
-        action: jnp.ndarray,
-    ) -> jnp.ndarray:
-        table = hk.get_parameter(
-            "table", (self.n_states, self.n_actions), state.dtype, init=hk.initializers.TruncatedNormal()
-        )
-
-        return jax.vmap(lambda state_, action_: table[state_, action_])(state.astype(int), action.astype(int))
-
-
-class TableQ(BaseQ):
-    def __init__(
-        self,
-        network_key: int,
-        random_weights_range: float,
-        random_weights_key: int,
-        n_states: int,
-        n_actions: int,
-    ) -> None:
-        def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
-            return TableQNet(n_states, n_actions)(state, action)
-
-        super().__init__(
-            network,
-            network_key,
-            random_weights_range,
-            random_weights_key,
-            None,
-            n_actions,
-            continuous_actions=False,
-        )
+        if ord == 1:
+            return jnp.abs(self(q_params, sample["state"], sample["action"]) - target).mean()
+        else:
+            return jnp.linalg.norm(self(q_params, sample["state"], sample["action"]) - target)

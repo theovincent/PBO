@@ -1,13 +1,13 @@
 import jax.numpy as jnp
 import jax
 
-from pbo.networks.q import BaseQ
+from pbo.networks.base_q import BaseQ
 from pbo.networks.base_pbo import BasePBO
 
 
 class OptimalPBO(BasePBO):
-    def __init__(self, q: BaseQ, max_bellman_iterations: int, add_infinity: bool, importance_iteration: list) -> None:
-        super().__init__(q, max_bellman_iterations, add_infinity, importance_iteration)
+    def __init__(self, q: BaseQ, max_bellman_iterations: int, add_infinity: bool) -> None:
+        super().__init__(q, max_bellman_iterations, add_infinity)
 
 
 class Optimal3DPBO(OptimalPBO):
@@ -16,7 +16,6 @@ class Optimal3DPBO(OptimalPBO):
         q: BaseQ,
         max_bellman_iterations: int,
         add_infinity: bool,
-        importance_iteration: list,
         A: float,
         B: float,
         Q: float,
@@ -24,7 +23,7 @@ class Optimal3DPBO(OptimalPBO):
         S: float,
         P: float,
     ) -> None:
-        super().__init__(q, max_bellman_iterations, add_infinity, importance_iteration)
+        super().__init__(q, max_bellman_iterations, add_infinity)
         self.A = A
         self.B = B
         self.Q = Q
@@ -61,11 +60,10 @@ class OptimalTablePBO(OptimalPBO):
         q: BaseQ,
         max_bellman_iterations: int,
         add_infinity: bool,
-        importance_iteration: list,
         optimal_bellman_operator,
         optimal_q: jnp.ndarray,
     ) -> None:
-        super().__init__(q, max_bellman_iterations, add_infinity, importance_iteration)
+        super().__init__(q, max_bellman_iterations, add_infinity)
         self.optimal_bellman_operator = optimal_bellman_operator
         self.optimal_q = optimal_q
 
@@ -75,4 +73,4 @@ class OptimalTablePBO(OptimalPBO):
         )(weights)
 
     def fixed_point(self) -> jnp.ndarray:
-        return self.optimal_q
+        return self.optimal_q.flatten()
