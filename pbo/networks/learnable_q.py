@@ -140,6 +140,22 @@ class LQRQ(LearnableQ):
         )
 
 
+class TableQZeroNet(hk.Module):
+    def __init__(self, n_states: int, n_actions: int) -> None:
+        super().__init__(name="TableQNet")
+        self.n_states = n_states
+        self.n_actions = n_actions
+
+    def __call__(
+        self,
+        state: jnp.ndarray,
+        action: jnp.ndarray,
+    ) -> jnp.ndarray:
+        table = hk.get_parameter("table", (self.n_states, self.n_actions), state.dtype, init=jnp.zeros)
+
+        return jax.vmap(lambda state_, action_: table[state_, action_])(state.astype(int), action.astype(int))
+
+
 class TableQNet(hk.Module):
     def __init__(self, n_states: int, n_actions: int) -> None:
         super().__init__(name="TableQNet")
@@ -168,9 +184,15 @@ class TableQ(LearnableQ):
         n_states: int,
         n_actions: int,
         learning_rate: dict = None,
+        zero_initializer: bool = False,
     ) -> None:
+        if zero_initializer:
+            net = TableQZeroNet
+        else:
+            net = TableQNet
+
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
-            return TableQNet(n_states, n_actions)(state, action)
+            return net(n_states, n_actions)(state, action)
 
         super().__init__(
             gamma,

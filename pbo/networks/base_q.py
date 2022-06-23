@@ -130,4 +130,4 @@ class BaseQ:
         if ord == 1:
             return jnp.abs(self(q_params, sample["state"], sample["action"]) - target).mean()
         else:
-            return jnp.linalg.norm(self(q_params, sample["state"], sample["action"]) - target)
+            return jnp.square(self(q_params, sample["state"], sample["action"]) - target).mean()

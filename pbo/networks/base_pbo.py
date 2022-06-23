@@ -31,7 +31,7 @@ class BasePBO:
         batch_iterated_weights_target = batch_weights
 
         for idx_iteration in jnp.arange(self.max_bellman_iterations):
-            batch_iterated_weights = jax.lax.stop_gradient(batch_iterated_weights)
+            # batch_iterated_weights = jax.lax.stop_gradient(batch_iterated_weights)
             batch_targets = self.q.compute_target(batch_iterated_weights_target, sample)
 
             batch_iterated_weights = self(pbo_params, batch_iterated_weights)
@@ -44,14 +44,13 @@ class BasePBO:
             if ord == 1:
                 loss += importance_iteration[idx_iteration] * jnp.abs(q_values - batch_targets).mean()
             else:
-                loss += importance_iteration[idx_iteration] * jnp.linalg.norm(q_values - batch_targets)
+                loss += importance_iteration[idx_iteration] * jnp.square(q_values - batch_targets).mean()
 
         loss /= importance_iteration.sum()
 
         if self.add_infinity:
             fixed_point = self.fixed_point(pbo_params).reshape((1, -1))
             batch_targets = self.q.compute_target(fixed_point, sample)
-            batch_targets = jax.lax.stop_gradient(batch_targets)
 
             q_values = jax.vmap(lambda weights: self.q(self.q.to_params(weights), sample["state"], sample["action"]))(
                 fixed_point
@@ -60,7 +59,7 @@ class BasePBO:
             if ord == 1:
                 loss += importance_iteration[-1] * jnp.abs(q_values - batch_targets).mean()
             else:
-                loss += importance_iteration[-1] * jnp.linalg.norm(q_values - batch_targets)
+                loss += importance_iteration[-1] * jnp.square(q_values - batch_targets).mean()
 
         return loss
 
@@ -94,7 +93,7 @@ class BasePBO:
                 )
             else:
                 loss_mesh = loss_mesh.at[:].add(
-                    importance_iteration[idx_iteration] * jnp.linalg.norm(q_values - batch_targets, axis=0)
+                    importance_iteration[idx_iteration] * jnp.square(q_values - batch_targets).mean(axis=0)
                 )
 
         loss_mesh /= importance_iteration.sum()
@@ -115,7 +114,7 @@ class BasePBO:
                 )
             else:
                 loss_mesh = loss_mesh.at[:].add(
-                    importance_iteration[-1] * jnp.linalg.norm(q_values - batch_targets, axis=0)
+                    importance_iteration[-1] * jnp.square(q_values - batch_targets).mean(axis=0)
                 )
 
         return loss_mesh

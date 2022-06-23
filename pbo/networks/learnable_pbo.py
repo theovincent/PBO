@@ -124,8 +124,9 @@ class LearnableOnWeightsPBO(LearnablePBO):
                     * jnp.abs(batch_weights_optimal_iterated - batch_weights_iterated).mean()
                 )
             else:
-                loss += importance_iteration[idx_iteration] * jnp.linalg.norm(
-                    batch_weights_optimal_iterated - batch_weights_iterated
+                loss += (
+                    importance_iteration[idx_iteration]
+                    * jnp.square(batch_weights_optimal_iterated - batch_weights_iterated).mean()
                 )
 
         if self.add_infinity:
@@ -135,7 +136,7 @@ class LearnableOnWeightsPBO(LearnablePBO):
             if ord == 1:
                 loss += importance_iteration[-1] * jnp.abs(batch_fixed_point - self.pbo_optimal.fixed_point()).mean()
             else:
-                loss += importance_iteration[-1] * jnp.linalg.norm(batch_fixed_point - self.pbo_optimal.fixed_point())
+                loss += importance_iteration[-1] * jnp.square(batch_fixed_point - self.pbo_optimal.fixed_point()).mean()
 
         return loss
 
