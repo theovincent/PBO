@@ -23,7 +23,7 @@ class LearnablePBO(BasePBO):
         super().__init__(q, max_bellman_iterations, add_infinity)
 
         self.network = hk.without_apply_rng(hk.transform(network))
-        self.params = self.network.init(rng=network_key, weights=jnp.zeros((q.weights_dimension)))
+        self.params = self.network.init(rng=network_key, weights=jnp.zeros((1, q.weights_dimension)))
 
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
@@ -186,3 +186,32 @@ class LinearPBOOnWeights(LearnableOnWeightsPBO):
 
     def contracting_factor(self) -> float:
         return jnp.linalg.norm(self.params["LinearPBONet/linear"]["w"], ord=1)
+
+
+class TabularPBONet(hk.Module):
+    def __init__(self, n_actions: int, layer_dimension: int) -> None:
+        super().__init__(name="TabularPBONet")
+        self.n_actions = n_actions
+        self.layer_dimension = layer_dimension
+
+    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        x = hk.MaxPool(window_shape=self.n_actions, strides=self.n_actions, padding="VALID", channel_axis=0)(weights)
+        x = hk.Linear(self.layer_dimension, name="linear")(x)
+
+        return x
+
+
+class TabularPBO(LearnablePBO):
+    def __init__(
+        self,
+        q: BaseQ,
+        max_bellman_iterations: int,
+        add_infinity: bool,
+        network_key: int,
+        learning_rate: dict,
+        n_actions: int,
+    ) -> None:
+        def network(weights: jnp.ndarray) -> jnp.ndarray:
+            return TabularPBONet(n_actions, q.weights_dimension)(weights)
+
+        super().__init__(q, max_bellman_iterations, add_infinity, network, network_key, learning_rate)

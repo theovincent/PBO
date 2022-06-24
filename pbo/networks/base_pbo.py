@@ -31,7 +31,7 @@ class BasePBO:
         batch_iterated_weights_target = batch_weights
 
         for idx_iteration in jnp.arange(self.max_bellman_iterations):
-            # batch_iterated_weights = jax.lax.stop_gradient(batch_iterated_weights)
+            batch_iterated_weights = jax.lax.stop_gradient(batch_iterated_weights)
             batch_targets = self.q.compute_target(batch_iterated_weights_target, sample)
 
             batch_iterated_weights = self(pbo_params, batch_iterated_weights)

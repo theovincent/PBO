@@ -1,3 +1,5 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 
@@ -12,6 +14,7 @@ class ChainWalkEnv:
         initial_state: jnp.ndarray = None,
     ) -> None:
         self.n_states = n_states
+        self.n_actions = 2
         self.sucess_probability = sucess_probability
         self.gamma = gamma
         self.next_state_key, self.reset_key = jax.random.split(env_key)
@@ -21,6 +24,22 @@ class ChainWalkEnv:
         self.rewards = jnp.zeros(self.n_states)
         self.rewards = self.rewards.at[0].set(1)
         self.rewards = self.rewards.at[-1].set(1)
+
+        self.transition_proba = jnp.zeros((n_states * self.n_actions, n_states))
+
+        for state in range(n_states):
+            for action in range(self.n_actions):
+                if state != 0 and state != n_states - 1:
+                    self.transition_proba = self.transition_proba.at[state * self.n_actions + action, state].set(
+                        1 - sucess_probability
+                    )
+                    self.transition_proba = self.transition_proba.at[
+                        state * self.n_actions + action, state + 2 * action - 1
+                    ].set(sucess_probability)
+                else:
+                    self.transition_proba = self.transition_proba.at[state * self.n_actions + action, state].set(1)
+
+        self.PR = self.transition_proba @ self.rewards
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
@@ -46,34 +65,11 @@ class ChainWalkEnv:
 
         return self.state, jnp.array([reward]), absorbing, {}
 
+    @partial(jax.jit, static_argnames="self")
     def apply_bellman_operator(self, q: jnp.ndarray) -> jnp.array:
-        iterated_q = q.copy()
-
-        # left_shift_q = q on the first and last states
-        left_shift_q = iterated_q.copy()
-        left_shift_q = left_shift_q.at[1:-1].set(iterated_q[:-2])
-        iterated_q = iterated_q.at[:, 0].set(
-            self.rewards
-            + self.gamma
-            * (
-                self.sucess_probability * jnp.max(left_shift_q, axis=1)
-                + (1 - self.sucess_probability) * jnp.max(iterated_q, axis=1)
-            )
+        return (self.PR + self.gamma * self.transition_proba @ jnp.max(q, axis=1)).reshape(
+            (self.n_states, self.n_actions)
         )
-
-        # right_shift_q = q on the first and last states
-        right_shift_q = iterated_q.copy()
-        right_shift_q = right_shift_q.at[1:-1].set(iterated_q[2:, :])
-        iterated_q = iterated_q.at[:, 1].set(
-            self.rewards
-            + self.gamma
-            * (
-                self.sucess_probability * jnp.max(right_shift_q, axis=1)
-                + (1 - self.sucess_probability) * jnp.max(iterated_q, axis=1)
-            )
-        )
-
-        return iterated_q
 
     def optimal_Q_mesh(self) -> jnp.ndarray:
         q = jnp.zeros((self.n_states, 2))
