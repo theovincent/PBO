@@ -8,11 +8,11 @@ class StateActionMesh:
     def __init__(self, states, actions, sleeping_time: float) -> None:
         self.states = states
         self.actions = actions
-        self.grid_action, self.grid_states = np.meshgrid(self.actions, self.states)
+        self.grid_states, self.grid_action = np.meshgrid(self.states, self.actions)
 
         self.sleeping_time = sleeping_time
 
-        self.values = np.zeros((len(self.actions), len(self.states)))
+        self.values = np.zeros((len(self.states), len(self.actions)))
 
     def set_values(self, values: np.ndarray, zeros_to_nan: bool = False) -> None:
         assert values.shape == (
@@ -28,17 +28,17 @@ class StateActionMesh:
         clear_output(wait=True)
         fig, ax = plt.subplots()
 
-        colors = ax.pcolormesh(self.grid_action, self.grid_states, self.values, shading="nearest")
+        colors = ax.pcolormesh(self.grid_states, self.grid_action, self.values.T, shading="nearest")
 
-        ax.set_xticks(self.actions)
-        ax.set_xticklabels(np.around(self.actions, 2))
-        ax.set_xlim(self.actions[0], self.actions[-1])
-        ax.set_xlabel("Actions")
+        ax.set_xticks(self.states)
+        ax.set_xticklabels(np.around(self.states, 2))
+        ax.set_xlim(self.states[0], self.states[-1])
+        ax.set_xlabel("States")
 
-        ax.set_yticks(self.states)
-        ax.set_yticklabels(np.around(self.states, 2))
-        ax.set_ylim(self.states[0], self.states[-1])
-        ax.set_ylabel("States")
+        ax.set_yticks(self.actions)
+        ax.set_yticklabels(np.around(self.actions, 2))
+        ax.set_ylim(self.actions[0], self.actions[-1])
+        ax.set_ylabel("Actions")
 
         ax.set_aspect("equal", "box")
         if title != "":
