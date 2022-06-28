@@ -11,14 +11,14 @@ class CarOnHillEnv:
     "Tree-Based Batch Mode Reinforcement Learning". Ernst D. et al.. 2005.
     """
 
-    def __init__(self, gamma: float) -> None:
+    def __init__(self, max_pos: float, max_velocity: float, gamma: float) -> None:
         self.gamma = gamma
-        self.max_pos = 1.0
-        self.max_velocity = 3.0
+        self.max_pos = max_pos
+        self.max_velocity = max_velocity
+        self.actions_values = [-4.0, 4.0]
         self._g = 9.81
         self._m = 1.0
         self._dt = 0.1
-        self._discrete_actions = [-4.0, 4.0]
 
         # Visualization
         self._viewer = Viewer(1, 1)
@@ -32,7 +32,7 @@ class CarOnHillEnv:
         return self.state
 
     def step(self, action: jnp.ndarray) -> tuple:
-        action = self._discrete_actions[action[0]]
+        action = self.actions_values[action[0]]
         sa = np.append(self.state, action)
         new_state = odeint(self._dpds, sa, [0, self._dt])
 
