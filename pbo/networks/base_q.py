@@ -9,26 +9,31 @@ import jax.numpy as jnp
 class BaseQ:
     def __init__(
         self,
+        state_dim: int,
+        action_dim: int,
+        continuous_actions: bool,
+        n_actions_on_max: int,
+        action_range_on_max: float,
         gamma: float,
         network: hk.Module,
         network_key: int,
         random_weights_range: float,
         random_weights_key: int,
-        action_range_on_max: float,
-        n_actions_on_max: int,
-        continuous_actions: bool = True,
     ) -> None:
         self.gamma = gamma
         self.random_weights_range = random_weights_range
         self.random_weights_key = random_weights_key
         self.n_actions_on_max = n_actions_on_max
+        self.index_actions_on_max = jnp.arange(n_actions_on_max)
         if continuous_actions:
-            self.discrete_actions_on_max = jnp.linspace(-action_range_on_max, action_range_on_max, num=n_actions_on_max)
+            self.discrete_actions_on_max = jnp.linspace(
+                -action_range_on_max, action_range_on_max, num=n_actions_on_max
+            ).reshape((n_actions_on_max, action_dim))
         else:
-            self.discrete_actions_on_max = jnp.arange(n_actions_on_max)
+            self.discrete_actions_on_max = jnp.arange(n_actions_on_max).reshape((n_actions_on_max, action_dim))
 
         self.network = hk.without_apply_rng(hk.transform(network))
-        self.params = self.network.init(rng=network_key, state=jnp.zeros((1)), action=jnp.zeros((1)))
+        self.params = self.network.init(rng=network_key, state=jnp.zeros((state_dim)), action=jnp.zeros((action_dim)))
 
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
@@ -73,9 +78,13 @@ class BaseQ:
 
     @partial(jax.jit, static_argnames="self")
     def max_value(self, q_params: hk.Params, batch_states: jnp.ndarray) -> jnp.ndarray:
-        states_mesh, actions_mesh = jnp.meshgrid(batch_states.flatten(), self.discrete_actions_on_max, indexing="ij")
-        states = states_mesh.reshape((-1, 1))
-        actions = actions_mesh.reshape((-1, 1))
+        index_batch_states = jnp.arange(batch_states.shape[0])
+
+        indexes_states_mesh, indexes_actions_mesh = jnp.meshgrid(
+            index_batch_states, self.index_actions_on_max, indexing="ij"
+        )
+        states = batch_states[indexes_states_mesh.flatten()]
+        actions = self.discrete_actions_on_max[indexes_actions_mesh.flatten()]
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
         batch_values = self(q_params, states, actions).reshape((batch_states.shape[0], self.n_actions_on_max))

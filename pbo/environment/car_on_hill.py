@@ -1,8 +1,10 @@
 import numpy as np
 import jax.numpy as jnp
 from scipy.integrate import odeint
+from tqdm.notebook import tqdm
 
 from pbo.environment.viewer import Viewer
+from pbo.networks.base_q import BaseQ
 
 
 class CarOnHillEnv:
@@ -119,3 +121,67 @@ class CarOnHillEnv:
 
     def close(self):
         return self._viewer.close()
+
+    def optimal_steps_to_absorbing(self, state: jnp.ndarray, max_steps: int):
+        current_states = [state]
+        step = 0
+
+        while len(current_states) > 0 and step < max_steps:
+            next_states = []
+            for state_ in current_states:
+                for action in range(2):
+                    self.state = state_
+                    next_state, reward, _, _ = self.step(jnp.array([action]))
+
+                    if reward == 1:
+                        return True, step + 1
+                    elif reward == 0:
+                        next_states.append(next_state)
+
+            step += 1
+            current_states = next_states
+
+        return False, step
+
+    def optimal_v(self, state: jnp.ndarray, max_steps: int) -> float:
+        success, step_to_absorbing = self.optimal_steps_to_absorbing([state], max_steps)
+
+        return self.gamma ** (step_to_absorbing - 1) if success else -self.gamma ** (step_to_absorbing - 1)
+
+    def optimal_vs(self, states: jnp.ndarray, max_steps: int) -> jnp.ndarray:
+        vs = []
+
+        for state in tqdm(states):
+            vs.append(self.optimal_v(state, max_steps))
+
+        return jnp.array(vs)
+
+    def optimal_v_mesh(self, states_x: jnp.ndarray, states_v: jnp.ndarray, max_steps: int) -> jnp.ndarray:
+        states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
+
+        states = jnp.hstack((states_x_mesh.reshape((-1, 1)), states_v_mesh.reshape((-1, 1))))
+
+        # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        return self.optimal_vs(states, max_steps).reshape((states_x.shape[0], states_v.shape[0]))
+
+    def simulate(self, q: BaseQ, horizon: int, initial_state: jnp.ndarray) -> bool:
+        self.reset(initial_state)
+        absorbing = False
+        step = 0
+
+        while not absorbing and step < horizon:
+            print(self.state)
+            print(q(q.params, self.state, jnp.array([0])))
+            print(q(q.params, self.state, jnp.array([1])))
+            print()
+            if q(q.params, self.state, jnp.array([0])) > q(q.params, self.state, jnp.array([1])):
+                _, reward, absorbing, _ = self.step(jnp.array([0]))
+            else:
+                _, reward, absorbing, _ = self.step(jnp.array([1]))
+
+            step += 1
+            self.render()
+
+        self.close()
+
+        return reward == 1
