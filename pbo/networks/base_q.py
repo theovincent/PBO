@@ -20,6 +20,8 @@ class BaseQ:
         random_weights_range: float,
         random_weights_key: int,
     ) -> None:
+        self.state_dim = state_dim
+        self.action_dim = action_dim
         self.gamma = gamma
         self.random_weights_range = random_weights_range
         self.random_weights_key = random_weights_key
@@ -33,7 +35,9 @@ class BaseQ:
             self.discrete_actions_on_max = jnp.arange(n_actions_on_max).reshape((n_actions_on_max, action_dim))
 
         self.network = hk.without_apply_rng(hk.transform(network))
-        self.params = self.network.init(rng=network_key, state=jnp.zeros((state_dim)), action=jnp.zeros((action_dim)))
+        self.params = self.network.init(
+            rng=network_key, state=jnp.zeros((self.state_dim)), action=jnp.zeros((self.action_dim))
+        )
 
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
@@ -63,7 +67,9 @@ class BaseQ:
     def random_init_weights(self) -> jnp.ndarray:
         self.random_weights_key, key = jax.random.split(self.random_weights_key)
 
-        return self.to_weights(self.network.init(rng=key, state=jnp.zeros((1)), action=jnp.zeros((1))))
+        return self.to_weights(
+            self.network.init(rng=key, state=jnp.zeros((self.state_dim)), action=jnp.zeros((self.action_dim)))
+        )
 
     @partial(jax.jit, static_argnames="self")
     def __call__(self, params: hk.Params, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:

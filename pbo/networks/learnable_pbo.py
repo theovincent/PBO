@@ -27,15 +27,19 @@ class LearnablePBO(BasePBO):
 
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
-        learning_rate_schedule = optax.linear_schedule(
+        self.learning_rate_schedule = optax.linear_schedule(
             learning_rate["first"], learning_rate["last"], learning_rate["duration"]
         )
-        self.optimizer = optax.adam(learning_rate_schedule)
+        self.optimizer = optax.adam(self.learning_rate_schedule)
         self.optimizer_state = self.optimizer.init(self.params)
 
     @partial(jax.jit, static_argnames="self")
     def __call__(self, params: hk.Params, weights: jnp.ndarray) -> jnp.ndarray:
         return self.network.apply(params, weights)
+
+    def reset_optimizer(self) -> None:
+        self.optimizer = optax.adam(self.learning_rate_schedule)
+        self.optimizer_state = self.optimizer.init(self.params)
 
     @partial(jax.jit, static_argnames="self")
     def learn_on_batch(
