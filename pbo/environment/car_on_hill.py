@@ -156,13 +156,18 @@ class CarOnHillEnv:
 
         return jnp.array(vs)
 
-    def optimal_v_mesh(self, states_x: jnp.ndarray, states_v: jnp.ndarray, max_steps: int) -> jnp.ndarray:
+    def diff_q_mesh(self, q: BaseQ, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
         states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
 
         states = jnp.hstack((states_x_mesh.reshape((-1, 1)), states_v_mesh.reshape((-1, 1))))
+        actions_0 = jnp.zeros((states.shape[0], 1))
+        actions_1 = jnp.ones((states.shape[0], 1))
+
+        q_0 = q(q.params, states, actions_0)
+        q_1 = q(q.params, states, actions_1)
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return self.optimal_vs(states, max_steps).reshape((states_x.shape[0], states_v.shape[0]))
+        return (q_1 - q_0).reshape((states_x.shape[0], states_v.shape[0]))
 
     def simulate(self, q: BaseQ, horizon: int, initial_state: jnp.ndarray) -> bool:
         self.reset(initial_state)
