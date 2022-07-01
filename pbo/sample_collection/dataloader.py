@@ -25,6 +25,7 @@ class SampleDataLoader:
             "action": self.replay_buffer.actions[idxs],
             "reward": self.replay_buffer.rewards[idxs],
             "next_state": self.replay_buffer.next_states[idxs],
+            "absorbing": self.replay_buffer.absorbing[idxs],
         }
 
     def __getitem__(self, idx: int) -> dict:

@@ -79,7 +79,9 @@ class BaseQ:
     def compute_target(self, batch_weights: jnp.ndarray, batch_samples: dict) -> jnp.ndarray:
         return jax.vmap(
             lambda weights: batch_samples["reward"]
-            + self.gamma * self.max_value(self.to_params(weights), batch_samples["next_state"])
+            + (1 - batch_samples["absorbing"])
+            * self.gamma
+            * self.max_value(self.to_params(weights), batch_samples["next_state"])
         )(batch_weights)
 
     @partial(jax.jit, static_argnames="self")

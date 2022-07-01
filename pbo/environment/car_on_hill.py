@@ -50,7 +50,7 @@ class CarOnHillEnv:
             reward = 0.0
             absorbing = False
 
-        return self.state, jnp.array([reward]), absorbing, {}
+        return self.state, jnp.array([reward]), jnp.array([absorbing]), {}
 
     def render(self):
         # Slope
