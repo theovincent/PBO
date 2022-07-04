@@ -6,6 +6,7 @@ def count_samples(
     dimension_two: np.ndarray,
     discrete_dim_one_boxes: np.ndarray,
     discrete_dim_two_boxes: np.ndarray,
+    rewards: np.ndarray,
 ) -> tuple:
     # for each element of dimension one, get the index where it is located in the discrete dimension.
     dimension_one = np.array(dimension_one).reshape(-1)
@@ -24,10 +25,15 @@ def count_samples(
     )
     dimensions_inside_boxes = np.logical_and(dim_one_inside_boxes, dim_two_inside_boxes)
 
+    pruned_rewards = rewards.reshape(-1)[dimensions_inside_boxes]
+
     samples_count = np.zeros((len(discrete_dim_one_boxes) - 1, len(discrete_dim_two_boxes) - 1))
-    for idx_dim_one, idx_dim_two in zip(
-        indexes_states_boxes[dimensions_inside_boxes], indexes_actions_boxes[dimensions_inside_boxes]
+    rewards_count = np.zeros((len(discrete_dim_one_boxes) - 1, len(discrete_dim_two_boxes) - 1))
+
+    for idx_in_list, (idx_dim_one, idx_dim_two) in enumerate(
+        zip(indexes_states_boxes[dimensions_inside_boxes], indexes_actions_boxes[dimensions_inside_boxes])
     ):
         samples_count[idx_dim_one, idx_dim_two] += 1
+        rewards_count[idx_dim_one, idx_dim_two] += pruned_rewards[idx_in_list]
 
-    return samples_count, (~dimensions_inside_boxes).sum()
+    return samples_count, (~dimensions_inside_boxes).sum(), rewards_count
