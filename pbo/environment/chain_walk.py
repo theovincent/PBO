@@ -61,9 +61,7 @@ class ChainWalkEnv:
         else:
             reward = 1
 
-        absorbing = False if 0 < self.state[0] < self.n_states - 1 else True
-
-        return self.state, jnp.array([reward]), absorbing, {}
+        return self.state, jnp.array([reward]), jnp.array([False]), {}
 
     @partial(jax.jit, static_argnames="self")
     def apply_bellman_operator(self, q: jnp.ndarray) -> jnp.array:

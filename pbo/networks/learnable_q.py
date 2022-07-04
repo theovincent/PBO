@@ -187,26 +187,30 @@ class TableQNet(hk.Module):
 class TableQ(LearnableQ):
     def __init__(
         self,
+        state_dim: int,
+        n_states: int,
+        action_dim: int,
+        n_actions: int,
         gamma: float,
         network_key: int,
         random_weights_range: float,
         random_weights_key: int,
-        n_states: int,
-        n_actions: int,
-        learning_rate: dict = None,
-        zero_initializer: bool = False,
+        learning_rate: dict,
+        zero_initializer: bool,
     ) -> None:
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
             return TableQNet(n_states, n_actions, zero_initializer)(state, action)
 
         super().__init__(
+            state_dim,
+            action_dim,
+            False,
+            n_actions,
+            None,
             gamma,
             network,
             network_key,
             random_weights_range,
             random_weights_key,
-            None,
-            n_actions,
             learning_rate,
-            continuous_actions=False,
         )
