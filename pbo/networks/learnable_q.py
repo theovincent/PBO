@@ -76,7 +76,7 @@ class FullyConnectedQNet(hk.Module):
 
         for idx, layer_dimension in enumerate(self.layers_dimension, start=1):
             x = hk.Linear(layer_dimension, name=f"linear_{idx}")(x)
-            x = jax.nn.tanh(x)
+            x = jax.nn.relu(x)
 
         x = hk.Linear(1, w_init=self.initializer, name="linear_last")(x)
 
