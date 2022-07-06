@@ -1,7 +1,9 @@
+from math import gamma
 import numpy as np
 import jax.numpy as jnp
-from scipy.integrate import odeint
 from tqdm.notebook import tqdm
+from scipy.integrate import odeint
+
 
 from pbo.environment.viewer import Viewer
 from pbo.networks.base_q import BaseQ
@@ -190,3 +192,31 @@ class CarOnHillEnv:
         self.close()
 
         return reward == 1
+
+    def evaluate(self, q: BaseQ, horizon: int, initial_state: jnp.ndarray) -> float:
+        performance = 0
+        discount = 1
+        self.reset(initial_state)
+        absorbing = False
+        step = 0
+
+        while not absorbing and step < horizon:
+            if q(q.params, self.state, jnp.array([0])) > q(q.params, self.state, jnp.array([1])):
+                _, reward, absorbing, _ = self.step(jnp.array([0]))
+            else:
+                _, reward, absorbing, _ = self.step(jnp.array([1]))
+
+            performance += discount * reward
+            discount *= self.gamma
+            step += 1
+
+        return performance
+
+    def evaluate_mesh(self, q: BaseQ, horizon: int, mesh_size_x: int, mesh_size_v: int) -> np.ndarray:
+        js = np.zeros((mesh_size_x, mesh_size_v))
+
+        for idx_state_x, state_x in enumerate(jnp.linspace(-self.max_pos, self.max_pos, mesh_size_x)):
+            for idx_state_v, state_v in enumerate(jnp.linspace(-self.max_velocity, self.max_velocity, mesh_size_v)):
+                js[idx_state_x, idx_state_v] = self.evaluate(q, horizon, jnp.array([state_x, state_v]))
+
+        return js
