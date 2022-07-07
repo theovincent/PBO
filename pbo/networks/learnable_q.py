@@ -118,17 +118,22 @@ class FullyConnectedQ(LearnableQ):
 
 
 class LQRQNet(hk.Module):
-    def __init__(self) -> None:
+    def __init__(self, zero_initializer: bool) -> None:
         super().__init__(name="Theoretical3DQNet")
+
+        if zero_initializer:
+            self.initializer = hk.initializers.Constant(0)
+        else:
+            self.initializer = hk.initializers.TruncatedNormal()
 
     def __call__(
         self,
         state: jnp.ndarray,
         action: jnp.ndarray,
     ) -> jnp.ndarray:
-        k = hk.get_parameter("k", (), state.dtype, init=hk.initializers.TruncatedNormal())
-        i = hk.get_parameter("i", (), state.dtype, init=hk.initializers.TruncatedNormal())
-        m = hk.get_parameter("m", (), state.dtype, init=hk.initializers.TruncatedNormal())
+        k = hk.get_parameter("k", (), state.dtype, init=self.initializer)
+        i = hk.get_parameter("i", (), state.dtype, init=self.initializer)
+        m = hk.get_parameter("m", (), state.dtype, init=self.initializer)
 
         return state**2 * k + 2 * state * action * i + action**2 * m
 
@@ -136,25 +141,30 @@ class LQRQNet(hk.Module):
 class LQRQ(LearnableQ):
     def __init__(
         self,
-        gamma: float,
+        state_dim: int,
+        action_dim: int,
+        n_actions_on_max: int,
+        action_range_on_max: float,
         network_key: int,
         random_weights_range: float,
         random_weights_key: int,
-        action_range_on_max: float,
-        n_actions_on_max: int,
-        learning_rate: dict = None,
+        learning_rate: dict,
+        zero_initializer: bool,
     ) -> None:
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
-            return LQRQNet()(state, action)
+            return LQRQNet(zero_initializer)(state, action)
 
         super().__init__(
-            gamma,
+            state_dim,
+            action_dim,
+            True,
+            n_actions_on_max,
+            action_range_on_max,
+            1,
             network,
             network_key,
             random_weights_range,
             random_weights_key,
-            action_range_on_max,
-            n_actions_on_max,
             learning_rate,
         )
 

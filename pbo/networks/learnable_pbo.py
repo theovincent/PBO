@@ -93,103 +93,72 @@ class LinearPBO(LearnablePBO):
         return jnp.linalg.norm(self.params["LinearPBONet/linear"]["w"], ord=1)
 
 
-class LearnableOnWeightsPBO(LearnablePBO):
+class LinearPBOOnWeights(LinearPBO):
     def __init__(
         self,
         q: BaseQ,
         max_bellman_iterations: int,
         add_infinity: bool,
-        network: hk.Module,
         network_key: int,
         learning_rate: dict,
-        pbo_optimal: OptimalPBO,
+        pbo_optimal: BasePBO,
     ) -> None:
-        super().__init__(q, max_bellman_iterations, add_infinity, network, network_key, learning_rate)
-        self.loss_and_grad_on_weights = jax.jit(jax.value_and_grad(self.loss_on_weights))
+        super().__init__(q, max_bellman_iterations, add_infinity, network_key, learning_rate)
+
         self.pbo_optimal = pbo_optimal
+        self.loss_and_grad_on_weights = jax.jit(jax.value_and_grad(self.loss_on_weigths))
 
     @partial(jax.jit, static_argnames=("self", "ord"))
-    def loss_on_weights(
-        self, pbo_params: hk.Params, batch_weights: jnp.ndarray, importance_iteration: jnp.ndarray, ord: int = 2
+    def loss_on_weigths(
+        self,
+        pbo_params: hk.Params,
+        batch_weights: jnp.ndarray,
+        importance_iteration: jnp.ndarray,
+        ord: int = 2,
     ) -> jnp.ndarray:
         loss = 0
-        batch_weights_iterated = batch_weights
+        batch_iterated_weights = batch_weights
         batch_weights_optimal_iterated = batch_weights
 
         for idx_iteration in jnp.arange(self.max_bellman_iterations):
-            batch_weights_iterated = jax.lax.stop_gradient(batch_weights_iterated)
-            batch_weights_iterated = self(pbo_params, batch_weights_iterated)
+            # batch_iterated_weights = jax.lax.stop_gradient(batch_iterated_weights)
             batch_weights_optimal_iterated = self.pbo_optimal(batch_weights_optimal_iterated)
-            batch_weights_optimal_iterated = jax.lax.stop_gradient(batch_weights_optimal_iterated)
+
+            batch_iterated_weights = self(pbo_params, batch_iterated_weights)
 
             if ord == 1:
                 loss += (
                     importance_iteration[idx_iteration]
-                    * jnp.abs(batch_weights_optimal_iterated - batch_weights_iterated).mean()
+                    * jnp.abs(batch_iterated_weights - batch_weights_optimal_iterated).mean()
                 )
             else:
                 loss += (
                     importance_iteration[idx_iteration]
-                    * jnp.square(batch_weights_optimal_iterated - batch_weights_iterated).mean()
+                    * jnp.square(batch_iterated_weights - batch_weights_optimal_iterated).mean()
                 )
+
+        loss /= importance_iteration.sum()
 
         if self.add_infinity:
-            loss /= self.max_bellman_iterations
+            optimal_fixed_point = self.pbo_optimal.fixed_point()
+            fixed_point = self.fixed_point(pbo_params)
 
-            batch_fixed_point = self.fixed_point(pbo_params)
             if ord == 1:
-                loss += importance_iteration[-1] * jnp.abs(batch_fixed_point - self.pbo_optimal.fixed_point()).mean()
+                loss += importance_iteration[-1] * jnp.abs(fixed_point - optimal_fixed_point).mean()
             else:
-                loss += importance_iteration[-1] * jnp.square(batch_fixed_point - self.pbo_optimal.fixed_point()).mean()
+                loss += importance_iteration[-1] * jnp.square(fixed_point - optimal_fixed_point).mean()
 
         return loss
 
     @partial(jax.jit, static_argnames="self")
     def learn_on_batch_on_weights(
-        self,
-        params: hk.Params,
-        optimizer_state: jnp.ndarray,
-        batch_weights: jnp.ndarray,
-        importance_iteration: jnp.ndarray,
+        self, params: hk.Params, optimizer_state: tuple, batch_weights: jnp.ndarray, importance_iteration: jnp.ndarray
     ) -> tuple:
         loss, grad_loss = self.loss_and_grad_on_weights(params, batch_weights, importance_iteration)
         updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
         params = optax.apply_updates(params, updates)
 
-        return params, optimizer_state, loss, grad_loss
-
-
-class LinearPBOOnWeights(LearnableOnWeightsPBO):
-    def __init__(
-        self,
-        q: BaseQ,
-        max_bellman_iterations: int,
-        add_infinity: bool,
-        network_key: int,
-        learning_rate: dict,
-        pbo_optimal: OptimalPBO,
-    ) -> None:
-        def network(weights: jnp.ndarray) -> jnp.ndarray:
-            return LinearPBONet(q.weights_dimension)(weights)
-
-        super().__init__(
-            q,
-            max_bellman_iterations,
-            add_infinity,
-            network,
-            network_key,
-            learning_rate,
-            pbo_optimal,
-        )
-
-    def fixed_point(self, params: hk.Params) -> jnp.ndarray:
-        return jnp.linalg.solve(
-            jnp.eye(self.q.weights_dimension) - params["LinearPBONet/linear"]["w"].T,
-            params["LinearPBONet/linear"]["b"].T,
-        ).T
-
-    def contracting_factor(self) -> float:
-        return jnp.linalg.norm(self.params["LinearPBONet/linear"]["w"], ord=1)
+        return params, optimizer_state, loss
 
 
 class TabularPBONet(hk.Module):

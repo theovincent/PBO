@@ -1,5 +1,4 @@
 import jax.numpy as jnp
-import jax
 
 from pbo.networks.base_q import BaseQ
 from pbo.networks.base_pbo import BasePBO
@@ -10,7 +9,7 @@ class OptimalPBO(BasePBO):
         super().__init__(q, max_bellman_iterations, add_infinity)
 
 
-class Optimal3DPBO(OptimalPBO):
+class OptimalLQRPBO(OptimalPBO):
     def __init__(
         self,
         q: BaseQ,
@@ -52,25 +51,3 @@ class Optimal3DPBO(OptimalPBO):
                 self.R + self.B**2 * self.P,
             ]
         )
-
-
-class OptimalTablePBO(OptimalPBO):
-    def __init__(
-        self,
-        q: BaseQ,
-        max_bellman_iterations: int,
-        add_infinity: bool,
-        optimal_bellman_operator,
-        optimal_q: jnp.ndarray,
-    ) -> None:
-        super().__init__(q, max_bellman_iterations, add_infinity)
-        self.optimal_bellman_operator = optimal_bellman_operator
-        self.optimal_q = optimal_q
-
-    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
-        return jax.vmap(
-            lambda weights_: self.optimal_bellman_operator(self.q.to_params(weights_)["TableQNet"]["table"]).flatten()
-        )(weights)
-
-    def fixed_point(self) -> jnp.ndarray:
-        return self.optimal_q.flatten()
