@@ -111,7 +111,7 @@ class LinearQuadraticEnv:
 
         absorbing = False
 
-        return self.state, jnp.array([reward]), absorbing, {}
+        return self.state, jnp.array([reward]), jnp.array([absorbing]), {}
 
     def optimal_action(self) -> jnp.ndarray:
         return -self.K @ self.state

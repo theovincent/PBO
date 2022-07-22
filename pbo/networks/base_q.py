@@ -9,26 +9,35 @@ import jax.numpy as jnp
 class BaseQ:
     def __init__(
         self,
+        state_dim: int,
+        action_dim: int,
+        continuous_actions: bool,
+        n_actions_on_max: int,
+        action_range_on_max: float,
         gamma: float,
         network: hk.Module,
         network_key: int,
         random_weights_range: float,
         random_weights_key: int,
-        action_range_on_max: float,
-        n_actions_on_max: int,
-        continuous_actions: bool = True,
     ) -> None:
+        self.state_dim = state_dim
+        self.action_dim = action_dim
         self.gamma = gamma
         self.random_weights_range = random_weights_range
         self.random_weights_key = random_weights_key
         self.n_actions_on_max = n_actions_on_max
+        self.index_actions_on_max = jnp.arange(n_actions_on_max)
         if continuous_actions:
-            self.discrete_actions_on_max = jnp.linspace(-action_range_on_max, action_range_on_max, num=n_actions_on_max)
+            self.discrete_actions_on_max = jnp.linspace(
+                -action_range_on_max, action_range_on_max, num=n_actions_on_max
+            ).reshape((n_actions_on_max, action_dim))
         else:
-            self.discrete_actions_on_max = jnp.arange(n_actions_on_max)
+            self.discrete_actions_on_max = jnp.arange(n_actions_on_max).reshape((n_actions_on_max, action_dim))
 
         self.network = hk.without_apply_rng(hk.transform(network))
-        self.params = self.network.init(rng=network_key, state=jnp.zeros((1)), action=jnp.zeros((1)))
+        self.params = self.network.init(
+            rng=network_key, state=jnp.zeros((self.state_dim)), action=jnp.zeros((self.action_dim))
+        )
 
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
@@ -58,7 +67,9 @@ class BaseQ:
     def random_init_weights(self) -> jnp.ndarray:
         self.random_weights_key, key = jax.random.split(self.random_weights_key)
 
-        return self.to_weights(self.network.init(rng=key, state=jnp.zeros((1)), action=jnp.zeros((1))))
+        return self.to_weights(
+            self.network.init(rng=key, state=jnp.zeros((self.state_dim)), action=jnp.zeros((self.action_dim)))
+        )
 
     @partial(jax.jit, static_argnames="self")
     def __call__(self, params: hk.Params, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
@@ -68,14 +79,20 @@ class BaseQ:
     def compute_target(self, batch_weights: jnp.ndarray, batch_samples: dict) -> jnp.ndarray:
         return jax.vmap(
             lambda weights: batch_samples["reward"]
-            + self.gamma * self.max_value(self.to_params(weights), batch_samples["next_state"])
+            + (1 - batch_samples["absorbing"])
+            * self.gamma
+            * self.max_value(self.to_params(weights), batch_samples["next_state"])
         )(batch_weights)
 
     @partial(jax.jit, static_argnames="self")
     def max_value(self, q_params: hk.Params, batch_states: jnp.ndarray) -> jnp.ndarray:
-        states_mesh, actions_mesh = jnp.meshgrid(batch_states.flatten(), self.discrete_actions_on_max, indexing="ij")
-        states = states_mesh.reshape((-1, 1))
-        actions = actions_mesh.reshape((-1, 1))
+        index_batch_states = jnp.arange(batch_states.shape[0])
+
+        indexes_states_mesh, indexes_actions_mesh = jnp.meshgrid(
+            index_batch_states, self.index_actions_on_max, indexing="ij"
+        )
+        states = batch_states[indexes_states_mesh.flatten()]
+        actions = self.discrete_actions_on_max[indexes_actions_mesh.flatten()]
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
         batch_values = self(q_params, states, actions).reshape((batch_states.shape[0], self.n_actions_on_max))

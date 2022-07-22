@@ -1,29 +1,39 @@
 import numpy as np
 
 
-from pbo.sample_collection.replay_buffer import ReplayBuffer
-
-
 def count_samples(
-    replay_buffer: ReplayBuffer, discrete_states_boxes: np.ndarray, discrete_actions_boxes: np.ndarray
+    dimension_one: np.ndarray,
+    dimension_two: np.ndarray,
+    discrete_dim_one_boxes: np.ndarray,
+    discrete_dim_two_boxes: np.ndarray,
+    rewards: np.ndarray,
 ) -> tuple:
-    # for each state, get the index where it is located in the discrete states.
-    states = np.array(replay_buffer.states).reshape(-1)
-    indexes_states_boxes = np.searchsorted(discrete_states_boxes, states) - 1
+    # for each element of dimension one, get the index where it is located in the discrete dimension.
+    dimension_one = np.array(dimension_one).reshape(-1)
+    indexes_states_boxes = np.searchsorted(discrete_dim_one_boxes, dimension_one) - 1
 
-    # for each actions, get the index where it is located in the discrete actions.
-    actions = np.array(replay_buffer.actions).reshape(-1)
-    indexes_actions_boxes = np.searchsorted(discrete_actions_boxes, actions) - 1
+    # for each element of dimension two, get the index where it is located in the discrete dimension.
+    dimension_two = np.array(dimension_two).reshape(-1)
+    indexes_actions_boxes = np.searchsorted(discrete_dim_two_boxes, dimension_two) - 1
 
-    # only count the state action pairs that are in the boxes
-    states_inside_boxes = np.logical_and(states >= discrete_states_boxes[0], states <= discrete_states_boxes[-1])
-    actions_inside_boxes = np.logical_and(actions >= discrete_actions_boxes[0], actions <= discrete_actions_boxes[-1])
-    states_actions_inside_boxes = np.logical_and(states_inside_boxes, actions_inside_boxes)
+    # only count the element pairs that are in the boxes
+    dim_one_inside_boxes = np.logical_and(
+        dimension_one >= discrete_dim_one_boxes[0], dimension_one <= discrete_dim_one_boxes[-1]
+    )
+    dim_two_inside_boxes = np.logical_and(
+        dimension_two >= discrete_dim_two_boxes[0], dimension_two <= discrete_dim_two_boxes[-1]
+    )
+    dimensions_inside_boxes = np.logical_and(dim_one_inside_boxes, dim_two_inside_boxes)
 
-    samples_count = np.zeros((len(discrete_states_boxes) - 1, len(discrete_actions_boxes) - 1))
-    for idx_state, idx_action in zip(
-        indexes_states_boxes[states_actions_inside_boxes], indexes_actions_boxes[states_actions_inside_boxes]
+    pruned_rewards = rewards.reshape(-1)[dimensions_inside_boxes]
+
+    samples_count = np.zeros((len(discrete_dim_one_boxes) - 1, len(discrete_dim_two_boxes) - 1))
+    rewards_count = np.zeros((len(discrete_dim_one_boxes) - 1, len(discrete_dim_two_boxes) - 1))
+
+    for idx_in_list, (idx_dim_one, idx_dim_two) in enumerate(
+        zip(indexes_states_boxes[dimensions_inside_boxes], indexes_actions_boxes[dimensions_inside_boxes])
     ):
-        samples_count[idx_state, idx_action] += 1
+        samples_count[idx_dim_one, idx_dim_two] += 1
+        rewards_count[idx_dim_one, idx_dim_two] += pruned_rewards[idx_in_list]
 
-    return samples_count, (~states_actions_inside_boxes).sum()
+    return samples_count, (~dimensions_inside_boxes).sum(), rewards_count
