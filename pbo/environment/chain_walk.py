@@ -84,43 +84,18 @@ class ChainWalkEnv:
     def policy_transition_probability(self, policy: jnp.ndarray) -> jnp.ndarray:
         policy_transition_proba = jnp.zeros((self.n_states, self.n_states))
 
-        for next_state in jnp.arange(self.n_states):
-            for state in jnp.arange(self.n_states):
-                policy_transition_proba = policy_transition_proba.at[next_state, state].set(
+        for state in jnp.arange(self.n_states):
+            for next_state in jnp.arange(self.n_states):
+                policy_transition_proba = policy_transition_proba.at[state, next_state].set(
                     self.transition_proba[state * self.n_actions + policy[state], next_state]
                 )
 
         return policy_transition_proba
 
-    @partial(jax.jit, static_argnames=("self", "horizon"))
-    def absorbing_probability(self, policy: jnp.ndarray, horizon: int) -> jnp.ndarray:
-        absorbing_proba = jnp.zeros(horizon)
-        policy_transition_proba = self.policy_transition_probability(policy)
-        states_distribution = jnp.ones(self.n_states) / self.n_states
-
-        for time in jnp.arange(horizon):
-            states_distribution = policy_transition_proba @ states_distribution
-            absorbing_proba = absorbing_proba.at[time].set(states_distribution[0] + states_distribution[-1])
-
-        return absorbing_proba
-
-    def rollout(self, policy: jnp.ndarray, initial_state: jnp.ndarray, horizon: int) -> float:
-        self.state = initial_state
-        rollout_return = 0
-        discount = 1
-
-        for _ in jnp.arange(horizon):
-            _, reward, _, _ = self.step(policy[self.state[0]])
-
-            rollout_return += discount * reward
-            discount *= self.gamma
-
-        return rollout_return
-
-    def monte_carlo(self, policy: jnp.ndarray, initial_state: jnp.ndarray, horizon: int, n_rollout: int) -> float:
-        monte_carlo_estimate = 0
-
-        for _ in jnp.arange(n_rollout):
-            monte_carlo_estimate += self.rollout(policy, initial_state, horizon)
-
-        return monte_carlo_estimate / n_rollout
+    @partial(jax.jit, static_argnames="self")
+    def value_function(self, policy: jnp.ndarray) -> jnp.ndarray:
+        policy_transition_probability = self.policy_transition_probability(policy)
+        return jnp.linalg.solve(
+            jnp.eye(self.n_states) - self.gamma * policy_transition_probability,
+            policy_transition_probability @ self.rewards,
+        )
