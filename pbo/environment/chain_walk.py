@@ -39,7 +39,11 @@ class ChainWalkEnv:
                 else:
                     self.transition_proba = self.transition_proba.at[state * self.n_actions + action, state].set(1)
 
-        self.PR = self.transition_proba @ self.rewards
+        self.R = jnp.zeros(n_states * self.n_actions)
+        self.R = self.R.at[0].set(1)
+        self.R = self.R.at[1].set(1)
+        self.R = self.R.at[-1].set(1)
+        self.R = self.R.at[-2].set(1)
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
@@ -65,7 +69,7 @@ class ChainWalkEnv:
 
     @partial(jax.jit, static_argnames="self")
     def apply_bellman_operator(self, q: jnp.ndarray) -> jnp.array:
-        return (self.PR + self.gamma * self.transition_proba @ jnp.max(q, axis=1)).reshape(
+        return (self.R + self.gamma * self.transition_proba @ jnp.max(q, axis=1)).reshape(
             (self.n_states, self.n_actions)
         )
 
@@ -95,7 +99,4 @@ class ChainWalkEnv:
     @partial(jax.jit, static_argnames="self")
     def value_function(self, policy: jnp.ndarray) -> jnp.ndarray:
         policy_transition_probability = self.policy_transition_probability(policy)
-        return jnp.linalg.solve(
-            jnp.eye(self.n_states) - self.gamma * policy_transition_probability,
-            policy_transition_probability @ self.rewards,
-        )
+        return jnp.linalg.solve(jnp.eye(self.n_states) - self.gamma * policy_transition_probability, self.rewards)
