@@ -130,3 +130,7 @@ dmypy.json
 
 # Avoid pushing htlm files
 **/*.html
+
+# Avoid pushing images
+**/*.png 
+**/*.jpg
