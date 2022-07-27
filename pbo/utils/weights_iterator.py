@@ -47,7 +47,7 @@ class WeightsIterator:
             )
 
         self.iterated_pbo_on_weights_error = np.sqrt(
-            np.square(self.iterated_weights_optimal - self.iterated_weights_pbo_on_weights).mean(axis=(1, 2))
+            np.square(self.iterated_weights_optimal[1:] - self.iterated_weights_pbo_on_weights[1:]).mean(axis=(1, 2))
         )
 
         self.sleeping_time = sleeping_time
@@ -123,20 +123,21 @@ class WeightsIterator:
         # Plot the errors on all weights
         plt.figure(figsize=(7, 3))
 
-        iterated_error = np.sqrt(np.square(self.iterated_weights_optimal - self.iterated_weights).mean(axis=(1, 2)))
+        iterated_error = np.sqrt(
+            np.square(self.iterated_weights_optimal[1:] - self.iterated_weights[1:]).mean(axis=(1, 2))
+        )
 
-        plt.bar(
-            range(self.n_iterations + 1),
+        plt.plot(
+            range(1, self.n_iterations + 1),
             iterated_error,
             color="g",
             label=r"$E_{w}||\Gamma^{* i}(w) - \Gamma_{linear}^i(w)||_2$",
         )
-        plt.bar(
-            range(self.n_iterations + 1),
+        plt.plot(
+            range(1, self.n_iterations + 1),
             self.iterated_pbo_on_weights_error,
             color="grey",
             label=r"$E_{w}||\Gamma^{* i}(w) - \Gamma_{linear\_on\_weights}^i(w)||_2$",
-            alpha=0.8,
         )
         plt.axhline(
             y=np.square(self.optimal_fixed_point - self.fixed_point).mean(),
@@ -151,6 +152,7 @@ class WeightsIterator:
 
         plt.ylabel("errors")
         plt.xlabel("iteration")
+        plt.xticks(range(1, self.n_iterations + 1), labels=range(1, self.n_iterations + 1))
         not_nan = tuple(~jnp.isnan(iterated_error))
         plt.ylim(0, iterated_error[not_nan].max() + 0.1)
 
