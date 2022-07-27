@@ -1,4 +1,5 @@
 import time
+from matplotlib import markers
 import numpy as np
 import matplotlib.pyplot as plt
 from IPython.display import clear_output
@@ -65,38 +66,43 @@ class WeightsIterator:
         labels = ["k", "i", " m"]
 
         for idx_ax, ax in enumerate(axes):
-            ax.axhline(y=self.optimal_fixed_point[idx_ax], color="black", label="Optimal fixed point")
+            ax.axhline(y=self.optimal_fixed_point[idx_ax], color="black", label=r"$\Gamma^{* w}$")
             ax.axhline(
                 y=self.pbo_on_weights_fixed_point[idx_ax],
                 color="grey",
-                label="PBO on weights fixed point",
-                linestyle="--",
+                label=r"$\Gamma_{linear\_on\_weights}^w$",
             )
-            ax.axhline(y=self.fixed_point[idx_ax], color="g", label="fixed point", linestyle="--")
+            ax.axhline(y=self.fixed_point[idx_ax], color="g", label=r"$\Gamma_{linear}^w$")
             ax.scatter(
                 range(self.n_iterations + 1),
                 self.iterated_weights_optimal[:, 0, idx_ax],
                 color="black",
-                label="Optimally iterated weights",
+                label=r"$\Gamma^{* i}(w_0)$",
             )
             ax.scatter(
                 range(self.n_iterations + 1),
                 self.iterated_weights_pbo_on_weights[:, 0, idx_ax],
                 color="grey",
-                label="PBO on weights iterated weights",
+                label=r"$\Gamma_{linear\_on\_weights}^i(w_0)$",
                 marker="x",
             )
             ax.scatter(
                 range(self.n_iterations + 1),
                 self.iterated_weights[:, 0, idx_ax],
                 color="g",
-                label="Iterated weights",
+                label=r"$\Gamma_{linear}^i(w_0)$",
                 marker="x",
             )
 
             ax.set_ylim(
-                self.optimal_fixed_point[idx_ax] - 2 * abs(self.optimal_fixed_point[idx_ax]),
-                self.optimal_fixed_point[idx_ax] + 2 * abs(self.optimal_fixed_point[idx_ax]),
+                min(
+                    self.optimal_fixed_point[idx_ax] - 2 * abs(self.optimal_fixed_point[idx_ax]),
+                    self.iterated_weights[0, 0, idx_ax],
+                ),
+                max(
+                    self.optimal_fixed_point[idx_ax] + 2 * abs(self.optimal_fixed_point[idx_ax]),
+                    self.iterated_weights[0, 0, idx_ax],
+                ),
             )
             ax.set_ylabel(labels[idx_ax])
             if idx_ax != 2:
@@ -123,24 +129,24 @@ class WeightsIterator:
             range(self.n_iterations + 1),
             iterated_error,
             color="g",
-            label=r"$||T^*(w) - T_{linear}(w)||$",
+            label=r"$E_{w}||\Gamma^{* i}(w) - \Gamma_{linear}^i(w)||_2$",
         )
         plt.bar(
             range(self.n_iterations + 1),
             self.iterated_pbo_on_weights_error,
             color="grey",
-            label=r"$||T^*(w) - T_{linear\_on\_weights}(w)||$",
-            alpha=0.9,
+            label=r"$E_{w}||\Gamma^{* i}(w) - \Gamma_{linear\_on\_weights}^i(w)||_2$",
+            alpha=0.8,
         )
         plt.axhline(
             y=np.square(self.optimal_fixed_point - self.fixed_point).mean(),
             color="g",
-            label="||opt_fixed_point - fixed_point||",
+            label=r"$||\Gamma^{* w} - \Gamma_{linear}^w||_2$",
         )
         plt.axhline(
             y=self.pbo_on_weighs_fixed_point_error,
             color="grey",
-            label="||opt_fixed_point - fixed_point_linear_on_weights||",
+            label=r"$||\Gamma^{* w} - \Gamma_{linear\_on\_weights}^w||_2$",
         )
 
         plt.ylabel("errors")
@@ -162,38 +168,64 @@ class WeightsIterator:
         time.sleep(self.sleeping_time)
 
     @staticmethod
-    def add_points(ax, points: np.ndarray, size: float, label: str, color: str) -> None:
+    def add_points(ax, points: np.ndarray, color: float, alpha: float, label: str) -> None:
         xdata = points[:, 0]
         ydata = points[:, 1]
         zdata = points[:, 2]
-        ax.scatter3D(xdata, ydata, zdata, s=size, label=label, color=color)
+        ax.scatter3D(xdata, ydata, zdata, color=color, alpha=alpha, label=label, s=5)
 
     def visualize(self, pbo: BasePBO, optimal: bool) -> None:
         fig = plt.figure(figsize=(7, 7))
         ax = fig.add_subplot(111, projection="3d")
-        sizes = [1, 5, 300, 1000]
-        colors = ["black", "b", "red", "g"]
+        colors = ["red", "purple", "blue", "green"]
+        alphas = [0.1, 0.3, 0.5, 1]
         iterated_weights = self.weights
 
         for iteration in range(4):
-            self.add_points(ax, iterated_weights, sizes[iteration], f"iteration {iteration}", colors[iteration])
+            self.add_points(ax, iterated_weights, colors[iteration], alphas[iteration], f"iteration {iteration}")
             if optimal:
                 iterated_weights = pbo(iterated_weights)
             else:
                 iterated_weights = pbo(pbo.params, iterated_weights)
 
+        if optimal:
+            ax.scatter3D(
+                self.optimal_fixed_point[0],
+                self.optimal_fixed_point[1],
+                self.optimal_fixed_point[2],
+                color="black",
+                label=r"iteration $+\infty$",
+                s=100,
+                marker="*",
+            )
+        else:
+            ax.scatter3D(
+                pbo.fixed_point(pbo.params)[0],
+                pbo.fixed_point(pbo.params)[1],
+                pbo.fixed_point(pbo.params)[2],
+                color="black",
+                label=r"iteration $+\infty$",
+                s=80,
+            )
+            ax.scatter3D(
+                self.optimal_fixed_point[0],
+                self.optimal_fixed_point[1],
+                self.optimal_fixed_point[2],
+                color="black",
+                label=r"optimal iteration $+\infty$",
+                s=100,
+                marker="*",
+            )
+
         ax.set_xlabel("k")
-        ax.set_xticklabels([])
-        ax.set_xticks([])
-
+        ax.set_xlim(min(self.weights[:, 0]), max(self.weights[:, 0]))
         ax.set_ylabel("i")
-        ax.set_yticklabels([])
-        ax.set_yticks([])
-
+        ax.set_ylim(min(self.weights[:, 1]), max(self.weights[:, 1]))
         ax.set_zlabel("m")
-        ax.set_zlim(-2, 5)
+        ax.set_zlim(min(self.weights[:, 2]), -min(self.weights[:, 2]))
 
         ax.legend()
-        ax.view_init(0, 0)
+        ax.view_init(0, 10)
+        plt.title("Iterations ")
         fig.tight_layout()
         plt.show()

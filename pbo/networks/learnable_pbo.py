@@ -7,7 +7,6 @@ import optax
 
 from pbo.networks.base_q import BaseQ
 from pbo.networks.base_pbo import BasePBO
-from pbo.networks.optimal_pbo import OptimalPBO
 
 
 class LearnablePBO(BasePBO):

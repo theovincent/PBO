@@ -119,7 +119,7 @@ class FullyConnectedQ(LearnableQ):
 
 class LQRQNet(hk.Module):
     def __init__(self, zero_initializer: bool) -> None:
-        super().__init__(name="Theoretical3DQNet")
+        super().__init__(name="LQRQNet")
 
         if zero_initializer:
             self.initializer = hk.initializers.Constant(0)
