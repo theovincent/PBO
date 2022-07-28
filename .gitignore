@@ -128,8 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Avoid pushing htlm files
+# Avoid pushing htlm and npy files
 **/*.html
+**/*.npy
 
 # Avoid pushing images
 **/*.png 
