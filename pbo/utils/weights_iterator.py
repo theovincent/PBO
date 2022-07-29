@@ -17,13 +17,15 @@ class WeightsIterator:
         pbo_optimal: BasePBO,
         pbo_on_weights: BasePBO,
         weights: jnp.ndarray,
-        n_iterations: int,
+        max_bellman_iterations: int,
+        max_bellman_iterations_validation: int,
         add_infinity: bool,
         sleeping_time: float,
     ) -> None:
         self.pbo = pbo
         self.weights = weights
-        self.n_iterations = n_iterations
+        self.max_bellman_iterations = max_bellman_iterations
+        self.max_bellman_iterations_validation = max_bellman_iterations_validation
         self.add_infinity = add_infinity
 
         self.optimal_fixed_point = pbo_optimal.fixed_point()
@@ -32,28 +34,38 @@ class WeightsIterator:
             np.square(self.optimal_fixed_point - self.pbo_on_weights_fixed_point).mean()
         )
 
-        self.iterated_weights = np.zeros((n_iterations + 1, weights.shape[0], weights.shape[1]))
+        self.iterated_weights = np.zeros((max_bellman_iterations_validation + 1, weights.shape[0], weights.shape[1]))
         self.iterated_weights[0] = weights
 
-        self.iterated_weights_optimal = np.zeros((n_iterations + 1, weights.shape[0], weights.shape[1]))
+        self.iterated_weights_optimal = np.zeros(
+            (max_bellman_iterations_validation + 1, weights.shape[0], weights.shape[1])
+        )
         self.iterated_weights_optimal[0] = weights
-        self.iterated_weights_pbo_on_weights = np.zeros((n_iterations + 1, weights.shape[0], weights.shape[1]))
+
+        self.iterated_weights_pbo_on_weights = np.zeros(
+            (max_bellman_iterations_validation + 1, weights.shape[0], weights.shape[1])
+        )
         self.iterated_weights_pbo_on_weights[0] = weights
 
-        for iteration in range(1, self.n_iterations + 1):
+        for iteration in range(1, self.max_bellman_iterations_validation + 1):
             self.iterated_weights_optimal[iteration] = pbo_optimal(self.iterated_weights_optimal[iteration - 1])
             self.iterated_weights_pbo_on_weights[iteration] = pbo_on_weights(
                 pbo_on_weights.params, self.iterated_weights_pbo_on_weights[iteration - 1]
             )
 
-        self.iterated_pbo_on_weights_error = np.sqrt(
-            np.square(self.iterated_weights_optimal[1:] - self.iterated_weights_pbo_on_weights[1:]).mean(axis=(1, 2))
-        )
+        self.iterated_optimal_error = np.linalg.norm(
+            self.optimal_fixed_point - self.iterated_weights_optimal[1:],
+            axis=2,
+        ).mean(axis=1)
+        self.iterated_pbo_on_weights_error = np.linalg.norm(
+            self.optimal_fixed_point - self.iterated_weights_pbo_on_weights[1:],
+            axis=2,
+        ).mean(axis=1)
 
         self.sleeping_time = sleeping_time
 
     def iterate_on_params(self, params: hk.Params, fixed_point: jnp.ndarray) -> None:
-        for iteration in range(1, self.n_iterations + 1):
+        for iteration in range(1, self.max_bellman_iterations_validation + 1):
             self.iterated_weights[iteration] = self.pbo(params, self.iterated_weights[iteration - 1])
 
         self.fixed_point = fixed_point
@@ -63,54 +75,67 @@ class WeightsIterator:
 
         # Plot the iterations on the first weight
         fig, axes = plt.subplots(3, 1, figsize=(8.5, 5))
-        labels = ["k", "i", " m"]
+        labels = ["K", "I", "M"]
 
         for idx_ax, ax in enumerate(axes):
-            ax.axhline(y=self.optimal_fixed_point[idx_ax], color="black", label=r"$\Gamma^{* w}$")
-            ax.axhline(
-                y=self.pbo_on_weights_fixed_point[idx_ax],
-                color="grey",
-                label=r"$\Gamma_{linear\_on\_weights}^w$",
-            )
-            ax.axhline(y=self.fixed_point[idx_ax], color="g", label=r"$\Gamma_{linear}^w$")
             ax.scatter(
-                range(self.n_iterations + 1),
-                self.iterated_weights_optimal[:, 0, idx_ax],
-                color="black",
-                label=r"$\Gamma^{* i}(w_0)$",
+                range(self.max_bellman_iterations_validation + 1),
+                self.iterated_weights[:, 0, idx_ax],
+                color="green",
+                label="PBO linear",
+                marker="x",
             )
             ax.scatter(
-                range(self.n_iterations + 1),
+                range(self.max_bellman_iterations_validation + 1),
                 self.iterated_weights_pbo_on_weights[:, 0, idx_ax],
                 color="grey",
-                label=r"$\Gamma_{linear\_on\_weights}^i(w_0)$",
+                label="PBO linear on weights",
                 marker="x",
             )
             ax.scatter(
-                range(self.n_iterations + 1),
-                self.iterated_weights[:, 0, idx_ax],
-                color="g",
-                label=r"$\Gamma_{linear}^i(w_0)$",
-                marker="x",
+                range(self.max_bellman_iterations_validation + 1),
+                self.iterated_weights_optimal[:, 0, idx_ax],
+                color="black",
+                label="PBO optimal",
             )
 
-            ax.set_ylim(
-                min(
-                    self.optimal_fixed_point[idx_ax] - 2 * abs(self.optimal_fixed_point[idx_ax]),
-                    self.iterated_weights[0, 0, idx_ax],
-                ),
-                max(
-                    self.optimal_fixed_point[idx_ax] + 2 * abs(self.optimal_fixed_point[idx_ax]),
-                    self.iterated_weights[0, 0, idx_ax],
-                ),
+            ax.hlines(
+                y=self.fixed_point[idx_ax],
+                xmin=0,
+                xmax=self.max_bellman_iterations_validation,
+                color="g",
+                label="PBO linear fixed point",
+                linestyle="--",
             )
+            ax.hlines(
+                y=self.pbo_on_weights_fixed_point[idx_ax],
+                xmin=0,
+                xmax=self.max_bellman_iterations_validation,
+                color="grey",
+                label="PBO linear on weights fixed point",
+                linestyle="--",
+            )
+            ax.hlines(
+                y=self.optimal_fixed_point[idx_ax],
+                xmin=0,
+                xmax=self.max_bellman_iterations_validation,
+                color="black",
+                label="PBO optimal fixed point",
+                linestyle="--",
+            )
+            ax.axvline(
+                x=self.max_bellman_iterations,
+                color="black",
+                linestyle="--",
+            )
+
             ax.set_ylabel(labels[idx_ax])
             if idx_ax != 2:
                 ax.set_xticks([])
                 ax.set_xticklabels([])
             else:
-                ax.set_xticks(range(self.n_iterations + 1))
-                ax.set_xticklabels(range(self.n_iterations + 1))
+                ax.set_xticks(range(self.max_bellman_iterations_validation + 1))
+                ax.set_xticklabels(range(self.max_bellman_iterations_validation + 1))
 
         if title != "":
             axes[0].set_title(title)
@@ -123,47 +148,59 @@ class WeightsIterator:
         # Plot the errors on all weights
         plt.figure(figsize=(7, 3))
 
-        iterated_error = np.sqrt(
-            np.square(self.iterated_weights_optimal[1:] - self.iterated_weights[1:]).mean(axis=(1, 2))
-        )
+        self.iterated_error = np.linalg.norm(
+            self.optimal_fixed_point - self.iterated_weights[1:],
+            axis=2,
+        ).mean(axis=1)
+        self.fixed_point_error = np.square(self.optimal_fixed_point - self.fixed_point).mean()
 
         plt.plot(
-            range(1, self.n_iterations + 1),
-            iterated_error,
-            color="g",
-            label=r"$E_{w}||\Gamma^{* i}(w) - \Gamma_{linear}^i(w)||_2$",
+            range(1, self.max_bellman_iterations_validation + 1),
+            self.iterated_error,
+            color="green",
+            label="PBO linear",
         )
         plt.plot(
-            range(1, self.n_iterations + 1),
+            range(1, self.max_bellman_iterations_validation + 1),
             self.iterated_pbo_on_weights_error,
             color="grey",
-            label=r"$E_{w}||\Gamma^{* i}(w) - \Gamma_{linear\_on\_weights}^i(w)||_2$",
+            label="PBO linear on weights",
         )
-        plt.axhline(
-            y=np.square(self.optimal_fixed_point - self.fixed_point).mean(),
-            color="g",
-            label=r"$||\Gamma^{* w} - \Gamma_{linear}^w||_2$",
+        plt.plot(
+            range(1, self.max_bellman_iterations_validation + 1),
+            self.iterated_optimal_error,
+            color="black",
+            label="PBO optimal",
         )
-        plt.axhline(
+        plt.hlines(
+            y=self.fixed_point_error,
+            xmin=1,
+            xmax=self.max_bellman_iterations_validation,
+            color="green",
+            linestyle="--",
+            label="PBO linear fixed point",
+        )
+        plt.hlines(
             y=self.pbo_on_weighs_fixed_point_error,
+            xmin=1,
+            xmax=self.max_bellman_iterations_validation,
             color="grey",
-            label=r"$||\Gamma^{* w} - \Gamma_{linear\_on\_weights}^w||_2$",
+            linestyle="--",
+            label="PBO linear on weights fixed point",
+        )
+        plt.axvline(
+            x=self.max_bellman_iterations,
+            color="black",
+            linestyle="--",
         )
 
-        plt.ylabel("errors")
         plt.xlabel("iteration")
-        plt.xticks(range(1, self.n_iterations + 1), labels=range(1, self.n_iterations + 1))
-        not_nan = tuple(~jnp.isnan(iterated_error))
-        plt.ylim(0, iterated_error[not_nan].max() + 0.1)
-
-        pbo_total_error = iterated_error.sum()
-        pbo_on_weights_total_error = self.iterated_pbo_on_weights_error.sum()
-        if self.add_infinity:
-            pbo_total_error += np.sqrt(np.square(self.optimal_fixed_point - self.fixed_point).mean())
-            pbo_on_weights_total_error += self.pbo_on_weighs_fixed_point_error
-        plt.title(
-            f"PBO total error: {str(jnp.round(pbo_total_error, 2))}, PBO on weights total error: {str(jnp.round(pbo_on_weights_total_error, 2))}"
+        plt.xticks(
+            range(1, self.max_bellman_iterations_validation + 1),
+            labels=range(1, self.max_bellman_iterations_validation + 1),
         )
+
+        plt.title(r"$E[||w_i - w^*||_2]$")
         plt.legend()
         plt.show()
 
@@ -176,7 +213,7 @@ class WeightsIterator:
         zdata = points[:, 2]
         ax.scatter3D(xdata, ydata, zdata, color=color, alpha=alpha, label=label, s=5)
 
-    def visualize(self, pbo: BasePBO, optimal: bool) -> None:
+    def visualize(self, pbo: BasePBO, optimal: bool, title: str = "") -> None:
         fig = plt.figure(figsize=(7, 7))
         ax = fig.add_subplot(111, projection="3d")
         colors = ["red", "purple", "blue", "green"]
@@ -228,6 +265,6 @@ class WeightsIterator:
 
         ax.legend()
         ax.view_init(0, 10)
-        plt.title("Iterations ")
+        plt.title("Iterations " + title)
         fig.tight_layout()
         plt.show()
