@@ -43,7 +43,7 @@ class TwoDimesionsMesh:
         )
 
         ax.set_xticks(self.dimension_one)
-        ax.set_xticklabels(np.around(self.dimension_one, 1))
+        ax.set_xticklabels(np.around(self.dimension_one, 1), rotation="vertical")
         ax.set_xlim(self.dimension_one[0], self.dimension_one[-1])
         ax.set_xlabel(xlabel)
 

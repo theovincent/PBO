@@ -171,6 +171,21 @@ class CarOnHillEnv:
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
         return (q_1 - q_0).reshape((states_x.shape[0], states_v.shape[0]))
 
+    def q_mesh(self, q: BaseQ, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
+        q_mesh_ = np.zeros((states_x.shape[0], states_v.shape[0], 2))
+
+        states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
+
+        states = jnp.hstack((states_x_mesh.reshape((-1, 1)), states_v_mesh.reshape((-1, 1))))
+        actions_0 = jnp.zeros((states.shape[0], 1))
+        actions_1 = jnp.ones((states.shape[0], 1))
+
+        # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        q_mesh_[:, :, 0] = q(q.params, states, actions_0).reshape((states_x.shape[0], states_v.shape[0]))
+        q_mesh_[:, :, 1] = q(q.params, states, actions_1).reshape((states_x.shape[0], states_v.shape[0]))
+
+        return q_mesh_
+
     def simulate(self, q: BaseQ, horizon: int, initial_state: jnp.ndarray) -> bool:
         self.reset(initial_state)
         absorbing = False
@@ -212,11 +227,11 @@ class CarOnHillEnv:
 
         return performance
 
-    def evaluate_mesh(self, q: BaseQ, horizon: int, mesh_size_x: int, mesh_size_v: int) -> np.ndarray:
-        js = np.zeros((mesh_size_x, mesh_size_v))
+    def v_mesh(self, q: BaseQ, horizon: int, states_x: jnp.ndarray, states_v: jnp.ndarray) -> np.ndarray:
+        v = np.zeros((len(states_x), len(states_v)))
 
-        for idx_state_x, state_x in enumerate(jnp.linspace(-self.max_pos, self.max_pos, mesh_size_x)):
-            for idx_state_v, state_v in enumerate(jnp.linspace(-self.max_velocity, self.max_velocity, mesh_size_v)):
-                js[idx_state_x, idx_state_v] = self.evaluate(q, horizon, jnp.array([state_x, state_v]))
+        for idx_state_x, state_x in enumerate(states_x):
+            for idx_state_v, state_v in enumerate(states_v):
+                v[idx_state_x, idx_state_v] = self.evaluate(q, horizon, jnp.array([state_x, state_v]))
 
-        return js
+        return v
