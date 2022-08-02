@@ -124,9 +124,15 @@ class CarOnHillEnv:
     def close(self):
         return self._viewer.close()
 
-    def optimal_steps_to_absorbing(self, state: jnp.ndarray, max_steps: int):
+    def optimal_steps_to_absorbing(self, state: jnp.ndarray, max_steps: int) -> tuple:
         current_states = [state]
         step = 0
+
+        # Check if state is an absorbing state
+        if state[0] < -self.max_pos or np.abs(state[1]) > self.max_velocity:
+            return None, step
+        elif state[0] > self.max_pos and np.abs(state[1]) <= self.max_velocity:
+            return None, step
 
         while len(current_states) > 0 and step < max_steps:
             next_states = []
@@ -139,6 +145,7 @@ class CarOnHillEnv:
                         return True, step + 1
                     elif reward == 0:
                         next_states.append(next_state)
+                    ## if reward == -1 we pass
 
             step += 1
             current_states = next_states
@@ -146,17 +153,12 @@ class CarOnHillEnv:
         return False, step
 
     def optimal_v(self, state: jnp.ndarray, max_steps: int) -> float:
-        success, step_to_absorbing = self.optimal_steps_to_absorbing([state], max_steps)
+        success, step_to_absorbing = self.optimal_steps_to_absorbing(state, max_steps)
 
-        return self.gamma ** (step_to_absorbing - 1) if success else -self.gamma ** (step_to_absorbing - 1)
-
-    def optimal_vs(self, states: jnp.ndarray, max_steps: int) -> jnp.ndarray:
-        vs = []
-
-        for state in tqdm(states):
-            vs.append(self.optimal_v(state, max_steps))
-
-        return jnp.array(vs)
+        if step_to_absorbing == 0:
+            return 0
+        else:
+            return self.gamma ** (step_to_absorbing - 1) if success else -self.gamma ** (step_to_absorbing - 1)
 
     def diff_q_mesh(self, q: BaseQ, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
         states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
