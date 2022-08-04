@@ -160,9 +160,9 @@ class LinearPBOOnWeights(LinearPBO):
         return params, optimizer_state, loss
 
 
-class TabularPBONet(hk.Module):
+class MaxLinearPBONet(hk.Module):
     def __init__(self, n_actions: int, layer_dimension: int) -> None:
-        super().__init__(name="TabularPBONet")
+        super().__init__(name="MaxLinearPBONet")
         self.n_actions = n_actions
         self.layer_dimension = layer_dimension
 
@@ -173,7 +173,7 @@ class TabularPBONet(hk.Module):
         return x
 
 
-class TabularPBO(LearnablePBO):
+class MaxLinearPBO(LearnablePBO):
     def __init__(
         self,
         q: BaseQ,
@@ -184,6 +184,6 @@ class TabularPBO(LearnablePBO):
         n_actions: int,
     ) -> None:
         def network(weights: jnp.ndarray) -> jnp.ndarray:
-            return TabularPBONet(n_actions, q.weights_dimension)(weights)
+            return MaxLinearPBONet(n_actions, q.weights_dimension)(weights)
 
         super().__init__(q, max_bellman_iterations, add_infinity, network, network_key, learning_rate)
