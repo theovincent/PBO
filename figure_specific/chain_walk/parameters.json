@@ -3,5 +3,8 @@
     "n_actions": 2,
     "sucess_probability": 0.9,
     "gamma": 0.9,
-    "env_seed": 0
+    "env_seed": 0,
+    "max_bellman_iterations": 5,
+    "n_repetitions": 10,
+    "n_weights": 100
 }
