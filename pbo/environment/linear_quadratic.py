@@ -64,9 +64,9 @@ class LinearQuadraticEnv:
             self.parameters_key, key = jax.random.split(self.parameters_key)
             self.Q = jax.random.uniform(key, (1, 1), minval=-1, maxval=0)
             self.parameters_key, key = jax.random.split(self.parameters_key)
-            self.R = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
+            self.R = jax.random.uniform(key, (1, 1), minval=-100, maxval=1)
             self.parameters_key, key = jax.random.split(self.parameters_key)
-            self.S = jax.random.uniform(key, (1, 1), minval=-0.5, maxval=0.5)
+            self.S = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
 
             self.P = jnp.array(sc_linalg.solve_discrete_are(self.A, self.B, self.Q, self.R, s=self.S))
 
@@ -87,6 +87,16 @@ class LinearQuadraticEnv:
 
         self.initial_state = initial_state
         self.max_init_state = max_init_state
+
+        self.optimal_weights = jnp.array(
+            [
+                self.Q[0, 0] + self.A[0, 0] ** 2 * self.P[0, 0],
+                self.S[0, 0] + self.A[0, 0] * self.B[0, 0] * self.P[0, 0],
+                self.R[0, 0] + self.B[0, 0] ** 2 * self.P[0, 0],
+            ]
+        )
+        self.optimal_bias = jnp.array([self.Q[0, 0], self.S[0, 0], self.R[0, 0]])
+        self.optimal_slope = jnp.array([self.A[0, 0] ** 2, self.A[0, 0] * self.B[0, 0], self.B[0, 0] ** 2])
 
     @staticmethod
     def check_riccati_equation(P: float, A: float, B: float, Q: float, R: float, S: float) -> bool:
@@ -117,11 +127,11 @@ class LinearQuadraticEnv:
         return -self.K @ self.state
 
     def optimal_Q_value(self, state: float, action: float) -> float:
-        k = self.Q[0, 0] + self.A[0, 0] ** 2 * self.P[0, 0]
-        i = self.S[0, 0] + self.A[0, 0] * self.B[0, 0] * self.P[0, 0]
-        m = self.R[0, 0] + self.B[0, 0] ** 2 * self.P[0, 0]
+        K = self.optimal_weights[0]
+        I = self.optimal_weights[1]
+        M = self.optimal_weights[2]
 
-        return state**2 * k + 2 * state * action * i + action**2 * m
+        return state**2 * K + 2 * state * action * I + action**2 * M
 
     @partial(jax.jit, static_argnames="self")
     def optimal_Q_values(self, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:

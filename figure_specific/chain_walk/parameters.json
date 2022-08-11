@@ -4,7 +4,7 @@
     "sucess_probability": 0.9,
     "gamma": 0.9,
     "env_seed": 0,
-    "max_bellman_iterations": 2,
+    "max_bellman_iterations": 5,
     "n_repetitions": 10,
     "n_weights": 100
 }

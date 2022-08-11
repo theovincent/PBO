@@ -1,4 +1,5 @@
 from functools import partial
+from re import L
 
 import jax.numpy as jnp
 import jax
@@ -24,7 +25,7 @@ class LearnablePBO(BasePBO):
         self.network = hk.without_apply_rng(hk.transform(network))
         self.params = self.network.init(rng=network_key, weights=jnp.zeros((1, q.weights_dimension)))
 
-        self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
+        self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss), static_argnames="ord")
 
         self.learning_rate_schedule = optax.linear_schedule(
             learning_rate["first"], learning_rate["last"], learning_rate["duration"]
@@ -40,7 +41,7 @@ class LearnablePBO(BasePBO):
         self.optimizer = optax.adam(self.learning_rate_schedule)
         self.optimizer_state = self.optimizer.init(self.params)
 
-    @partial(jax.jit, static_argnames="self")
+    @partial(jax.jit, static_argnames=("self", "ord"))
     def learn_on_batch(
         self,
         params: hk.Params,
@@ -49,8 +50,11 @@ class LearnablePBO(BasePBO):
         batch_weights: jnp.ndarray,
         batch_samples: jnp.ndarray,
         importance_iteration: jnp.ndarray,
+        ord: int = 2,
     ) -> tuple:
-        loss, grad_loss = self.loss_and_grad(params, params_target, batch_weights, batch_samples, importance_iteration)
+        loss, grad_loss = self.loss_and_grad(
+            params, params_target, batch_weights, batch_samples, importance_iteration, ord
+        )
         updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
         params = optax.apply_updates(params, updates)
 
@@ -185,5 +189,33 @@ class MaxLinearPBO(LearnablePBO):
     ) -> None:
         def network(weights: jnp.ndarray) -> jnp.ndarray:
             return MaxLinearPBONet(n_actions, q.weights_dimension)(weights)
+
+        super().__init__(q, max_bellman_iterations, add_infinity, network, network_key, learning_rate)
+
+
+class CustomLinearPBONet(hk.Module):
+    def __init__(self) -> None:
+        super().__init__(name="CustomLinearPBONet")
+
+    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        customs = weights[:, 0] - weights[:, 1] ** 2 / (weights[:, 2] + 1e-32)
+
+        slope = hk.get_parameter("slope", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal())
+        bias = hk.get_parameter("bias", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal())
+
+        return customs.reshape((-1, 1)) @ slope + bias
+
+
+class CustomLinearPBO(LearnablePBO):
+    def __init__(
+        self,
+        q: BaseQ,
+        max_bellman_iterations: int,
+        add_infinity: bool,
+        network_key: int,
+        learning_rate: dict,
+    ) -> None:
+        def network(weights: jnp.ndarray) -> jnp.ndarray:
+            return CustomLinearPBONet()(weights)
 
         super().__init__(q, max_bellman_iterations, add_infinity, network, network_key, learning_rate)
