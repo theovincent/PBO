@@ -1,8 +1,8 @@
 {
-    "env_seed": 0,
-    "n_actions_on_max": TO DO,
-    "action_range_on_max": 1,
-    "max_bellman_iterations": 7,
+    "env_seed": 1,
+    "n_actions_on_max": 40,
+    "action_range_on_max": 4,
+    "max_bellman_iterations": 5,
     "max_discrete_state": 2,
     "n_discrete_states": 7,
     "max_discrete_action": 2,

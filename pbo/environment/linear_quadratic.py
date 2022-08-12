@@ -64,7 +64,7 @@ class LinearQuadraticEnv:
             self.parameters_key, key = jax.random.split(self.parameters_key)
             self.Q = jax.random.uniform(key, (1, 1), minval=-1, maxval=0)
             self.parameters_key, key = jax.random.split(self.parameters_key)
-            self.R = jax.random.uniform(key, (1, 1), minval=-100, maxval=1)
+            self.R = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
             self.parameters_key, key = jax.random.split(self.parameters_key)
             self.S = jax.random.uniform(key, (1, 1), minval=-1, maxval=1)
 
