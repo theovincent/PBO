@@ -8,4 +8,6 @@ rm figure_specific/lqr/figures/data/optimal/*
 
 rm figure_specific/lqr/figures/data/PBO_linear/*
 
+rm figure_specific/lqr/figures/data/PBO_custom_linear/*
+
 rm figure_specific/lqr/figures/data/PBO_optimal/*

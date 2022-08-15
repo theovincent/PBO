@@ -1,11 +1,11 @@
 {
     "env_seed": 1,
-    "n_actions_on_max": 40,
-    "action_range_on_max": 4,
-    "max_bellman_iterations": 5,
-    "max_discrete_state": 2,
-    "n_discrete_states": 7,
-    "max_discrete_action": 2,
-    "n_discrete_actions": 7,
+    "n_actions_on_max": 200,
+    "action_range_on_max": 8,
+    "max_bellman_iterations": 2,
+    "max_discrete_state": 4,
+    "n_discrete_states": 11,
+    "max_discrete_action": 4,
+    "n_discrete_actions": 11,
     "n_weights": 1
 }

@@ -10,7 +10,7 @@ def add_points(ax, points: np.ndarray, label: str) -> None:
     xdata = points[..., 0]
     ydata = points[..., 1]
     zdata = points[..., 2]
-    ax.scatter3D(xdata, ydata, zdata, label=label)
+    ax.scatter3D(xdata, ydata, zdata, label=label, zorder=1)
 
 
 def visualize(
@@ -19,18 +19,8 @@ def visualize(
     fig = plt.figure(figsize=(7, 7))
     ax = fig.add_subplot(111, projection="3d")
 
-    for iteration in range(weights.shape[0]):
-        add_points(ax, weights[iteration], f"iteration {iteration}")
-
     if fixed_point is not None:
-        ax.scatter3D(
-            fixed_point[0],
-            fixed_point[1],
-            fixed_point[2],
-            color="black",
-            label=r"iteration $+\infty$",
-            s=80,
-        )
+        ax.scatter3D(fixed_point[0], fixed_point[1], fixed_point[2], color="black", label=r"iteration $+\infty$", s=80)
     ax.scatter3D(
         optimal_weights[0],
         optimal_weights[1],
@@ -40,6 +30,9 @@ def visualize(
         s=100,
         marker="*",
     )
+
+    for iteration in range(weights.shape[0]):
+        add_points(ax, weights[iteration], f"iteration {iteration}")
 
     ax.set_xlabel("K")
     ax.set_ylabel("I")

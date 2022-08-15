@@ -133,6 +133,12 @@ class LinearQuadraticEnv:
 
         return state**2 * K + 2 * state * action * I + action**2 * M
 
+    def greedy_V(self, weights: jnp.ndarray) -> jnp.ndarray:
+        ratio = weights[..., 1] / (weights[..., 2] + 1e-32)
+        return (self.Q[0, 0] - 2 * self.S[0, 0] * ratio + self.R[0, 0] * ratio**2) / (
+            1 - (self.A[0, 0] - self.B[0, 0] * ratio) ** 2
+        )
+
     @partial(jax.jit, static_argnames="self")
     def optimal_Q_values(self, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
         return jax.vmap(lambda state, action: self.optimal_Q_value(state, action))(states, actions)

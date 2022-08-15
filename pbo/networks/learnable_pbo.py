@@ -67,7 +67,12 @@ class LinearPBONet(hk.Module):
         self.layer_dimension = layer_dimension
 
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
-        x = hk.Linear(self.layer_dimension, name="linear")(weights)
+        x = hk.Linear(
+            self.layer_dimension,
+            name="linear",
+            w_init=hk.initializers.TruncatedNormal(stddev=0.0005),
+            b_init=hk.initializers.TruncatedNormal(stddev=0.005),
+        )(weights)
 
         return x
 
@@ -200,8 +205,8 @@ class CustomLinearPBONet(hk.Module):
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
         customs = weights[:, 0] - weights[:, 1] ** 2 / (weights[:, 2] + 1e-32)
 
-        slope = hk.get_parameter("slope", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal())
-        bias = hk.get_parameter("bias", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal())
+        slope = hk.get_parameter("slope", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal(stddev=0.0005))
+        bias = hk.get_parameter("bias", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal(stddev=0.005))
 
         return customs.reshape((-1, 1)) @ slope + bias
 
