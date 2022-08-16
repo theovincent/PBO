@@ -10,8 +10,13 @@ do
 done
 
 # LSPI
-jupyter nbconvert --to notebook --inplace --execute figure_specific/lqr/LSPI.ipynb
-echo LSPI: 1 out of 1 run
+counter=1
+while [ $counter -le  $1 ]
+do
+    jupyter nbconvert --to notebook --inplace --execute figure_specific/lqr/LSPI.ipynb
+    echo LSPI: $counter out of $1 runs
+    ((counter++))
+done
 
 # optimal
 jupyter nbconvert --to notebook --inplace --execute figure_specific/lqr/optimal.ipynb

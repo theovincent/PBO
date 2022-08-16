@@ -2,10 +2,11 @@
     "env_seed": 1,
     "n_actions_on_max": 200,
     "action_range_on_max": 8,
-    "max_bellman_iterations": 2,
+    "max_bellman_iterations": 4,
     "max_discrete_state": 4,
     "n_discrete_states": 11,
     "max_discrete_action": 4,
     "n_discrete_actions": 11,
-    "n_weights": 1
+    "n_weights": 1,
+    "initial_std": 0.0005
 }

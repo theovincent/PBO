@@ -62,16 +62,17 @@ class LearnablePBO(BasePBO):
 
 
 class LinearPBONet(hk.Module):
-    def __init__(self, layer_dimension: int) -> None:
+    def __init__(self, layer_dimension: int, initial_std: float) -> None:
         super().__init__(name="LinearPBONet")
         self.layer_dimension = layer_dimension
+        self.initial_std = initial_std
 
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
         x = hk.Linear(
             self.layer_dimension,
             name="linear",
-            w_init=hk.initializers.TruncatedNormal(stddev=0.0005),
-            b_init=hk.initializers.TruncatedNormal(stddev=0.005),
+            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_std),
+            b_init=hk.initializers.TruncatedNormal(stddev=10 * self.initial_std),
         )(weights)
 
         return x
@@ -85,9 +86,10 @@ class LinearPBO(LearnablePBO):
         add_infinity: bool,
         network_key: int,
         learning_rate: dict,
+        initial_std: float = 1,
     ) -> None:
         def network(weights: jnp.ndarray) -> jnp.ndarray:
-            return LinearPBONet(q.weights_dimension)(weights)
+            return LinearPBONet(q.weights_dimension, initial_std)(weights)
 
         super().__init__(q, max_bellman_iterations, add_infinity, network, network_key, learning_rate)
 
