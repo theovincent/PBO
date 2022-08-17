@@ -1,7 +1,7 @@
-from math import gamma
+from functools import partial
 import numpy as np
+import jax
 import jax.numpy as jnp
-from tqdm.notebook import tqdm
 from scipy.integrate import odeint
 
 
@@ -161,17 +161,9 @@ class CarOnHillEnv:
             return self.gamma ** (step_to_absorbing - 1) if success else -self.gamma ** (step_to_absorbing - 1)
 
     def diff_q_mesh(self, q: BaseQ, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
-        states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
+        q_mesh_ = self.q_mesh(q, states_x, states_v)
 
-        states = jnp.hstack((states_x_mesh.reshape((-1, 1)), states_v_mesh.reshape((-1, 1))))
-        actions_0 = jnp.zeros((states.shape[0], 1))
-        actions_1 = jnp.ones((states.shape[0], 1))
-
-        q_0 = q(q.params, states, actions_0)
-        q_1 = q(q.params, states, actions_1)
-
-        # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return (q_1 - q_0).reshape((states_x.shape[0], states_v.shape[0]))
+        return q_mesh_[:, :, 1] - q_mesh_[:, :, 0]
 
     def q_mesh(self, q: BaseQ, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
         q_mesh_ = np.zeros((states_x.shape[0], states_v.shape[0], 2))
@@ -230,10 +222,10 @@ class CarOnHillEnv:
         return performance
 
     def v_mesh(self, q: BaseQ, horizon: int, states_x: jnp.ndarray, states_v: jnp.ndarray) -> np.ndarray:
-        v = np.zeros((len(states_x), len(states_v)))
+        v_mesh_ = np.zeros((len(states_x), len(states_v)))
 
         for idx_state_x, state_x in enumerate(states_x):
             for idx_state_v, state_v in enumerate(states_v):
-                v[idx_state_x, idx_state_v] = self.evaluate(q, horizon, jnp.array([state_x, state_v]))
+                v_mesh_[idx_state_x, idx_state_v] = self.evaluate(q, horizon, jnp.array([state_x, state_v]))
 
-        return v
+        return v_mesh_

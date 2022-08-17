@@ -1,0 +1,20 @@
+{
+    "env_seed": 0,
+    "n_random_samples": 3500,
+    "n_oriented_samples": 500,
+    "oriented_state": [
+        0.5,
+        0.38
+    ],
+    "gamma": 0.95,
+    "max_bellman_iterations": 20,
+    "layers_dimension": [
+        7,
+        7
+    ],
+    "max_patience": 7,
+    "n_weights": 1,
+    "n_states_x": 17,
+    "n_states_v": 17,
+    "horizon": 100
+}
