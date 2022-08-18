@@ -28,7 +28,7 @@ class TwoDimesionsMesh:
         if zeros_to_nan:
             self.values = np.where(self.values == 0, np.nan, self.values)
 
-    def show(self, title: str = "", xlabel: str = "States", ylabel: str = "Actions") -> None:
+    def show(self, title: str = "", xlabel: str = "States", ylabel: str = "Actions", plot: bool = True) -> None:
         clear_output(wait=True)
         fig, ax = plt.subplots()
 
@@ -60,5 +60,6 @@ class TwoDimesionsMesh:
         fig.colorbar(colors, ax=ax)
         fig.tight_layout()
         fig.canvas.draw()
-        plt.show()
+        if plot:
+            plt.show()
         time.sleep(self.sleeping_time)

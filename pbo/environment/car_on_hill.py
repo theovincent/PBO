@@ -139,12 +139,6 @@ class CarOnHillEnv:
         current_states = [state]
         step = 0
 
-        # Check if state is an absorbing state
-        if state[0] < -self.max_pos or np.abs(state[1]) > self.max_velocity:
-            return None, step
-        elif state[0] > self.max_pos and np.abs(state[1]) <= self.max_velocity:
-            return None, step
-
         while len(current_states) > 0 and step < max_steps:
             next_states = []
             for state_ in current_states:
@@ -226,7 +220,7 @@ class CarOnHillEnv:
             else:
                 _, reward, absorbing, _ = self.step(jnp.array([1]))
 
-            performance += discount * reward
+            performance += discount * reward[0]
             discount *= self.gamma
             step += 1
 
