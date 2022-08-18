@@ -11,7 +11,7 @@ from pbo.networks.base_q import BaseQ
 
 class CarOnHillEnv:
     """
-    The Car On Hill environment as presented in:
+    The Car On Hill selfironment as presented in:
     "Tree-Based Batch Mode Reinforcement Learning". Ernst D. et al.. 2005.
     """
 
@@ -19,7 +19,7 @@ class CarOnHillEnv:
         self.gamma = gamma
         self.max_pos = max_pos
         self.max_velocity = max_velocity
-        self.actions_values = [-4.0, 4.0]
+        self.actions_values = jnp.array([-4.0, 4.0])
         self._g = 9.81
         self._m = 1.0
         self._dt = 0.1
@@ -35,24 +35,35 @@ class CarOnHillEnv:
 
         return self.state
 
+    @partial(jax.jit, static_argnames="self")
+    def boundery_conditions(self, new_state_odeint: jnp.ndarray) -> tuple:
+        state = jnp.array(new_state_odeint[-1, :-1])
+
+        too_fast = (jnp.abs(state[1]) > self.max_velocity).astype(float)
+        too_far_left = (state[0] < -self.max_pos).astype(float)
+        too_far_right = (state[0] > self.max_pos).astype(float)
+
+        too_far_left_or_too_fast = too_far_left + too_fast - too_far_left * too_fast
+        too_far_right_and_not_too_fast = too_far_right * (1 - too_fast)
+
+        reward, absorbing = too_far_left_or_too_fast * jnp.array(
+            [-1.0, 1]
+        ) + too_far_right_and_not_too_fast * jnp.array([1.0, 1])
+
+        return state, jnp.array([reward]), jnp.array([absorbing], dtype=bool)
+
+    @partial(jax.jit, static_argnames="self")
+    def state_action(self, state, action):
+        action_ = self.actions_values[action[0]]
+
+        return jnp.append(state, action_)
+
     def step(self, action: jnp.ndarray) -> tuple:
-        action = self.actions_values[action[0]]
-        sa = np.append(self.state, action)
-        new_state = odeint(self._dpds, sa, [0, self._dt])
+        new_state = odeint(self._dpds, self.state_action(self.state, action), [0, self._dt])
 
-        self.state = jnp.array(new_state[-1, :-1])
+        self.state, reward, absorbing = self.boundery_conditions(new_state)
 
-        if self.state[0] < -self.max_pos or np.abs(self.state[1]) > self.max_velocity:
-            reward = -1.0
-            absorbing = True
-        elif self.state[0] > self.max_pos and np.abs(self.state[1]) <= self.max_velocity:
-            reward = 1.0
-            absorbing = True
-        else:
-            reward = 0.0
-            absorbing = False
-
-        return self.state, jnp.array([reward]), jnp.array([absorbing]), {}
+        return self.state, reward, absorbing, {}
 
     def render(self):
         # Slope
