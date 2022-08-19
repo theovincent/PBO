@@ -195,10 +195,10 @@ class CarOnHillEnv:
             print(q(q.params, self.state, jnp.array([0])))
             print(q(q.params, self.state, jnp.array([1])))
             print()
-            if q(q.params, self.state, jnp.array([0])) > q(q.params, self.state, jnp.array([1])):
-                _, reward, absorbing, _ = self.step(jnp.array([0]))
-            else:
+            if q(q.params, self.state, jnp.array([1])) > q(q.params, self.state, jnp.array([0])):
                 _, reward, absorbing, _ = self.step(jnp.array([1]))
+            else:
+                _, reward, absorbing, _ = self.step(jnp.array([0]))
 
             step += 1
             self.render()
@@ -215,10 +215,10 @@ class CarOnHillEnv:
         step = 0
 
         while not absorbing and step < horizon:
-            if q(q.params, self.state, jnp.array([0])) > q(q.params, self.state, jnp.array([1])):
-                _, reward, absorbing, _ = self.step(jnp.array([0]))
-            else:
+            if q(q.params, self.state, jnp.array([1])) > q(q.params, self.state, jnp.array([0])):
                 _, reward, absorbing, _ = self.step(jnp.array([1]))
+            else:
+                _, reward, absorbing, _ = self.step(jnp.array([0]))
 
             performance += discount * reward[0]
             discount *= self.gamma
