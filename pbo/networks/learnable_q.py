@@ -72,7 +72,7 @@ class FullyConnectedQNet(hk.Module):
         state: jnp.ndarray,
         action: jnp.ndarray,
     ) -> jnp.ndarray:
-        x = jnp.hstack((state, action))
+        x = jnp.hstack((state, 2 * action - 1))
 
         for idx, layer_dimension in enumerate(self.layers_dimension, start=1):
             x = hk.Linear(layer_dimension, name=f"linear_{idx}")(x)

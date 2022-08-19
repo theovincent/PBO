@@ -226,3 +226,43 @@ class CustomLinearPBO(LearnablePBO):
             return CustomLinearPBONet()(weights)
 
         super().__init__(q, max_bellman_iterations, add_infinity, network, network_key, learning_rate)
+
+
+class DeepPBONet(hk.Module):
+    def __init__(self, layer_dimension: int, initial_std: float) -> None:
+        super().__init__(name="LinearPBONet")
+        self.layer_dimension = layer_dimension
+        self.initial_std = initial_std
+
+    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        x = hk.Linear(
+            self.layer_dimension,
+            name="linear1",
+            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_std),
+            b_init=hk.initializers.TruncatedNormal(stddev=10 * self.initial_std),
+        )(weights)
+        x = jax.nn.relu(x)
+        x = hk.Linear(
+            self.layer_dimension,
+            name="linear2",
+            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_std),
+            b_init=hk.initializers.TruncatedNormal(stddev=10 * self.initial_std),
+        )(x)
+
+        return x
+
+
+class DeepPBO(LearnablePBO):
+    def __init__(
+        self,
+        q: BaseQ,
+        max_bellman_iterations: int,
+        add_infinity: bool,
+        network_key: int,
+        learning_rate: dict,
+        initial_std: float = 1,
+    ) -> None:
+        def network(weights: jnp.ndarray) -> jnp.ndarray:
+            return DeepPBONet(q.weights_dimension, initial_std)(weights)
+
+        super().__init__(q, max_bellman_iterations, add_infinity, network, network_key, learning_rate)

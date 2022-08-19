@@ -7,13 +7,13 @@
         0.38
     ],
     "gamma": 0.95,
-    "max_bellman_iterations": 15,
+    "max_bellman_iterations": 4,
     "layers_dimension": [
         7,
         7
     ],
     "max_patience": 7,
-    "n_weights": 1,
+    "n_weights": 9,
     "n_states_x": 17,
     "n_states_v": 17,
     "horizon": 100
