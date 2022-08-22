@@ -241,7 +241,7 @@ class DeepPBONet(hk.Module):
             w_init=hk.initializers.TruncatedNormal(stddev=self.initial_std),
             b_init=hk.initializers.TruncatedNormal(stddev=10 * self.initial_std),
         )(weights)
-        x = jax.nn.relu(x)
+        x = hk.MaxPool(window_shape=2, strides=2, padding="VALID", channel_axis=0)(x)
         x = hk.Linear(
             self.layer_dimension,
             name="linear2",
