@@ -7,7 +7,7 @@
         0.38
     ],
     "gamma": 0.95,
-    "max_bellman_iterations": 6,
+    "max_bellman_iterations": 15,
     "layers_dimension": [
         50
     ],
