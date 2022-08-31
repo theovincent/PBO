@@ -132,9 +132,10 @@ dmypy.json
 **/*.html
 **/*.npy
 
-# Avoid pushing images
+# Avoid pushing images and pdfs
 **/*.png 
 **/*.jpg
+**/*.pdf
 
 # Save optimal value of car on hill
 !figure_specific/car_on_hill/figures/data/optimal/Q.npy
