@@ -1,7 +1,7 @@
 # Projected Bellman Operator (PBO)
 
 ## User installation
-### Without Docker
+### Without Docker, with Python ??? installed
 In the folder where the code is, create a Python virtual environment, activate it and install the package and its dependencies in editable mode:
 ```bash
 python3 -m venv env
@@ -21,19 +21,17 @@ For an `environment` and an `algorithm`, a jupyter notebook running the associat
 
 For example, the jupyter notebook _figure_specific/chain_walk/PBO_linear.ipynb_ trains a linear PBO on the Chain-Walk environment.
 
-To generate the plots with $N$ seeds, you first need to generate the data by running `./figure_specific/[environment]/run_seeds.sh N`
+To generate the plots with $N$ seeds with $K$ Bellman iterations, you first need to generate the data by running `./figure_specific/[environment]/run_seeds.sh -n_seeds N -n_bellman_iteration K`
 and then run the jupyter notebook _figure_specific/[environment]/plots.ipynb_.
 
 For example, to generate Figure 4a with only 2 seeds, you can run
 ```Bash
-./figure_specific/chain_walk/run_seeds.sh 2
+./figure_specific/chain_walk/run_seeds.sh -n_seeds 2 -n_bellman_iteration 5
 jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/plots.ipynb
 ```
-You will find Figure 4a at _figure_specific/chain_walk/figures/distance_to_optimal_V_5.pdf_. Please make sure that the parameter `max_bellman_iterations = 5` and `n_seeds = 2` in _figure_specific/chain_walk/plots.ipynb_ and that `max_bellman_iterations = 5` in _figure_specific/chain_walk/parameters.json_.
+You will find Figure 4a at _figure_specific/chain_walk/figures/distance_to_optimal_V_5.pdf_. Please make sure that the parameter `max_bellman_iterations = 5` and `n_seeds = 2` in _figure_specific/chain_walk/plots.ipynb_. The code should taken around 4 minutes to run.
 
 If any problem is encountered, make sure your files match the [file organization](#file-organization).
-
-
 
 
 ## File organization
@@ -88,30 +86,30 @@ If any problem is encountered, make sure your files match the [file organization
  ┃ ┃ ┣ 📜plots.ipynb
  ┃ ┃ ┗ 📜run_seeds.sh
  ┃ ┗ 📂lqr
- ┃ ┃ ┣ 📂figures
- ┃ ┃ ┃ ┣ 📂data
- ┃ ┃ ┃ ┃ ┣ 📂FQI
- ┃ ┃ ┃ ┃ ┃ ┗ 📜...npy
- ┃ ┃ ┃ ┃ ┣ 📂LSPI
- ┃ ┃ ┃ ┃ ┃ ┗ 📜...npy
- ┃ ┃ ┃ ┃ ┣ 📂PBO_custom_linear
- ┃ ┃ ┃ ┃ ┃ ┗ 📜...npy
- ┃ ┃ ┃ ┃ ┣ 📂PBO_linear
- ┃ ┃ ┃ ┃ ┃ ┗ 📜...npy
- ┃ ┃ ┃ ┃ ┣ 📂PBO_optimal
- ┃ ┃ ┃ ┃ ┃ ┗ 📜...npy
- ┃ ┃ ┃ ┃ ┗ 📂optimal
- ┃ ┃ ┃ ┃ ┃ ┗ 📜...npy
- ┃ ┃ ┃ ┗ 📜...pdf
- ┃ ┃ ┣ 📜FQI.ipynb
- ┃ ┃ ┣ 📜LSPI.ipynb
- ┃ ┃ ┣ 📜PBO_custom_linear.ipynb
- ┃ ┃ ┣ 📜PBO_linear.ipynb
- ┃ ┃ ┣ 📜PBO_optimal.ipynb
- ┃ ┃ ┣ 📜optimal.ipynb
- ┃ ┃ ┣ 📜parameters.json
- ┃ ┃ ┣ 📜plots.ipynb
- ┃ ┃ ┗ 📜run_seeds.sh
+ ┃   ┣ 📂figures
+ ┃   ┃ ┣ 📂data
+ ┃   ┃ ┃ ┣ 📂FQI
+ ┃   ┃ ┃ ┃ ┗ 📜...npy
+ ┃   ┃ ┃ ┣ 📂LSPI
+ ┃   ┃ ┃ ┃ ┗ 📜...npy
+ ┃   ┃ ┃ ┣ 📂PBO_custom_linear
+ ┃   ┃ ┃ ┃ ┗ 📜...npy
+ ┃   ┃ ┃ ┣ 📂PBO_linear
+ ┃   ┃ ┃ ┃ ┗ 📜...npy
+ ┃   ┃ ┃ ┣ 📂PBO_optimal
+ ┃   ┃ ┃ ┃ ┗ 📜...npy
+ ┃   ┃ ┃ ┗ 📂optimal
+ ┃   ┃ ┃ ┃ ┗ 📜...npy
+ ┃   ┃ ┗ 📜...pdf
+ ┃   ┣ 📜FQI.ipynb
+ ┃   ┣ 📜LSPI.ipynb
+ ┃   ┣ 📜PBO_custom_linear.ipynb
+ ┃   ┣ 📜PBO_linear.ipynb
+ ┃   ┣ 📜PBO_optimal.ipynb
+ ┃   ┣ 📜optimal.ipynb
+ ┃   ┣ 📜parameters.json
+ ┃   ┣ 📜plots.ipynb
+ ┃   ┗ 📜run_seeds.sh
  ┗ 📂pbo  # main code
 ```
 
