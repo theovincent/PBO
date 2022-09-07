@@ -22,9 +22,9 @@ For an `environment` and an `algorithm`, a jupyter notebook running the associat
 For example, the jupyter notebook _figure_specific/chain_walk/PBO_linear.ipynb_ trains a linear PBO on the Chain-Walk environment.
 
 To generate the plots with $N$ seeds, you first need to generate the data by running `./figure_specific/[environment]/run_seeds.sh N`
-and then running the jupyter notebook _figure_specific/[environment]/plots.ipynb_.
+and then run the jupyter notebook _figure_specific/[environment]/plots.ipynb_.
 
-For example, the generate Figure 4a with only 2 seeds, you can run
+For example, to generate Figure 4a with only 2 seeds, you can run
 ```Bash
 ./figure_specific/chain_walk/run_seeds.sh 2
 jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/plots.ipynb
