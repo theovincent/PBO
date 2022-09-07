@@ -29,7 +29,7 @@ For example, to generate Figure 4a with only 2 seeds, you can run
 ./figure_specific/chain_walk/run_seeds.sh 2
 jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/plots.ipynb
 ```
-Please make sure that the parameter `max_bellman_iterations` in _figure_specific/chain_walk/plots.ipynb_ matches with the parameter in _figure_specific/chain_walk/parameters.json_ and that `n_seeds = 2` in _figure_specific/chain_walk/plots.ipynb_.
+You will then find Figure 4a at _figure_specific/chain_walk/figures/distance_to_optimal_V_5.pdf_. Please make sure that the parameter `max_bellman_iterations = 5` and `n_seeds = 2` in _figure_specific/chain_walk/plots.ipynb_ and that `max_bellman_iterations = 5` in _figure_specific/chain_walk/parameters.json_.
 
 If any problem is encountered, make sure your files match the [file organization](#file-organization).
 
