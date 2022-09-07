@@ -1,3 +1,6 @@
+import os
+
+
 def run_optimal():
     ## Load parameters
     import warnings
@@ -54,6 +57,8 @@ def run_optimal():
                         next_state, horizon
                     )
 
+    if not os.path.exists("figures/data/optimal/"):
+        os.mkdir("figures/data/optimal/")
     np.save(f"figures/data/optimal/Q.npy", optimal_q)
 
 
