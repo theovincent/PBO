@@ -2,7 +2,7 @@
 
 ## User installation
 ### Without Docker
-In the folder where the code is, create a Python virtual environment, activate it and install the code and its dependencies in editable mode:
+In the folder where the code is, create a Python virtual environment, activate it and install the package and its dependencies in editable mode:
 ```bash
 python3 -m venv env
 source env/bin/activate
