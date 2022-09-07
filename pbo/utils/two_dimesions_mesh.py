@@ -28,7 +28,9 @@ class TwoDimesionsMesh:
         if zeros_to_nan:
             self.values = np.where(self.values == 0, np.nan, self.values)
 
-    def show(self, title: str = "", xlabel: str = "States", ylabel: str = "Actions") -> None:
+    def show(
+        self, title: str = "", xlabel: str = "States", ylabel: str = "Actions", plot: bool = True, ticks_freq: int = 1
+    ) -> None:
         clear_output(wait=True)
         fig, ax = plt.subplots()
 
@@ -42,13 +44,13 @@ class TwoDimesionsMesh:
             self.grid_dimension_one, self.grid_dimension_two, self.values.T, shading="nearest", **kwargs
         )
 
-        ax.set_xticks(self.dimension_one)
-        ax.set_xticklabels(np.around(self.dimension_one, 1))
+        ax.set_xticks(self.dimension_one[::ticks_freq])
+        ax.set_xticklabels(np.around(self.dimension_one[::ticks_freq], 1), rotation="vertical")
         ax.set_xlim(self.dimension_one[0], self.dimension_one[-1])
         ax.set_xlabel(xlabel)
 
-        ax.set_yticks(self.dimension_two)
-        ax.set_yticklabels(np.around(self.dimension_two, 1))
+        ax.set_yticks(self.dimension_two[::ticks_freq])
+        ax.set_yticklabels(np.around(self.dimension_two[::ticks_freq], 1))
         ax.set_ylim(self.dimension_two[0], self.dimension_two[-1])
         ax.set_ylabel(ylabel)
 
@@ -60,5 +62,6 @@ class TwoDimesionsMesh:
         fig.colorbar(colors, ax=ax)
         fig.tight_layout()
         fig.canvas.draw()
-        plt.show()
+        if plot:
+            plt.show()
         time.sleep(self.sleeping_time)

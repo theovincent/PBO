@@ -1,7 +1,7 @@
-from math import gamma
+from functools import partial
 import numpy as np
+import jax
 import jax.numpy as jnp
-from tqdm.notebook import tqdm
 from scipy.integrate import odeint
 
 
@@ -11,7 +11,7 @@ from pbo.networks.base_q import BaseQ
 
 class CarOnHillEnv:
     """
-    The Car On Hill environment as presented in:
+    The Car On Hill selfironment as presented in:
     "Tree-Based Batch Mode Reinforcement Learning". Ernst D. et al.. 2005.
     """
 
@@ -19,7 +19,7 @@ class CarOnHillEnv:
         self.gamma = gamma
         self.max_pos = max_pos
         self.max_velocity = max_velocity
-        self.actions_values = [-4.0, 4.0]
+        self.actions_values = jnp.array([-4.0, 4.0])
         self._g = 9.81
         self._m = 1.0
         self._dt = 0.1
@@ -35,24 +35,35 @@ class CarOnHillEnv:
 
         return self.state
 
+    @partial(jax.jit, static_argnames="self")
+    def boundery_conditions(self, new_state_odeint: jnp.ndarray) -> tuple:
+        state = jnp.array(new_state_odeint[-1, :-1])
+
+        too_fast = (jnp.abs(state[1]) > self.max_velocity).astype(float)
+        too_far_left = (state[0] < -self.max_pos).astype(float)
+        too_far_right = (state[0] > self.max_pos).astype(float)
+
+        too_far_left_or_too_fast = too_far_left + too_fast - too_far_left * too_fast
+        too_far_right_and_not_too_fast = too_far_right * (1 - too_fast)
+
+        reward, absorbing = too_far_left_or_too_fast * jnp.array(
+            [-1.0, 1]
+        ) + too_far_right_and_not_too_fast * jnp.array([1.0, 1])
+
+        return state, jnp.array([reward]), jnp.array([absorbing], dtype=bool)
+
+    @partial(jax.jit, static_argnames="self")
+    def state_action(self, state, action):
+        action_ = self.actions_values[action[0]]
+
+        return jnp.append(state, action_)
+
     def step(self, action: jnp.ndarray) -> tuple:
-        action = self.actions_values[action[0]]
-        sa = np.append(self.state, action)
-        new_state = odeint(self._dpds, sa, [0, self._dt])
+        new_state = odeint(self._dpds, self.state_action(self.state, action), [0, self._dt])
 
-        self.state = jnp.array(new_state[-1, :-1])
+        self.state, reward, absorbing = self.boundery_conditions(new_state)
 
-        if self.state[0] < -self.max_pos or np.abs(self.state[1]) > self.max_velocity:
-            reward = -1.0
-            absorbing = True
-        elif self.state[0] > self.max_pos and np.abs(self.state[1]) <= self.max_velocity:
-            reward = 1.0
-            absorbing = True
-        else:
-            reward = 0.0
-            absorbing = False
-
-        return self.state, jnp.array([reward]), jnp.array([absorbing]), {}
+        return self.state, reward, absorbing, {}
 
     def render(self):
         # Slope
@@ -124,7 +135,7 @@ class CarOnHillEnv:
     def close(self):
         return self._viewer.close()
 
-    def optimal_steps_to_absorbing(self, state: jnp.ndarray, max_steps: int):
+    def optimal_steps_to_absorbing(self, state: jnp.ndarray, max_steps: int) -> tuple:
         current_states = [state]
         step = 0
 
@@ -139,6 +150,7 @@ class CarOnHillEnv:
                         return True, step + 1
                     elif reward == 0:
                         next_states.append(next_state)
+                    ## if reward == -1 we pass
 
             step += 1
             current_states = next_states
@@ -146,30 +158,32 @@ class CarOnHillEnv:
         return False, step
 
     def optimal_v(self, state: jnp.ndarray, max_steps: int) -> float:
-        success, step_to_absorbing = self.optimal_steps_to_absorbing([state], max_steps)
+        success, step_to_absorbing = self.optimal_steps_to_absorbing(state, max_steps)
 
-        return self.gamma ** (step_to_absorbing - 1) if success else -self.gamma ** (step_to_absorbing - 1)
-
-    def optimal_vs(self, states: jnp.ndarray, max_steps: int) -> jnp.ndarray:
-        vs = []
-
-        for state in tqdm(states):
-            vs.append(self.optimal_v(state, max_steps))
-
-        return jnp.array(vs)
+        if step_to_absorbing == 0:
+            return 0
+        else:
+            return self.gamma ** (step_to_absorbing - 1) if success else -self.gamma ** (step_to_absorbing - 1)
 
     def diff_q_mesh(self, q: BaseQ, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
+        q_mesh_ = self.q_mesh(q, states_x, states_v)
+
+        return q_mesh_[:, :, 1] - q_mesh_[:, :, 0]
+
+    def q_mesh(self, q: BaseQ, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
+        q_mesh_ = np.zeros((states_x.shape[0], states_v.shape[0], 2))
+
         states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
 
         states = jnp.hstack((states_x_mesh.reshape((-1, 1)), states_v_mesh.reshape((-1, 1))))
         actions_0 = jnp.zeros((states.shape[0], 1))
         actions_1 = jnp.ones((states.shape[0], 1))
 
-        q_0 = q(q.params, states, actions_0)
-        q_1 = q(q.params, states, actions_1)
-
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return (q_1 - q_0).reshape((states_x.shape[0], states_v.shape[0]))
+        q_mesh_[:, :, 0] = q(q.params, states, actions_0).reshape((states_x.shape[0], states_v.shape[0]))
+        q_mesh_[:, :, 1] = q(q.params, states, actions_1).reshape((states_x.shape[0], states_v.shape[0]))
+
+        return q_mesh_
 
     def simulate(self, q: BaseQ, horizon: int, initial_state: jnp.ndarray) -> bool:
         self.reset(initial_state)
@@ -181,10 +195,10 @@ class CarOnHillEnv:
             print(q(q.params, self.state, jnp.array([0])))
             print(q(q.params, self.state, jnp.array([1])))
             print()
-            if q(q.params, self.state, jnp.array([0])) > q(q.params, self.state, jnp.array([1])):
-                _, reward, absorbing, _ = self.step(jnp.array([0]))
-            else:
+            if q(q.params, self.state, jnp.array([1])) > q(q.params, self.state, jnp.array([0])):
                 _, reward, absorbing, _ = self.step(jnp.array([1]))
+            else:
+                _, reward, absorbing, _ = self.step(jnp.array([0]))
 
             step += 1
             self.render()
@@ -201,22 +215,22 @@ class CarOnHillEnv:
         step = 0
 
         while not absorbing and step < horizon:
-            if q(q.params, self.state, jnp.array([0])) > q(q.params, self.state, jnp.array([1])):
-                _, reward, absorbing, _ = self.step(jnp.array([0]))
-            else:
+            if q(q.params, self.state, jnp.array([1])) > q(q.params, self.state, jnp.array([0])):
                 _, reward, absorbing, _ = self.step(jnp.array([1]))
+            else:
+                _, reward, absorbing, _ = self.step(jnp.array([0]))
 
-            performance += discount * reward
+            performance += discount * reward[0]
             discount *= self.gamma
             step += 1
 
         return performance
 
-    def evaluate_mesh(self, q: BaseQ, horizon: int, mesh_size_x: int, mesh_size_v: int) -> np.ndarray:
-        js = np.zeros((mesh_size_x, mesh_size_v))
+    def v_mesh(self, q: BaseQ, horizon: int, states_x: jnp.ndarray, states_v: jnp.ndarray) -> np.ndarray:
+        v_mesh_ = np.zeros((len(states_x), len(states_v)))
 
-        for idx_state_x, state_x in enumerate(jnp.linspace(-self.max_pos, self.max_pos, mesh_size_x)):
-            for idx_state_v, state_v in enumerate(jnp.linspace(-self.max_velocity, self.max_velocity, mesh_size_v)):
-                js[idx_state_x, idx_state_v] = self.evaluate(q, horizon, jnp.array([state_x, state_v]))
+        for idx_state_x, state_x in enumerate(states_x):
+            for idx_state_v, state_v in enumerate(states_v):
+                v_mesh_[idx_state_x, idx_state_v] = self.evaluate(q, horizon, jnp.array([state_x, state_v]))
 
-        return js
+        return v_mesh_

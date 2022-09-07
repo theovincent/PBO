@@ -104,7 +104,7 @@ celerybeat.pid
 # Environments
 .env*
 .venv*
-env/
+env*/
 venv*/
 ENV*/
 env*.bak/
@@ -128,5 +128,15 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Avoid pushing htlm files
+# Avoid pushing htlm and npy files
 **/*.html
+**/*.npy
+
+# Avoid pushing images and pdfs
+**/*.png 
+**/*.jpg
+**/*.pdf
+
+# Save optimal value of car on hill
+!figure_specific/car_on_hill/figures/data/optimal/Q.npy
+!figure_specific/car_on_hill/figures/data/optimal/V.npy
