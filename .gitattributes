@@ -1,1 +1,1 @@
-figure_specific/** linguist-vendored
+figure_specific/**/*.ipynb linguist-vendored=false
