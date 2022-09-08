@@ -1,3 +1,5 @@
+# This file was inspired by https://github.com/MushroomRL/mushroom-rl
+
 from functools import partial
 
 import scipy.linalg as sc_linalg
