@@ -32,7 +32,6 @@ class LinearQuadraticEnv:
     def __init__(
         self,
         env_key: int,
-        initial_state: jnp.ndarray = None,
         max_init_state: float = None,
     ) -> None:
         """
@@ -40,19 +39,10 @@ class LinearQuadraticEnv:
 
             Args:
                 env_key (int): key to generate the random parameters;
-                initial_state (jnp.ndarray, None): start from the given state, if None start
-                from a random state;
-                max_init_state (float, None): if initial_state is not None, start from a random state
+                max_init_state (float, None): start from a random state
                 within -max_init_state, max_init_state.
 
         """
-        assert (
-            initial_state is not None or max_init_state is not None
-        ), "Either initial_state or max_init_state has to be defined"
-        assert (
-            initial_state is None or max_init_state is None
-        ), "initial_state and max_init_state can't be defined at the same time"
-
         self.parameters_key, self.reset_key = jax.random.split(env_key)
 
         # Generate a controllable environmnent
@@ -87,7 +77,6 @@ class LinearQuadraticEnv:
                 print("Reward: Qs² + Ra² + 2 Ssa")
                 print(f"Reward: {self.Q[0, 0]}s² + {self.R[0, 0]}a² + {2 * self.S[0, 0]}sa")
 
-        self.initial_state = initial_state
         self.max_init_state = max_init_state
 
         self.optimal_weights = jnp.array(
@@ -106,12 +95,9 @@ class LinearQuadraticEnv:
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
-            if self.initial_state is not None:
-                self.state = self.initial_state
-            else:
-                self.state = jax.random.uniform(
-                    self.reset_key, [self.A.shape[0]], minval=-self.max_init_state, maxval=self.max_init_state
-                )
+            self.state = jax.random.uniform(
+                self.reset_key, [self.A.shape[0]], minval=-self.max_init_state, maxval=self.max_init_state
+            )
         else:
             self.state = state
 

@@ -11,15 +11,12 @@ class ChainWalkEnv:
         n_states: int,
         sucess_probability: float,
         gamma: float,
-        initial_state: jnp.ndarray = None,
     ) -> None:
         self.n_states = n_states
         self.n_actions = 2
         self.sucess_probability = sucess_probability
         self.gamma = gamma
         self.next_state_key, self.reset_key = jax.random.split(env_key)
-
-        self.initial_state = initial_state
 
         self.rewards = jnp.zeros(self.n_states)
         self.rewards = self.rewards.at[0].set(1)
@@ -47,10 +44,7 @@ class ChainWalkEnv:
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
-            if self.initial_state is not None:
-                self.state = self.initial_state
-            else:
-                self.state = jax.random.randint(self.reset_key, [1], minval=0, maxval=self.n_states)
+            self.state = jax.random.randint(self.reset_key, [1], minval=0, maxval=self.n_states)
         else:
             self.state = state
 
