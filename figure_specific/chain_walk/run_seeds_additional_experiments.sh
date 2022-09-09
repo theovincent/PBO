@@ -8,6 +8,7 @@ edit_json -f figure_specific/chain_walk/parameters.json -k max_bellman_iteration
 # PBO linear
 ## n_weights = 20
 edit_json -f figure_specific/chain_walk/parameters.json -k n_weights -v 20
+edit_json -f figure_specific/chain_walk/parameters.json -k batch_size_weights -v 20
 
 counter=1
 while [ $counter -le  $N_SEEDS ]
@@ -19,6 +20,7 @@ done
 
 ## n_weights = 50
 edit_json -f figure_specific/chain_walk/parameters.json -k n_weights -v 50
+edit_json -f figure_specific/chain_walk/parameters.json -k batch_size_weights -v 50
 
 counter=1
 while [ $counter -le  $N_SEEDS ]
@@ -29,7 +31,7 @@ do
 done
 
 edit_json -f figure_specific/chain_walk/parameters.json -k n_weights -v 100
-
+edit_json -f figure_specific/chain_walk/parameters.json -k batch_size_weights -v 100
 
 
 # PBO max linear

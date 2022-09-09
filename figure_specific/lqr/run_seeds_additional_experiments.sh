@@ -7,8 +7,9 @@ edit_json -f figure_specific/lqr/parameters.json -k max_bellman_iterations -v $N
 
 
 # PBO linear
-## initial_std = 0.0005
-edit_json -f figure_specific/lqr/parameters.json -k initial_std -v 0.0005
+## initial_weight_std = 1, initial_bias_std = 10
+edit_json -f figure_specific/lqr/parameters.json -k initial_weight_std -v 1
+edit_json -f figure_specific/lqr/parameters.json -k initial_bias_std -v 10
 
 counter=1
 while [ $counter -le  $N_SEEDS ]
@@ -18,8 +19,9 @@ do
     ((counter++))
 done
 
-## initial_std = 0.5
-edit_json -f figure_specific/lqr/parameters.json -k initial_std -v 0.5
+## initial_weight_std = 0.5, initial_bias_std = 5
+edit_json -f figure_specific/lqr/parameters.json -k initial_weight_std -v 0.5
+edit_json -f figure_specific/lqr/parameters.json -k initial_bias_std -v 5
 
 counter=1
 while [ $counter -le  $N_SEEDS ]
@@ -29,7 +31,8 @@ do
     ((counter++))
 done
 
-edit_json -f figure_specific/lqr/parameters.json -k initial_std -v 1
+edit_json -f figure_specific/lqr/parameters.json -k initial_weight_std -v 0.0005
+edit_json -f figure_specific/lqr/parameters.json -k initial_bias_std -v 0.005
 
 # PBO custom linear
 ## n_discrete_states = 3, n_discrete_actions = 3

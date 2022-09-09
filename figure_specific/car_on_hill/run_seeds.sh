@@ -24,11 +24,11 @@ do
     ((counter++))
 done
 
-# PBO deep
+# PBO linear max linear
 counter=1
 while [ $counter -le  $N_SEEDS ]
 do
-    jupyter nbconvert --to notebook --inplace --execute figure_specific/car_on_hill/PBO_deep.ipynb
-    echo PBO deep: $counter out of $N_SEEDS runs
+    jupyter nbconvert --to notebook --inplace --execute figure_specific/car_on_hill/PBO_linear_max_linear.ipynb
+    echo PBO linear max linear: $counter out of $N_SEEDS runs
     ((counter++))
 done
