@@ -102,12 +102,19 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env*
-.venv*
-env*/
-venv*/
-ENV*/
-env*.bak/
+.env
+.env_*
+.venv
+.venv_*
+env/
+env_*/
+venv/
+venv_*/
+ENV/
+ENV_*/
+env.bak/
+env_*.bak/
+venv.bak/
 venv*.bak/
 
 # Spyder project settings
@@ -137,6 +144,6 @@ dmypy.json
 **/*.jpg
 **/*.pdf
 
-# Save optimal value of car on hill
+# Save optimal value functions of car on hill
 !figure_specific/car_on_hill/figures/data/optimal/Q.npy
 !figure_specific/car_on_hill/figures/data/optimal/V.npy

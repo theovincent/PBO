@@ -1,3 +1,5 @@
+# This file is a copy paste from https://github.com/MushroomRL/mushroom-rl
+
 import os
 
 if "PYGAME_HIDE_SUPPORT_PROMPT" not in os.environ:

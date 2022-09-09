@@ -143,8 +143,6 @@ class LQRQNet(hk.Module):
 class LQRQ(LearnableQ):
     def __init__(
         self,
-        state_dim: int,
-        action_dim: int,
         n_actions_on_max: int,
         action_range_on_max: float,
         network_key: int,
@@ -157,8 +155,8 @@ class LQRQ(LearnableQ):
             return LQRQNet(zero_initializer)(state, action)
 
         super().__init__(
-            state_dim,
-            action_dim,
+            1,
+            1,
             True,
             n_actions_on_max,
             action_range_on_max,
@@ -199,9 +197,7 @@ class TableQNet(hk.Module):
 class TableQ(LearnableQ):
     def __init__(
         self,
-        state_dim: int,
         n_states: int,
-        action_dim: int,
         n_actions: int,
         gamma: float,
         network_key: int,
@@ -214,8 +210,8 @@ class TableQ(LearnableQ):
             return TableQNet(n_states, n_actions, zero_initializer)(state, action)
 
         super().__init__(
-            state_dim,
-            action_dim,
+            1,
+            1,
             False,
             n_actions,
             None,

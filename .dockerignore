@@ -1,0 +1,20 @@
+__pycache__/
+env*/
+*.egg-info/
+.gitignore
+.dockerignore
+README.md
+Dockerfile
+
+# Avoid copying htlm and npy files
+**/*.html
+**/*.npy
+
+# Avoid copying images and pdfs
+**/*.png 
+**/*.jpg
+**/*.pdf
+
+# Still copy the optimal value functions of car on hill
+!figure_specific/car_on_hill/figures/data/optimal/Q.npy
+!figure_specific/car_on_hill/figures/data/optimal/V.npy
