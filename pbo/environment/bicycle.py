@@ -1,5 +1,8 @@
+import numpy as np
 import jax
 import jax.numpy as jnp
+
+from pbo.environment.viewer import Viewer
 
 
 class BicycleEnv:
@@ -10,22 +13,16 @@ class BicycleEnv:
     """
 
     def __init__(self, env_key: int) -> None:
+        """
+        state = [omega, omega_dot, theta, theta_dot, psi]
+        position = [x_b, y_b, x_f, y_f]
+        """
         self.reset_key, self.noise_key = jax.random.split(env_key)
 
         self.noise = 0.02
-        self.state_bounds = jnp.array(
-            [
-                [-jnp.pi * 12.0 / 180.0, jnp.pi * 12.0 / 180.0],
-                [-jnp.pi * 2.0 / 180.0, jnp.pi * 2.0 / 180.0],
-                [-jnp.pi, jnp.pi],
-                [-jnp.pi * 80.0 / 180.0, jnp.pi * 80.0 / 180.0],
-                [-jnp.pi * 2.0 / 180.0, jnp.pi * 2.0 / 180.0],
-            ]
-        )
+        self.omega_bound = jnp.pi * 12.0 / 180.0
+        self.theta_bound = jnp.pi * 80.0 / 180.0
         self.reward_fall = -1.0
-        self.reward_goal = 0.01
-        self.goal_rsqrd = 100.0  # Square of the radius around the goal (10m)^2
-        self.goal_loc = jnp.array([1000.0, 0])
 
         # Units in Meters and Kilograms
         self._c = 0.66  # Horizontal distance between bottom of front wheel and center of mass
@@ -47,17 +44,23 @@ class BicycleEnv:
 
         # Simulation Constants
         self._g = 9.8
-        self._dt = 0.01  # 0.02
-        self._sim_steps = 1  # 10
+        self._dt = 0.01
 
-    def reset(self, state: jnp.ndarray = None, position: jnp.ndarray = None) -> jnp.ndarray:
+        # Visualization
+        self._viewer = Viewer(2, 1, width=1000)
+        self.positions = []
+
+    def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
             self.state = jnp.zeros((5))
             self.state = self.state.at[-1].set(jax.random.uniform(self.reset_key, minval=-jnp.pi, maxval=jnp.pi))
         else:
             self.state = state
 
-        self.position = jnp.zeros((2))
+        self.position = jnp.zeros((4))
+        self.position = self.position.at[2].set(self._l * jnp.cos(self.state[-1]))
+        self.position = self.position.at[3].set(self._l * jnp.sin(self.state[-1]))
+        self.positions = [self.position]
 
         return self.state
 
@@ -71,126 +74,191 @@ class BicycleEnv:
         d += jax.random.uniform(key, minval=-1, maxval=1) * self.noise
 
         omega, omega_dot, theta, theta_dot, psi = self.state
-        x_b, y_b = self.position
 
-        goal_angle_old = self._angle_between(self._goal_loc, jnp.array([x_f - x_b, y_f - y_b])) * jnp.pi / 180.0
-        if x_f == x_b and (y_f - y_b) < 0:
-            old_psi = jnp.pi
-        elif (y_f - y_b) > 0:
-            old_psi = jnp.arctan((x_b - x_f) / (y_f - y_b))
+        phi = omega + jnp.arctan(d / self._h)
+
+        if theta == 0:  # Infinite radius tends to not be handled well
+            r_f = r_b = r_CM = 1.0e8
         else:
-            old_psi = jnp.sign(x_b - x_f) * (jnp.pi / 2.0) - jnp.arctan((y_f - y_b) / (x_b - x_f))
+            r_f = self._l / jnp.abs(jnp.sin(theta))
+            r_b = self._l / jnp.abs(jnp.tan(theta))
+            r_CM = jnp.sqrt((self._l - self._c) ** 2 + (self._l**2 / jnp.tan(theta) ** 2))
 
-        for step in range(self._sim_steps):
-            if theta == 0:  # Infinite radius tends to not be handled well
-                r_f = r_b = r_CM = 1.0e8
-            else:
-                r_f = self._l / jnp.abs(jnp.sin(theta))
-                r_b = self._l / jnp.abs(jnp.tan(theta))  # self.l / jnp.abs(jnp.tan(from pyrl.misc import matrixtheta))
-                r_CM = jnp.sqrt((self._l - self._c) ** 2 + (self._l**2 / jnp.tan(theta) ** 2))
+        # Update omega
+        omega_ddot = self._h * self._M * self._g * jnp.sin(phi) - jnp.cos(phi) * (
+            self._Inertia_dv * self._sigma_dot * theta_dot
+            + jnp.sign(theta)
+            * self._v**2
+            * (self._M_d * self._r / r_f + self._M_d * self._r / r_b + self._M * self._h / r_CM)
+        )
+        omega_ddot /= self._Inertia_bc
+        omega_dot += self._dt * omega_ddot
+        omega += self._dt * omega_dot
 
-            varphi = omega + jnp.arctan(d / self._h)
+        # Update theta
+        theta_ddot = (T - self._Inertia_dv * self._sigma_dot * omega_dot) / self._Inertia_dl
+        theta_dot += self._dt * theta_ddot
+        theta += self._dt * theta_dot
 
-            omega_ddot = self._h * self._M * self._gravity * jnp.sin(varphi)
-            omega_ddot -= jnp.cos(varphi) * (
-                self._Inertia_dv * self._sigma_dot * theta_dot
-                + jnp.sign(theta)
-                * self._v**2
-                * (self._M_d * self._r * (1.0 / r_f + 1.0 / r_b) + self._M * self._h / r_CM)
-            )
-            omega_ddot /= self._Inertia_bc
+        # Handle bar angle limits
+        theta = jnp.clip(theta, -self.theta_bound, self.theta_bound)
 
-            theta_ddot = (T - self._Inertia_dv * self._sigma_dot * omega_dot) / self._Inertia_dl
+        # Update positions
+        x_b, y_b, x_f, y_f = self.position
 
-            df = self._delta_time / float(self._sim_steps)
-            omega_dot += df * omega_ddot
-            omega += df * omega_dot
-            theta_dot += df * theta_ddot
-            theta += df * theta_dot
+        back_term = psi + jnp.sign(psi) * jnp.arcsin(self._v * self._dt / (2.0 * r_b))
+        x_b += -self._v * self._dt * jnp.sin(back_term)
+        y_b += self._v * self._dt * jnp.cos(back_term)
+        front_term = psi + theta + jnp.sign(psi + theta) * jnp.arcsin(self._v * self._dt / (2.0 * r_f))
+        x_f += -self._v * self._dt * jnp.sin(front_term)
+        y_f += self._v * self._dt * jnp.cos(front_term)
 
-            # Handle bar limits (80 deg.)
-            theta = jnp.clip(theta, self._state_range[3, 0], self._state_range[3, 1])
+        # Handle roundoff errors, to keep the length of the bicycle constant
+        dist = jnp.sqrt((x_f - x_b) ** 2 + (y_f - y_b) ** 2)
+        if jnp.abs(dist - self._l) > 0.01:
+            x_b += (x_b - x_f) * (self._l - dist) / dist
+            y_b += (y_b - y_f) * (self._l - dist) / dist
 
-            # Update position (x,y) of tires
-            front_term = psi + theta + jnp.sign(psi + theta) * jnp.arcsin(self._v * df / (2.0 * r_f))
-            back_term = psi + jnp.sign(psi) * jnp.arcsin(self._v * df / (2.0 * r_b))
-            x_f += -jnp.sin(front_term)
-            y_f += jnp.cos(front_term)
-            x_b += -jnp.sin(back_term)
-            y_b += jnp.cos(back_term)
+        # Update psi
+        if x_f - x_b >= 0:
+            psi = jnp.arctan((y_f - y_b) / (x_b - x_f + 1e-32))
+        else:
+            psi = jnp.arctan(jnp.pi - (y_f - y_b) / (x_b - x_f + 1e-32))
 
-            # Handle Roundoff errors, to keep the length of the bicycle
-            # constant
-            dist = jnp.sqrt((x_f - x_b) ** 2 + (y_f - y_b) ** 2)
-            if jnp.abs(dist - self._l) > 0.01:
-                x_b += (x_b - x_f) * (self._l - dist) / dist
-                y_b += (y_b - y_f) * (self._l - dist) / dist
-
-            # Update psi
-            if x_f == x_b and y_f - y_b < 0:
-                psi = jnp.pi
-            elif y_f - y_b > 0:
-                psi = jnp.arctan((x_b - x_f) / (y_f - y_b))
-            else:
-                psi = jnp.sign(x_b - x_f) * (jnp.pi / 2.0) - jnp.arctan((y_f - y_b) / (x_b - x_f))
-
-        self._state = jnp.array([omega, omega_dot, omega_ddot, theta, theta_dot])
-        self._position = jnp.array([x_f, y_f, x_b, y_b, psi])
+        self.state = jnp.array([omega, omega_dot, theta, theta_dot, psi])
+        self.position = jnp.array([x_b, y_b, x_f, y_f])
 
         reward = 0
-        if jnp.abs(omega) > self._state_range[0, 1]:  # Bicycle fell over
-            self._absorbing = True
-            reward = -1.0
-        elif self._isAtGoal():
-            self._absorbing = True
-            reward = self._reward_goal
-        elif not self._navigate:
-            self._absorbing = False
-            reward = self._reward_shaping
+        if jnp.abs(omega) > self.omega_bound:  # Bicycle fell over
+            absorbing = True
+            reward = self.reward_fall
         else:
-            goal_angle = self._angle_between(self._goal_loc, jnp.array([x_f - x_b, y_f - y_b])) * jnp.pi / 180.0
+            absorbing = False
+            reward = 0
+        return self.state, jnp.array([reward]), jnp.array([absorbing], dtype=bool)
 
-            self._absorbing = False
-            # return (4. - goal_angle**2) * self.reward_shaping
-            # ret =  0.1 * (self.angleWrapPi(old_psi) - self.angleWrapPi(psi))
-            ret = 0.1 * (self._angleWrapPi(goal_angle_old) - self._angleWrapPi(goal_angle))
-            reward = ret
-        return self._getState(), reward, self._absorbing, {}
+    def render(self, action: jnp.ndarray = None) -> None:
+        dark_blue = (102, 153, 255)
+        light_blue = (131, 247, 228)
+        grey = (200, 200, 200)
+        red = (255, 0, 0)
 
-    def _unit_vector(self, vector):
-        """Returns the unit vector of the vector."""
-        return vector / jnp.linalg.norm(vector)
+        omega, _, theta, _, psi = self.state
 
-    def _angle_between(self, v1, v2):
-        """Returns the angle in radians between vectors 'v1' and 'v2'::
-        >>> angle_between((1, 0, 0), (0, 1, 0))
-        1.5707963267948966
-        >>> angle_between((1, 0, 0), (1, 0, 0))
-        0.0
-        >>> angle_between((1, 0, 0), (-1, 0, 0))
-        3.141592653589793
-        """
-        v1_u = self._unit_vector(v1)
-        v2_u = self._unit_vector(v2)
-        return jnp.arccos(jnp.clip(jnp.dot(v1_u, v2_u), -1.0, 1.0))
+        # Split in two screens
+        self._viewer.line([1, 0], [1, 1], width=2)
+        center_left = [0.5, 0.5]
+        center_right = [1.5, 0.1]
 
-    def _isAtGoal(self):
-        # Anywhere in the goal radius
-        if self._navigate:
-            return jnp.sqrt(max(0.0, ((self._position[:2] - self._goal_loc) ** 2).sum() - self._goal_rsqrd)) < 1.0e-5
-        else:
-            return False
+        # --- Left plot --- #
+        # Axes
+        self._viewer.text(self._viewer._translate([0.4, -0.04], center_left), "x")
+        self._viewer.line(
+            self._viewer._translate([-0.4, 0], center_left), self._viewer._translate([0.4, 0], center_left), width=2
+        )
+        self._viewer.arrow_head(self._viewer._translate([0.4, 0], center_left), 0.05, 0)
+        self._viewer.text(self._viewer._translate([-0.06, 0.4], center_left), "y")
+        self._viewer.line(
+            self._viewer._translate([0, -0.4], center_left), self._viewer._translate([0, 0.4], center_left), width=2
+        )
+        self._viewer.arrow_head(self._viewer._translate([0, 0.4], center_left), 0.05, np.pi / 2)
+        self._viewer.text(self._viewer._translate([-0.45, -0.4], center_left), "z")
+        self._viewer.circle(self._viewer._translate([-0.4, -0.4], center_left), 0.01, width=1)
+        self._viewer.circle(self._viewer._translate([-0.4, -0.4], center_left), 0.005, width=2)
 
-    def _getState(self):
-        omega, omega_dot, omega_ddot, theta, theta_dot = tuple(self._state)
-        x_f, y_f, x_b, y_b, psi = tuple(self._position)
-        goal_angle = self._angle_between(self._goal_loc, jnp.array([x_f - x_b, y_f - y_b])) * jnp.pi / 180.0
-        """ modified to follow Ernst paper"""
-        return jnp.array([omega, omega_dot, theta, theta_dot, goal_angle])
+        # Bicycle
+        self._viewer.line(
+            self._viewer._translate(self._viewer._rotate([-0.3, 0], psi), center_left),
+            self._viewer._translate(self._viewer._rotate([0.3, 0], psi), center_left),
+            color=dark_blue,
+            width=5,
+        )
 
-    def _angleWrapPi(self, x):
-        while x < -jnp.pi:
-            x += 2.0 * jnp.pi
-        while x > jnp.pi:
-            x -= 2.0 * jnp.pi
-        return x
+        # Handbar
+        self._viewer.line(
+            self._viewer._translate(
+                self._viewer._rotate([0, -0.15], psi), center_left + self._viewer._rotate([0.3, 0], psi)
+            ),
+            self._viewer._translate(
+                self._viewer._rotate([0, 0.15], psi), center_left + self._viewer._rotate([0.3, 0], psi)
+            ),
+            color=grey,
+            width=1,
+        )
+        self._viewer.line(
+            self._viewer._translate(
+                self._viewer._rotate([0, -0.15], psi + theta), center_left + self._viewer._rotate([0.3, 0], psi)
+            ),
+            self._viewer._translate(
+                self._viewer._rotate([0, 0.15], psi + theta), center_left + self._viewer._rotate([0.3, 0], psi)
+            ),
+            color=light_blue,
+            width=5,
+        )
+
+        # Torque
+        if action is not None:
+            self._viewer.torque_arrow(center_left + self._viewer._rotate([0.3, 0], psi), action[1], 2, 0.1)
+
+        # --- Right plot --- #
+        # Axes
+        self._viewer.text(self._viewer._translate([0.4, -0.04], center_right), "x")
+        self._viewer.line(
+            self._viewer._translate([-0.4, 0], center_right), self._viewer._translate([0.4, 0], center_right), width=2
+        )
+        self._viewer.arrow_head(self._viewer._translate([0.4, 0], center_right), 0.05, 0)
+        self._viewer.text(self._viewer._translate([-0.06, 0.7], center_right), "z")
+        self._viewer.line(
+            self._viewer._translate([0, -0.1], center_right), self._viewer._translate([0, 0.7], center_right), width=2
+        )
+        self._viewer.arrow_head(self._viewer._translate([0, 0.7], center_right), 0.05, np.pi / 2)
+        self._viewer.text(self._viewer._translate([0.4, 0.78], center_right), "y")
+        self._viewer.circle(self._viewer._translate([0.4, 0.8], center_right), 0.01, width=1)
+        self._viewer.line(
+            self._viewer._translate(self._viewer._rotate([-0.01, 0], np.pi / 4), center_right + np.array([0.4, 0.8])),
+            self._viewer._translate(self._viewer._rotate([0.01, 0], np.pi / 4), center_right + np.array([0.4, 0.8])),
+            width=1,
+        )
+        self._viewer.line(
+            self._viewer._translate(self._viewer._rotate([0, -0.01], np.pi / 4), center_right + np.array([0.4, 0.8])),
+            self._viewer._translate(self._viewer._rotate([0, 0.01], np.pi / 4), center_right + np.array([0.4, 0.8])),
+            width=1,
+        )
+
+        # Bicycle
+        self._viewer.line(
+            self._viewer._translate([0, 0], center_right),
+            self._viewer._translate(self._viewer._rotate([0, 0.7], -self.omega_bound), center_right),
+            color=grey,
+            width=1,
+        )
+        self._viewer.line(
+            self._viewer._translate([0, 0], center_right),
+            self._viewer._translate(self._viewer._rotate([0, 0.7], self.omega_bound), center_right),
+            color=grey,
+            width=1,
+        )
+        self._viewer.line(
+            self._viewer._translate([0, 0], center_right),
+            self._viewer._translate(self._viewer._rotate([0, 0.7], -omega), center_right),
+            color=dark_blue,
+            width=5,
+        )
+
+        # Center of mass
+        if action is not None:
+            self._viewer.circle(
+                self._viewer._translate(
+                    self._viewer._rotate([action[0] * 0.02 * 0.7 / self._h, 0.7], -omega), center_right
+                ),
+                0.01,
+                color=red,
+                width=10,
+            )
+
+        # --- Lower plot --- #
+
+        self._viewer.display(10 * self._dt)
+
+    def close(self):
+        return self._viewer.close()
