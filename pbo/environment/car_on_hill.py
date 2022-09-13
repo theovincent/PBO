@@ -65,7 +65,7 @@ class CarOnHillEnv:
 
         self.state, reward, absorbing = self.boundery_conditions(new_state)
 
-        return self.staviewerte, reward, absorbing, {}
+        return self.state, reward, absorbing, {}
 
     def render(self) -> None:
         # Slope

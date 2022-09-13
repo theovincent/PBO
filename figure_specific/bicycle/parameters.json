@@ -1,20 +1,14 @@
 {
     "env_seed": 0,
-    "oriented_state": [
-        0.5,
-        0.38
-    ],
     "layers_dimension": [
         50
     ],
-    "n_states_x": 17,
-    "n_states_v": 17,
+    "n_omegas": 17,
+    "n_thetas": 17,
     "---- Shared parameters ---": "-",
-    "horizon": 100,
-    "gamma": 0.95,
-    "n_random_samples": 3500,
-    "n_oriented_samples": 500,
-    "batch_size_samples": 4000,
+    "gamma": 0.98,
+    "n_samples": 3500,
+    "batch_size_samples": 3500,
     "max_bellman_iterations": 6,
     "---- FQI ---": "-",
     "fitting_steps_fqi": 1200,

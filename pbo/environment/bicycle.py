@@ -12,12 +12,12 @@ class BicycleEnv:
     Jette Randlov and Preben Alstrom. 1998.
     """
 
-    def __init__(self, self_key: int) -> None:
+    def __init__(self, env_key: int) -> None:
         """
         state = [omega, omega_dot, theta, theta_dot, psi]
         position = [x_b, y_b, x_f, y_f]
         """
-        self.reset_key, self.noise_key = jax.random.split(self_key)
+        self.noise_key = env_key
 
         self.noise = 0.02
         self.omega_bound = jnp.pi * 12.0 / 180.0
@@ -49,13 +49,11 @@ class BicycleEnv:
 
         # Visualization
         self._viewer = Viewer(2, 2, width=1000, height=1000)
-        self.positions = []
-        self.max_distance = 0
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
             self.state = jnp.zeros((5))
-            self.state = self.state.at[-1].set(jax.random.uniform(self.reset_key, minval=-jnp.pi, maxval=jnp.pi))
+            self.state = self.state.at[-1].set(0)
         else:
             self.state = state
 
@@ -63,7 +61,7 @@ class BicycleEnv:
         self.position = self.position.at[2].set(self._l * jnp.cos(self.state[-1]))
         self.position = self.position.at[3].set(self._l * jnp.sin(self.state[-1]))
         self.positions = [self.position]
-        self.max_distance = jnp.maximum(jnp.linalg.norm(self.position[:2]), jnp.linalg.norm(self.position[2:]))
+        self.max_distance = self._l
 
         return self.state
 
@@ -124,16 +122,18 @@ class BicycleEnv:
             absorbing = False
             reward = 0
 
-        return self.state, jnp.array([reward]), jnp.array([absorbing], dtype=bool)
+        return self.state, jnp.array([reward]), jnp.array([absorbing], dtype=bool), {}
 
-    def add_position(self) -> None:
+    def render(self, action: jnp.ndarray = None) -> None:
+        # Store position
         self.positions.append(self.position)
 
+        # Update max distance
         distance = jnp.maximum(jnp.linalg.norm(self.position[:2]), jnp.linalg.norm(self.position[2:]))
         if distance > self.max_distance:
             self.max_distance = distance
 
-    def render(self, action: jnp.ndarray = None) -> None:
+        # Plot
         dark_blue = (102, 153, 255)
         light_blue = (131, 247, 228)
         grey = (200, 200, 200)
@@ -276,6 +276,9 @@ class BicycleEnv:
                 self._viewer._translate(position[:2] / (2.1 * self.max_distance), center_top),
                 self._viewer._translate(position[2:] / (2.1 * self.max_distance), center_top),
             )
+
+        # Display max distance
+        self._viewer.text([0, 2], f"Max distance: {jnp.round(self.max_distance, 1)}")
 
         self._viewer.display(self._dt)
 
