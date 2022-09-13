@@ -7,17 +7,17 @@ from pbo.environment.viewer import Viewer
 
 class BicycleEnv:
     """
-    The Bicycle balancing/riding environment as presented in:
+    The Bicycle balancing/riding selfironment as presented in:
     Learning to Drive a Bicycle using Reinforcement Learning and Shaping.
     Jette Randlov and Preben Alstrom. 1998.
     """
 
-    def __init__(self, env_key: int) -> None:
+    def __init__(self, self_key: int) -> None:
         """
         state = [omega, omega_dot, theta, theta_dot, psi]
         position = [x_b, y_b, x_f, y_f]
         """
-        self.reset_key, self.noise_key = jax.random.split(env_key)
+        self.reset_key, self.noise_key = jax.random.split(self_key)
 
         self.noise = 0.02
         self.omega_bound = jnp.pi * 12.0 / 180.0
@@ -38,8 +38,9 @@ class BicycleEnv:
         # Useful precomputations
         self._M = self._M_p + self._M_c
         self._Inertia_bc = (13.0 / 3.0) * self._M_c * self._h**2 + self._M_p * (self._h + self._d_cm) ** 2
-        self._Inertia_dv = self._M_d * self._r**2
-        self._Inertia_dl = 0.5 * self._M_d * self._r**2
+        self._Inertia_dc = self._M_d * self._r**2
+        self._Inertia_dv = 3 / 2 * self._M_d * self._r**2
+        self._Inertia_dl = 1 / 2 * self._M_d * self._r**2
         self._sigma_dot = self._v / self._r
 
         # Simulation Constants
@@ -47,8 +48,9 @@ class BicycleEnv:
         self._dt = 0.01
 
         # Visualization
-        self._viewer = Viewer(2, 1, width=1000)
+        self._viewer = Viewer(2, 2, width=1000, height=1000)
         self.positions = []
+        self.max_distance = 0
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
@@ -61,6 +63,7 @@ class BicycleEnv:
         self.position = self.position.at[2].set(self._l * jnp.cos(self.state[-1]))
         self.position = self.position.at[3].set(self._l * jnp.sin(self.state[-1]))
         self.positions = [self.position]
+        self.max_distance = jnp.maximum(jnp.linalg.norm(self.position[:2]), jnp.linalg.norm(self.position[2:]))
 
         return self.state
 
@@ -73,69 +76,62 @@ class BicycleEnv:
         self.noise_key, key = jax.random.split(self.noise_key)
         d += jax.random.uniform(key, minval=-1, maxval=1) * self.noise
 
-        omega, omega_dot, theta, theta_dot, psi = self.state
+        omega_t, omega_dot_t, theta_t, theta_dot_t, psi_t = self.state
 
-        phi = omega + jnp.arctan(d / self._h)
+        phi_t = omega_t + jnp.arctan(d / self._h)
 
-        if theta == 0:  # Infinite radius tends to not be handled well
-            r_f = r_b = r_CM = 1.0e8
-        else:
-            r_f = self._l / jnp.abs(jnp.sin(theta))
-            r_b = self._l / jnp.abs(jnp.tan(theta))
-            r_CM = jnp.sqrt((self._l - self._c) ** 2 + (self._l**2 / jnp.tan(theta) ** 2))
+        inv_r_f = jnp.abs(jnp.sin(theta_t)) / self._l
+        inv_r_b = jnp.abs(jnp.tan(theta_t)) / self._l
+        inv_r_CM = 1 / (jnp.sqrt((self._l - self._c) ** 2 + (self._l**2 / jnp.tan(theta_t) ** 2)) + 1e-32)
 
         # Update omega
-        omega_ddot = self._h * self._M * self._g * jnp.sin(phi) - jnp.cos(phi) * (
-            self._Inertia_dv * self._sigma_dot * theta_dot
-            + jnp.sign(theta)
+        omega_ddot_t = self._M * self._h * self._g * jnp.sin(phi_t) - jnp.cos(phi_t) * (
+            self._Inertia_dc * self._sigma_dot * theta_dot_t
+            + jnp.sign(theta_t)
             * self._v**2
-            * (self._M_d * self._r / r_f + self._M_d * self._r / r_b + self._M * self._h / r_CM)
+            * (self._M_d * self._r * inv_r_f + self._M_d * self._r * inv_r_b + self._M * self._h * inv_r_CM)
         )
-        omega_ddot /= self._Inertia_bc
-        omega_dot += self._dt * omega_ddot
-        omega += self._dt * omega_dot
+        omega_ddot_t /= self._Inertia_bc
+        omega_dot_t1 = omega_dot_t + self._dt * omega_ddot_t
+        omega_t1 = omega_t + self._dt * omega_dot_t
 
         # Update theta
-        theta_ddot = (T - self._Inertia_dv * self._sigma_dot * omega_dot) / self._Inertia_dl
-        theta_dot += self._dt * theta_ddot
-        theta += self._dt * theta_dot
-
-        # Handle bar angle limits
-        theta = jnp.clip(theta, -self.theta_bound, self.theta_bound)
-
-        # Update positions
-        x_b, y_b, x_f, y_f = self.position
-
-        back_term = psi + jnp.sign(psi) * jnp.arcsin(self._v * self._dt / (2.0 * r_b))
-        x_b += -self._v * self._dt * jnp.sin(back_term)
-        y_b += self._v * self._dt * jnp.cos(back_term)
-        front_term = psi + theta + jnp.sign(psi + theta) * jnp.arcsin(self._v * self._dt / (2.0 * r_f))
-        x_f += -self._v * self._dt * jnp.sin(front_term)
-        y_f += self._v * self._dt * jnp.cos(front_term)
-
-        # Handle roundoff errors, to keep the length of the bicycle constant
-        dist = jnp.sqrt((x_f - x_b) ** 2 + (y_f - y_b) ** 2)
-        if jnp.abs(dist - self._l) > 0.01:
-            x_b += (x_b - x_f) * (self._l - dist) / dist
-            y_b += (y_b - y_f) * (self._l - dist) / dist
+        theta_ddot_t = (T - self._Inertia_dv * self._sigma_dot * omega_dot_t) / self._Inertia_dl
+        theta_dot_t1 = theta_dot_t + self._dt * theta_ddot_t
+        theta_t1 = theta_t + self._dt * theta_dot_t
+        theta_t1 = jnp.clip(theta_t1, -self.theta_bound, self.theta_bound)  # Handle bar angle limits
 
         # Update psi
-        if x_f - x_b >= 0:
-            psi = jnp.arctan((y_f - y_b) / (x_b - x_f + 1e-32))
-        else:
-            psi = jnp.arctan(jnp.pi - (y_f - y_b) / (x_b - x_f + 1e-32))
+        psi_t1 = psi_t + self._v * self._dt * jnp.sign(theta_t) * inv_r_b
 
-        self.state = jnp.array([omega, omega_dot, theta, theta_dot, psi])
-        self.position = jnp.array([x_b, y_b, x_f, y_f])
+        # Update positions
+        x_b_t, y_b_t, _, _ = self.position
 
+        x_b_t1 = x_b_t + self._v * self._dt * jnp.cos(psi_t)
+        y_b_t1 = y_b_t + self._v * self._dt * jnp.sin(psi_t)
+        x_f_t1 = x_b_t1 + self._l * jnp.cos(psi_t)
+        y_f_t1 = y_b_t1 + self._l * jnp.sin(psi_t)
+
+        self.state = jnp.array([omega_t1, omega_dot_t1, theta_t1, theta_dot_t1, psi_t1])
+        self.position = jnp.array([x_b_t1, y_b_t1, x_f_t1, y_f_t1])
+
+        # Reward
         reward = 0
-        if jnp.abs(omega) > self.omega_bound:  # Bicycle fell over
+        if jnp.abs(omega_t1) > self.omega_bound:  # Bicycle fell over
             absorbing = True
             reward = self.reward_fall
         else:
             absorbing = False
             reward = 0
+
         return self.state, jnp.array([reward]), jnp.array([absorbing], dtype=bool)
+
+    def add_position(self) -> None:
+        self.positions.append(self.position)
+
+        distance = jnp.maximum(jnp.linalg.norm(self.position[:2]), jnp.linalg.norm(self.position[2:]))
+        if distance > self.max_distance:
+            self.max_distance = distance
 
     def render(self, action: jnp.ndarray = None) -> None:
         dark_blue = (102, 153, 255)
@@ -145,10 +141,12 @@ class BicycleEnv:
 
         omega, _, theta, _, psi = self.state
 
-        # Split in two screens
+        # Split in three screens
         self._viewer.line([1, 0], [1, 1], width=2)
+        self._viewer.line([0, 1], [2, 1], width=2)
         center_left = [0.5, 0.5]
         center_right = [1.5, 0.1]
+        center_top = [1, 1.5]
 
         # --- Left plot --- #
         # Axes
@@ -256,9 +254,30 @@ class BicycleEnv:
                 width=10,
             )
 
-        # --- Lower plot --- #
+        # --- Top plot --- #
+        # Axes
+        self._viewer.text(self._viewer._translate([0.8, -0.04], center_top), "x")
+        self._viewer.line(
+            self._viewer._translate([-0.8, 0], center_top), self._viewer._translate([0.8, 0], center_top), width=2
+        )
+        self._viewer.arrow_head(self._viewer._translate([0.8, 0], center_top), 0.05, 0)
+        self._viewer.text(self._viewer._translate([-0.06, 0.4], center_top), "y")
+        self._viewer.line(
+            self._viewer._translate([0, -0.4], center_top), self._viewer._translate([0, 0.4], center_top), width=2
+        )
+        self._viewer.arrow_head(self._viewer._translate([0, 0.4], center_top), 0.05, np.pi / 2)
+        self._viewer.text(self._viewer._translate([-0.45, -0.4], center_top), "z")
+        self._viewer.circle(self._viewer._translate([-0.4, -0.4], center_top), 0.01, width=1)
+        self._viewer.circle(self._viewer._translate([-0.4, -0.4], center_top), 0.005, width=2)
 
-        self._viewer.display(10 * self._dt)
+        # Add positions
+        for position in self.positions:
+            self._viewer.line(
+                self._viewer._translate(position[:2] / (2.1 * self.max_distance), center_top),
+                self._viewer._translate(position[2:] / (2.1 * self.max_distance), center_top),
+            )
+
+        self._viewer.display(self._dt)
 
     def close(self):
         return self._viewer.close()

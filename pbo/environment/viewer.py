@@ -1,4 +1,4 @@
-# This file is a copy paste from https://github.com/MushroomRL/mushroom-rl
+# This file is inspired by https://github.com/MushroomRL/mushroom-rl
 
 import os
 
