@@ -19,8 +19,8 @@ class CarOnHillEnv:
 
     def __init__(self, gamma: float) -> None:
         self.gamma = gamma
-        self._max_position = 1.0
-        self._max_velocity = 3.0
+        self.max_position = 1.0
+        self.max_velocity = 3.0
         self._g = 9.81
         self._m = 1.0
         self._dt = 0.1
@@ -40,9 +40,9 @@ class CarOnHillEnv:
     def boundery_conditions(self, new_state_odeint: jnp.ndarray) -> tuple:
         state = jnp.array(new_state_odeint[-1, :-1])
 
-        too_fast = (jnp.abs(state[1]) > self._max_velocity).astype(float)
-        too_far_left = (state[0] < -self._max_position).astype(float)
-        too_far_right = (state[0] > self._max_position).astype(float)
+        too_fast = (jnp.abs(state[1]) > self.max_velocity).astype(float)
+        too_far_left = (state[0] < -self.max_position).astype(float)
+        too_far_right = (state[0] > self.max_position).astype(float)
 
         too_far_left_or_too_fast = too_far_left + too_fast - too_far_left * too_fast
         too_far_right_and_not_too_fast = too_far_right * (1 - too_fast)

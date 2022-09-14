@@ -22,7 +22,6 @@ class BicycleEnv:
         self.noise = 0.02
         self.omega_bound = jnp.pi * 12.0 / 180.0
         self.theta_bound = jnp.pi * 80.0 / 180.0
-        self.reward_fall = -1.0
 
         # Units in Meters and Kilograms
         self._c = 0.66  # Horizontal distance between bottom of front wheel and center of mass
@@ -117,7 +116,7 @@ class BicycleEnv:
         reward = 0
         if jnp.abs(omega_t1) > self.omega_bound:  # Bicycle fell over
             absorbing = True
-            reward = self.reward_fall
+            reward = -1
         else:
             absorbing = False
             reward = 0

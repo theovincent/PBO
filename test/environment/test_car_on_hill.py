@@ -22,22 +22,20 @@ class TestCarOnHillEnv(unittest.TestCase):
 
     def test_step(self) -> None:
         env = CarOnHillEnv(self.gamma)
-        state = env.reset()
+        env.reset()
 
         for _ in range(20):
             next_state, reward, absorbing, _ = env.step(jnp.array([np.random.choice([-1, 1])]))
 
             if not absorbing[0]:
-                self.assertTrue(abs(next_state[0]) <= env._max_position)
-                self.assertTrue(abs(next_state[1]) <= env._max_velocity)
+                self.assertTrue(abs(next_state[0]) <= env.max_position)
+                self.assertTrue(abs(next_state[1]) <= env.max_velocity)
                 self.assertEqual(reward[0], 0)
-
-                state = next_state
             else:
-                self.assertTrue(abs(state[0]) > env._max_position or abs(state[1]) > env._max_velocity)
-                if state[0] > env._max_position and abs(state[1]) <= env._max_velocity:
+                self.assertTrue(abs(next_state[0]) > env.max_position or abs(next_state[1]) > env.max_velocity)
+                if next_state[0] > env.max_position and abs(next_state[1]) <= env.max_velocity:
                     self.assertEqual(reward[0], 1)
                 else:
                     self.assertEqual(reward[0], -1)
 
-                state = env.reset(np.random.random(size=2))
+                env.reset(np.random.random(size=2))
