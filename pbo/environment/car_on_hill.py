@@ -17,11 +17,10 @@ class CarOnHillEnv:
     "Tree-Based Batch Mode Reinforcement Learning". Ernst D. et al.. 2005.
     """
 
-    def __init__(self, max_pos: float, max_velocity: float, gamma: float) -> None:
+    def __init__(self, gamma: float) -> None:
         self.gamma = gamma
-        self.max_pos = max_pos
-        self.max_velocity = max_velocity
-        self.actions_values = jnp.array([-4.0, 4.0])
+        self._max_position = 1.0
+        self._max_velocity = 3.0
         self._g = 9.81
         self._m = 1.0
         self._dt = 0.1
@@ -41,9 +40,9 @@ class CarOnHillEnv:
     def boundery_conditions(self, new_state_odeint: jnp.ndarray) -> tuple:
         state = jnp.array(new_state_odeint[-1, :-1])
 
-        too_fast = (jnp.abs(state[1]) > self.max_velocity).astype(float)
-        too_far_left = (state[0] < -self.max_pos).astype(float)
-        too_far_right = (state[0] > self.max_pos).astype(float)
+        too_fast = (jnp.abs(state[1]) > self._max_velocity).astype(float)
+        too_far_left = (state[0] < -self._max_position).astype(float)
+        too_far_right = (state[0] > self._max_position).astype(float)
 
         too_far_left_or_too_fast = too_far_left + too_fast - too_far_left * too_fast
         too_far_right_and_not_too_fast = too_far_right * (1 - too_fast)
@@ -56,9 +55,7 @@ class CarOnHillEnv:
 
     @partial(jax.jit, static_argnames="self")
     def state_action(self, state, action):
-        action_ = self.actions_values[action[0]]
-
-        return jnp.append(state, action_)
+        return jnp.append(state, 4 * action[0])
 
     def step(self, action: jnp.ndarray) -> tuple:
         new_state = odeint(self._dpds, self.state_action(self.state, action), [0, self._dt])
