@@ -30,6 +30,9 @@ class TestChainWalkEnv(unittest.TestCase):
         for _ in range(10):
             next_state, reward, absorbing, _ = env.step(jnp.array([0]))
 
+            self.assertEqual(next_state.shape, (1,))
+            self.assertEqual(reward.shape, (1,))
+            self.assertEqual(absorbing.shape, (1,))
             self.assertTrue(next_state[0] == state[0] - 1 or next_state[0] == state[0])
             self.assertTrue(
                 (reward[0] == 0 and state[0] > 0 and state[0] < self.n_states)
@@ -42,6 +45,9 @@ class TestChainWalkEnv(unittest.TestCase):
         for _ in range(10):
             next_state, reward, absorbing, _ = env.step(jnp.array([1]))
 
+            self.assertEqual(next_state.shape, (1,))
+            self.assertEqual(reward.shape, (1,))
+            self.assertEqual(absorbing.shape, (1,))
             self.assertTrue(next_state[0] == state[0] + 1 or next_state[0] == state[0])
             self.assertTrue(
                 (reward[0] == 0 and state[0] > 0 and state[0] < self.n_states)

@@ -3,6 +3,8 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 
+from pbo.networks.base_q import BaseQ
+
 
 class ChainWalkEnv:
     def __init__(
@@ -94,3 +96,12 @@ class ChainWalkEnv:
     def value_function(self, policy: jnp.ndarray) -> jnp.ndarray:
         policy_transition_probability = self.policy_transition_probability(policy)
         return jnp.linalg.solve(jnp.eye(self.n_states) - self.gamma * policy_transition_probability, self.rewards)
+
+    @partial(jax.jit, static_argnames=("self", "q"))
+    def discretize(self, q: BaseQ, weights: jnp.ndarray, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
+        states_mesh, actions_mesh = jnp.meshgrid(states, actions, indexing="ij")
+        states_ = states_mesh.reshape((-1, 1))
+        actions_ = actions_mesh.reshape((-1, 1))
+
+        # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        return q(q.to_params(weights), states_, actions_).reshape((len(states), len(actions)))

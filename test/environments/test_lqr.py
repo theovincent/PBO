@@ -29,6 +29,9 @@ class TestLinearQuadraticEnv(unittest.TestCase):
             action = jnp.array([np.random.random() * 10])
             next_state, reward, absorbing, _ = env.step(action)
 
+            self.assertEqual(next_state.shape, (1,))
+            self.assertEqual(reward.shape, (1,))
+            self.assertEqual(absorbing.shape, (1,))
             self.assertAlmostEqual(next_state[0], env.A * state[0] + env.B * action[0])
             self.assertAlmostEqual(
                 reward[0], env.Q * state[0] ** 2 + env.R * action[0] ** 2 + 2 * env.S * state[0] * action[0]

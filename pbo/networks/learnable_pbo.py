@@ -105,7 +105,9 @@ class CustomLinearPBONet(hk.Module):
         slope = hk.get_parameter(
             "slope", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std)
         )
-        bias = hk.get_parameter("bias", (1, 3), weights.dtype, init=hk.initializers.Constant(0))
+        bias = hk.get_parameter(
+            "bias", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std)
+        )
 
         return customs.reshape((-1, 1)) @ slope + bias
 

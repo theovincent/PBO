@@ -27,6 +27,9 @@ class TestCarOnHillEnv(unittest.TestCase):
         for _ in range(20):
             next_state, reward, absorbing, _ = env.step(jnp.array([np.random.choice([-1, 1])]))
 
+            self.assertEqual(next_state.shape, (2,))
+            self.assertEqual(reward.shape, (1,))
+            self.assertEqual(absorbing.shape, (1,))
             if not absorbing[0]:
                 self.assertTrue(abs(next_state[0]) <= env.max_position)
                 self.assertTrue(abs(next_state[1]) <= env.max_velocity)

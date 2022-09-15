@@ -56,7 +56,7 @@ class LinearQuadraticEnv:
             self.parameters_key, key = jax.random.split(self.parameters_key)
             self.S = jax.random.uniform(key, minval=-1, maxval=1)
 
-            self.P = sc_linalg.solve_discrete_are(self.A, self.B, self.Q, self.R, s=self.S)
+            self.P = sc_linalg.solve_discrete_are(self.A, self.B, self.Q, self.R, s=self.S)[0, 0]
 
             riccati_respected = self.check_riccati_equation(self.P, self.A, self.B, self.Q, self.R, self.S)
             self.R_hat = self.R + self.B * self.P * self.B
@@ -103,7 +103,7 @@ class LinearQuadraticEnv:
 
         absorbing = False
 
-        return self.state, jnp.array([reward]), jnp.array([absorbing]), {}
+        return self.state, reward, jnp.array([absorbing]), {}
 
     def optimal_action(self) -> jnp.ndarray:
         return -self.K * self.state
