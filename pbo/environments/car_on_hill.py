@@ -7,7 +7,7 @@ import jax.numpy as jnp
 from scipy.integrate import odeint
 
 
-from pbo.environment.viewer import Viewer
+from pbo.environments.viewer import Viewer
 from pbo.networks.base_q import BaseQ
 
 

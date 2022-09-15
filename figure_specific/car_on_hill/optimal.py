@@ -20,7 +20,7 @@ def run_optimal():
     ## Define the environment
     import numpy as np
 
-    from pbo.environment.car_on_hill import CarOnHillEnv
+    from pbo.environments.car_on_hill import CarOnHillEnv
 
     max_pos = 1.0
     max_velocity = 3.0
