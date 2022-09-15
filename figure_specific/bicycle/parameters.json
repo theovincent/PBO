@@ -6,10 +6,11 @@
     "n_omegas": 17,
     "n_thetas": 17,
     "---- Shared parameters ---": "-",
+    "horizon": 1000,
     "gamma": 0.98,
     "n_samples": 4000,
     "batch_size_samples": 4000,
-    "max_bellman_iterations": 6,
+    "max_bellman_iterations": 40,
     "---- FQI ---": "-",
     "fitting_steps_fqi": 1200,
     "patience": 7,
@@ -22,6 +23,5 @@
     "fitting_steps_pbo": 1,
     "starting_lr_pbo": 0.0001,
     "ending_lr_pbo": 5e-06,
-    "initial_weight_std": 0.0005,
-    "initial_bias_std": 0.005
+    "initial_weight_std": 0.0005
 }

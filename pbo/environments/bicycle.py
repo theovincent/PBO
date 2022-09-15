@@ -1,8 +1,12 @@
+# This file was inspired by https://github.com/teopir/ifqi
+
+from functools import partial
 import numpy as np
 import jax
 import jax.numpy as jnp
 
 from pbo.environments.viewer import Viewer
+from pbo.networks.base_q import BaseQ
 
 
 class BicycleEnv:
@@ -18,6 +22,7 @@ class BicycleEnv:
         position = [x_b, y_b, x_f, y_f]
         """
         self.noise_key = env_key
+        self.actions_on_max = jnp.array([[d, T] for d in range(-1, 2) for T in range(-1, 2)])
 
         self.noise = 0.02
         self.omega_bound = jnp.pi * 12.0 / 180.0
@@ -64,16 +69,16 @@ class BicycleEnv:
 
         return self.state
 
-    def step(self, action: jnp.ndarray) -> jnp.ndarray:
+    @partial(jax.jit, static_argnames="self")
+    def step_jitted(self, action, noise_key, state, position):
         # action in [-1, 0, 1] x [-1, 0, 1]
         d = 0.02 * action[0]  # Displacement of center of mass (in meters)
         T = 2.0 * action[1]  # Torque on handle bars
 
         # Add noise to action
-        self.noise_key, key = jax.random.split(self.noise_key)
-        d += jax.random.uniform(key, minval=-1, maxval=1) * self.noise
+        d += jax.random.uniform(noise_key, minval=-1, maxval=1) * self.noise
 
-        omega_t, omega_dot_t, theta_t, theta_dot_t, psi_t = self.state
+        omega_t, omega_dot_t, theta_t, theta_dot_t, psi_t = state
 
         phi_t = omega_t + jnp.arctan(d / self._h)
 
@@ -102,26 +107,27 @@ class BicycleEnv:
         psi_t1 = psi_t + self._v * self._dt * jnp.sign(theta_t) * inv_r_b
 
         # Update positions
-        x_b_t, y_b_t, _, _ = self.position
+        x_b_t, y_b_t, _, _ = position
 
         x_b_t1 = x_b_t + self._v * self._dt * jnp.cos(psi_t)
         y_b_t1 = y_b_t + self._v * self._dt * jnp.sin(psi_t)
         x_f_t1 = x_b_t1 + self._l * jnp.cos(psi_t)
         y_f_t1 = y_b_t1 + self._l * jnp.sin(psi_t)
 
-        self.state = jnp.array([omega_t1, omega_dot_t1, theta_t1, theta_dot_t1, psi_t1])
-        self.position = jnp.array([x_b_t1, y_b_t1, x_f_t1, y_f_t1])
+        next_state = jnp.array([omega_t1, omega_dot_t1, theta_t1, theta_dot_t1, psi_t1])
+        next_position = jnp.array([x_b_t1, y_b_t1, x_f_t1, y_f_t1])
 
-        # Reward
-        reward = 0
-        if jnp.abs(omega_t1) > self.omega_bound:  # Bicycle fell over
-            absorbing = True
-            reward = -1
-        else:
-            absorbing = False
-            reward = 0
+        # Reward and absorbing
+        reward = (jnp.abs(omega_t1) > self.omega_bound) * jnp.array([-1])
+        absorbing = (jnp.abs(omega_t1) > self.omega_bound) * jnp.array([1])
 
-        return self.state, jnp.array([reward]), jnp.array([absorbing], dtype=bool), {}
+        return next_state, next_position, reward, absorbing.astype(bool)
+
+    def step(self, action: jnp.ndarray) -> jnp.ndarray:
+        self.noise_key, key = jax.random.split(self.noise_key)
+        self.state, self.position, reward, absorbing = self.step_jitted(action, key, self.state, self.position)
+
+        return self.state, reward, absorbing, {}
 
     def render(self, action: jnp.ndarray = None) -> None:
         # Store position
@@ -283,3 +289,54 @@ class BicycleEnv:
 
     def close(self):
         return self._viewer.close()
+
+    def simulate(self, q: BaseQ, horizon: int, render: bool) -> bool:
+        self.reset()
+        absorbing = False
+        step = 0
+
+        while not absorbing and step < horizon:
+            state_repeat = jnp.repeat(self.state.reshape((1, 5)), self.actions_on_max.shape[0], axis=0)
+            best_action = self.actions_on_max[q(q.params, state_repeat, self.actions_on_max).argmax()]
+
+            _, _, absorbing, _ = self.step(best_action)
+
+            step += 1
+            if render:
+                self.render(best_action)
+
+        self.close()
+
+        return step
+
+    def hard_coded_simulation(self, horizon: int, render: bool) -> bool:
+        self.reset()
+        absorbing = False
+        step = 0
+
+        while not absorbing and step < horizon:
+            if (self.state[0] > 0 and self.state[1] >= 0) or (self.state[0] > self.omega_bound / 3):
+                d = -1
+            elif (self.state[0] < 0 and self.state[1] <= 0) or (self.state[0] < -self.omega_bound / 3):
+                d = 1
+            else:
+                d = 0
+
+            if (self.state[2] > 0 and self.state[3] >= 0) or (self.state[2] > self.theta_bound / 3):
+                T = -1
+            elif (self.state[2] < 0 and self.state[3] <= 0) or (self.state[2] < -self.theta_bound / 3):
+                T = 1
+            else:
+                T = 0
+
+            best_action = jnp.array([d, T])
+
+            _, _, absorbing, _ = self.step(best_action)
+
+            step += 1
+            if render:
+                self.render(best_action)
+
+        self.close()
+
+        return step
