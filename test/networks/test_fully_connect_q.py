@@ -15,7 +15,6 @@ class TestTableQ(unittest.TestCase):
         self.gamma = np.random.random()
         self.network_key = jax.random.PRNGKey(np.random.randint(0, 100))
         self.layers_dimension = np.random.randint(1, 50, size=np.random.randint(1, 4))
-        self.initial_weight_std = np.abs(np.random.random() * 10)
 
     def test_zero_initializer(self) -> None:
         q = FullyConnectedQ(
@@ -25,7 +24,6 @@ class TestTableQ(unittest.TestCase):
             gamma=self.gamma,
             network_key=self.network_key,
             layers_dimension=self.layers_dimension,
-            initial_weight_std=self.initial_weight_std,
             zero_initializer=True,
         )
 
@@ -40,7 +38,6 @@ class TestTableQ(unittest.TestCase):
             gamma=self.gamma,
             network_key=self.network_key,
             layers_dimension=self.layers_dimension,
-            initial_weight_std=self.initial_weight_std,
             zero_initializer=False,
         )
 
@@ -55,7 +52,6 @@ class TestTableQ(unittest.TestCase):
             gamma=self.gamma,
             network_key=self.network_key,
             layers_dimension=self.layers_dimension,
-            initial_weight_std=self.initial_weight_std,
             zero_initializer=False,
         )
 
@@ -71,7 +67,6 @@ class TestTableQ(unittest.TestCase):
             gamma=self.gamma,
             network_key=self.network_key,
             layers_dimension=self.layers_dimension,
-            initial_weight_std=self.initial_weight_std,
             zero_initializer=False,
         )
 
@@ -90,7 +85,6 @@ class TestTableQ(unittest.TestCase):
             gamma=self.gamma,
             network_key=self.network_key,
             layers_dimension=self.layers_dimension,
-            initial_weight_std=self.initial_weight_std,
             zero_initializer=False,
         )
 
@@ -117,7 +111,6 @@ class TestTableQ(unittest.TestCase):
             gamma=self.gamma,
             network_key=self.network_key,
             layers_dimension=self.layers_dimension,
-            initial_weight_std=self.initial_weight_std,
             zero_initializer=False,
         )
 

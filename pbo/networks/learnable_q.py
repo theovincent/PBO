@@ -6,10 +6,9 @@ from pbo.networks.base_q import BaseQ
 
 
 class FullyConnectedQNet(hk.Module):
-    def __init__(self, layers_dimension: list, initial_weight_std: float, zero_initializer: bool = False) -> None:
+    def __init__(self, layers_dimension: list, zero_initializer: bool = False) -> None:
         super().__init__(name="FullyConnectedNet")
         self.layers_dimension = layers_dimension
-        self.initial_weight_std = initial_weight_std
         if zero_initializer:
             self.initializer = hk.initializers.Constant(0)
         else:
@@ -23,11 +22,7 @@ class FullyConnectedQNet(hk.Module):
         x = jnp.hstack((state, action))
 
         for idx, layer_dimension in enumerate(self.layers_dimension, start=1):
-            x = hk.Linear(
-                layer_dimension,
-                w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
-                name=f"linear_{idx}",
-            )(x)
+            x = hk.Linear(layer_dimension, name=f"linear_{idx}")(x)
             x = jax.nn.relu(x)
 
         x = hk.Linear(1, w_init=self.initializer, name="linear_last")(x)
@@ -44,12 +39,11 @@ class FullyConnectedQ(BaseQ):
         gamma: float,
         network_key: int,
         layers_dimension: list,
-        initial_weight_std: float,
         zero_initializer: bool,
         learning_rate: dict = None,
     ) -> None:
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
-            return FullyConnectedQNet(layers_dimension, initial_weight_std, zero_initializer)(state, action)
+            return FullyConnectedQNet(layers_dimension, zero_initializer)(state, action)
 
         super().__init__(
             state_dim=state_dim,
