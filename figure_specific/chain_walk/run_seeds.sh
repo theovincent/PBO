@@ -6,22 +6,22 @@ parse_arguments $@
 edit_json -f figure_specific/chain_walk/parameters.json -k max_bellman_iterations -v $N_BI
 
 
-# # FQI
-# counter=1
-# while [ $counter -le  $N_SEEDS ]
-# do
-#     jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/FQI.ipynb
-#     echo FQI: $counter out of $N_SEEDS runs
-#     ((counter++))
-# done
+# FQI
+counter=1
+while [ $counter -le  $N_SEEDS ]
+do
+    jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/FQI.ipynb
+    echo FQI: $counter out of $N_SEEDS runs
+    ((counter++))
+done
 
-# # LSPI
-# jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/LSPI.ipynb
-# echo LSPI: 1 out of 1 run
+# LSPI
+jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/LSPI.ipynb
+echo LSPI: 1 out of 1 run
 
-# # optimal
-# jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/optimal.ipynb
-# echo optimal: 1 out of 1 run
+# optimal
+jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/optimal.ipynb
+echo optimal: 1 out of 1 run
 
 # PBO linear
 counter=1
@@ -41,6 +41,6 @@ do
     ((counter++))
 done
 
-# # PBO optimal
-# jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/PBO_optimal.ipynb
-# echo PBO optimal: 1 out of 1 run
+# PBO optimal
+jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/PBO_optimal.ipynb
+echo PBO optimal: 1 out of 1 run
