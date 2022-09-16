@@ -29,9 +29,16 @@ class TwoDimesionsMesh:
             self.values = np.where(self.values == 0, np.nan, self.values)
 
     def show(
-        self, title: str = "", xlabel: str = "States", ylabel: str = "Actions", plot: bool = True, ticks_freq: int = 1
+        self,
+        title: str = "",
+        xlabel: str = "States",
+        ylabel: str = "Actions",
+        plot: bool = True,
+        ticks_freq: int = 1,
+        clear: bool = True,
     ) -> None:
-        clear_output(wait=True)
+        if clear:
+            clear_output(wait=True)
         fig, ax = plt.subplots()
 
         if self.zero_centered:

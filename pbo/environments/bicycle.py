@@ -2,6 +2,7 @@
 
 from functools import partial
 import numpy as np
+import haiku as hk
 import jax
 import jax.numpy as jnp
 
@@ -340,3 +341,49 @@ class BicycleEnv:
         self.close()
 
         return step
+
+    @partial(jax.jit, static_argnames=("self", "q"))
+    def best_action_on_mesh(
+        self,
+        q: BaseQ,
+        q_params: hk.Params,
+        omegas: jnp.ndarray,
+        omega_dots: jnp.ndarray,
+        thetas: jnp.ndarray,
+        theta_dots: jnp.ndarray,
+    ) -> jnp.ndarray:
+        omegas_mesh, omega_dots_mesh, thetas_mesh, theta_dots_mesh = jnp.meshgrid(
+            omegas, omega_dots, thetas, theta_dots, indexing="ij"
+        )
+        n_boxes = omegas.shape[0] * omega_dots.shape[0] * thetas.shape[0] * theta_dots.shape[0]
+
+        states = jnp.hstack(
+            (
+                omegas_mesh.reshape((n_boxes, 1)),
+                omega_dots_mesh.reshape((n_boxes, 1)),
+                thetas_mesh.reshape((n_boxes, 1)),
+                theta_dots_mesh.reshape((n_boxes, 1)),
+                jnp.zeros((n_boxes, 1)),
+            )
+        )
+
+        idx_states_mesh, idx_actions_mesh = jnp.meshgrid(
+            jnp.arange(states.shape[0]), jnp.arange(self.actions_on_max.shape[0]), indexing="ij"
+        )
+
+        states_ = states[idx_states_mesh.flatten()]
+        actions_ = self.actions_on_max[idx_actions_mesh.flatten()]
+
+        # # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        q_values = q(q_params, states_, actions_).reshape((states.shape[0], self.actions_on_max.shape[0]))
+        argmax_q = self.actions_on_max[q_values.argmax(axis=1), 0]
+
+        # # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        best_action_omega = argmax_q.reshape(
+            (omegas.shape[0], omega_dots.shape[0], thetas.shape[0] * theta_dots.shape[0])
+        ).mean(axis=2)
+        best_action_theta = argmax_q.reshape(
+            (omegas.shape[0] * omega_dots.shape[0], thetas.shape[0], theta_dots.shape[0])
+        ).mean(axis=0)
+
+        return best_action_omega, best_action_theta
