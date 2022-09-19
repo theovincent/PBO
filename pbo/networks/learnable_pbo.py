@@ -142,14 +142,26 @@ class LinearMaxLinearPBONet(hk.Module):
 
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
         x = hk.Linear(
-            self.layer_dimension,
+            2 * self.layer_dimension,
             name="linear1",
             w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
         )(weights)
-        x = hk.MaxPool(window_shape=2, strides=2, padding="VALID", channel_axis=0)(x)
+        x = jax.nn.relu(x)
         x = hk.Linear(
             self.layer_dimension,
             name="linear2",
+            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
+        )(x)
+        x = hk.MaxPool(window_shape=2, strides=2, padding="VALID", channel_axis=0)(x)
+        x = hk.Linear(
+            self.layer_dimension,
+            name="linear3",
+            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
+        )(x)
+        x = jax.nn.relu(x)
+        x = hk.Linear(
+            self.layer_dimension,
+            name="linear4",
             w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
         )(x)
 

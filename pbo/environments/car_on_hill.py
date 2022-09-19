@@ -4,6 +4,7 @@ from functools import partial
 import numpy as np
 import jax
 import jax.numpy as jnp
+import haiku as hk
 from scipy.integrate import odeint
 
 
@@ -19,6 +20,7 @@ class CarOnHillEnv:
 
     def __init__(self, gamma: float) -> None:
         self.gamma = gamma
+        self.actions_on_max = jnp.array([[-1], [1]])
         self.max_position = 1.0
         self.max_velocity = 3.0
         self._g = 9.81
@@ -64,7 +66,7 @@ class CarOnHillEnv:
 
         return self.state, reward, absorbing, {}
 
-    def render(self) -> None:
+    def render(self, action: jnp.ndarray) -> None:
         # Slope
         self._viewer.function(0, 1, self._height)
 
@@ -85,6 +87,9 @@ class CarOnHillEnv:
         c_car = [x_car, y_car]
         angle = self._angle(x_car)
         self._viewer.polygon(c_car, angle, car_body, color=(32, 193, 54))
+
+        # Action
+        self._viewer.force_arrow(c_car, np.array([action[0], 0]), 1, 20, 1, width=3)
 
         self._viewer.display(self._dt)
 
@@ -141,9 +146,9 @@ class CarOnHillEnv:
         while len(current_states) > 0 and step < max_steps:
             next_states = []
             for state_ in current_states:
-                for action in range(2):
+                for idx_action in range(2):
                     self.state = state_
-                    next_state, reward, _, _ = self.step(jnp.array([action]))
+                    next_state, reward, _, _ = self.step(self.actions_on_max[idx_action])
 
                     if reward == 1:
                         return True, step + 1
@@ -164,25 +169,29 @@ class CarOnHillEnv:
         else:
             return self.gamma ** (step_to_absorbing - 1) if success else -self.gamma ** (step_to_absorbing - 1)
 
-    def diff_q_mesh(self, q: BaseQ, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
-        q_mesh_ = self.q_mesh(q, states_x, states_v)
+    @partial(jax.jit, static_argnames=("self", "q"))
+    def diff_q_mesh(self, q: BaseQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
+        q_mesh_ = self.q_mesh(q, q_params, states_x, states_v)
 
         return q_mesh_[:, :, 1] - q_mesh_[:, :, 0]
 
-    def q_mesh(self, q: BaseQ, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
-        q_mesh_ = np.zeros((states_x.shape[0], states_v.shape[0], 2))
-
+    @partial(jax.jit, static_argnames=("self", "q"))
+    def q_mesh(self, q: BaseQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
+        n_boxes = states_x.shape[0] * states_v.shape[0]
         states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
 
-        states = jnp.hstack((states_x_mesh.reshape((-1, 1)), states_v_mesh.reshape((-1, 1))))
-        actions_0 = jnp.zeros((states.shape[0], 1))
-        actions_1 = jnp.ones((states.shape[0], 1))
+        states = jnp.hstack((states_x_mesh.reshape((n_boxes, 1)), states_v_mesh.reshape((n_boxes, 1))))
+
+        idx_states_mesh, idx_actions_mesh = jnp.meshgrid(
+            jnp.arange(states.shape[0]), jnp.arange(self.actions_on_max.shape[0]), indexing="ij"
+        )
+        states_ = states[idx_states_mesh.flatten()]
+        actions_ = self.actions_on_max[idx_actions_mesh.flatten()]
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        q_mesh_[:, :, 0] = q(q.params, states, actions_0).reshape((states_x.shape[0], states_v.shape[0]))
-        q_mesh_[:, :, 1] = q(q.params, states, actions_1).reshape((states_x.shape[0], states_v.shape[0]))
-
-        return q_mesh_
+        return q(q_params, states_, actions_).reshape(
+            (states_x.shape[0], states_v.shape[0], self.actions_on_max.shape[0])
+        )
 
     def simulate(self, q: BaseQ, horizon: int, initial_state: jnp.ndarray) -> bool:
         self.reset(initial_state)
@@ -190,17 +199,14 @@ class CarOnHillEnv:
         step = 0
 
         while not absorbing and step < horizon:
-            print(self.state)
-            print(q(q.params, self.state, jnp.array([0])))
-            print(q(q.params, self.state, jnp.array([1])))
-            print()
-            if q(q.params, self.state, jnp.array([1])) > q(q.params, self.state, jnp.array([0])):
-                _, reward, absorbing, _ = self.step(jnp.array([1]))
+            if q(q.params, self.state, jnp.array([1])) > q(q.params, self.state, jnp.array([-1])):
+                action = self.actions_on_max[1]
             else:
-                _, reward, absorbing, _ = self.step(jnp.array([0]))
+                action = self.actions_on_max[0]
+            _, reward, absorbing, _ = self.step(action)
 
             step += 1
-            self.render()
+            self.render(action)
 
         self.close()
 
@@ -214,10 +220,11 @@ class CarOnHillEnv:
         step = 0
 
         while not absorbing and step < horizon:
-            if q(q.params, self.state, jnp.array([1])) > q(q.params, self.state, jnp.array([0])):
-                _, reward, absorbing, _ = self.step(jnp.array([1]))
+            if q(q.params, self.state, jnp.array([1])) > q(q.params, self.state, jnp.array([-1])):
+                action = self.actions_on_max[1]
             else:
-                _, reward, absorbing, _ = self.step(jnp.array([0]))
+                action = self.actions_on_max[0]
+            _, reward, absorbing, _ = self.step(action)
 
             performance += discount * reward[0]
             discount *= self.gamma

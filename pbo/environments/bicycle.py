@@ -352,10 +352,10 @@ class BicycleEnv:
         thetas: jnp.ndarray,
         theta_dots: jnp.ndarray,
     ) -> jnp.ndarray:
+        n_boxes = omegas.shape[0] * omega_dots.shape[0] * thetas.shape[0] * theta_dots.shape[0]
         omegas_mesh, omega_dots_mesh, thetas_mesh, theta_dots_mesh = jnp.meshgrid(
             omegas, omega_dots, thetas, theta_dots, indexing="ij"
         )
-        n_boxes = omegas.shape[0] * omega_dots.shape[0] * thetas.shape[0] * theta_dots.shape[0]
 
         states = jnp.hstack(
             (
@@ -374,11 +374,11 @@ class BicycleEnv:
         states_ = states[idx_states_mesh.flatten()]
         actions_ = self.actions_on_max[idx_actions_mesh.flatten()]
 
-        # # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        # Dangerous reshape: the indexing of meshgrid is 'ij'.
         q_values = q(q_params, states_, actions_).reshape((states.shape[0], self.actions_on_max.shape[0]))
         argmax_q = self.actions_on_max[q_values.argmax(axis=1), 0]
 
-        # # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        # Dangerous reshape: the indexing of meshgrid is 'ij'.
         best_action_omega = argmax_q.reshape(
             (omegas.shape[0], omega_dots.shape[0], thetas.shape[0] * theta_dots.shape[0])
         ).mean(axis=2)
