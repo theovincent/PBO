@@ -198,20 +198,18 @@ class Viewer:
             width (int, 1): the width of the torque arrow.
 
         """
-        angle_end = 3 * np.pi / 2 if torque > 0 else 0
-        angle_start = 0 if torque > 0 else np.pi / 2
         radius = abs(torque) / max_torque * max_radius
 
         r = int(radius * self._ratio[0])
         if r != 0:
             c = self._transform(center)
             rect = pygame.Rect(c[0] - r, c[1] - r, 2 * r, 2 * r)
-            pygame.draw.arc(self.screen, color, rect, angle_start, angle_end, width)
+            pygame.draw.arc(self.screen, color, rect, -np.sign(torque) * np.pi / 2, np.sign(torque) * np.pi / 2, width)
 
             arrow_center = center
-            arrow_center[1] -= radius * np.sign(torque)
-            arrow_scale = radius / 4
-            self.arrow_head(arrow_center, arrow_scale, 0, color)
+            arrow_center[1] += radius
+            arrow_scale = radius / 2
+            self.arrow_head(arrow_center, arrow_scale, np.pi * (np.sign(torque) + 1) / 2, color)
         else:
             self.screen
 

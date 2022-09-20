@@ -27,7 +27,7 @@ class TestBicycleEnv(unittest.TestCase):
         for _ in range(20):
             next_state, reward, absorbing, _ = env.step(self.actions[np.random.randint(9)])
 
-            self.assertEqual(next_state.shape, (5,))
+            self.assertEqual(next_state.shape, (4,))
             self.assertEqual(reward.shape, (1,))
             self.assertEqual(absorbing.shape, (1,))
             self.assertTrue(abs(next_state[2]) <= env.theta_bound)
