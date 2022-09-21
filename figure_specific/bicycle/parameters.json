@@ -1,14 +1,14 @@
 {
     "env_seed": 0,
     "layers_dimension": [
-        4
+        30
     ],
     "n_omegas": 17,
     "n_thetas": 17,
     "---- Shared parameters ---": "-",
     "horizon": 1000,
     "gamma": 0.98,
-    "n_samples": 20000,
+    "n_samples": 50000,
     "batch_size_samples": 200,
     "max_bellman_iterations": 50,
     "---- FQI ---": "-",

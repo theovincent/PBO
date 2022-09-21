@@ -23,7 +23,7 @@ class BicycleEnv:
         position = [x_b, y_b, x_f, y_f]
         """
         self.noise_key = env_key
-        self.actions_on_max = jnp.array([[d, T] for d in range(-1, 2) for T in range(-1, 2)])
+        self.actions_on_max = jnp.array([[-1, 0], [1, 0], [0, -1], [0, 1], [0, 0]])
         self.idx_actions_with_d_1 = jnp.nonzero(self.actions_on_max[:, 0] == 1)[0].flatten()
         self.idx_actions_with_d_m1 = jnp.nonzero(self.actions_on_max[:, 0] == -1)[0].flatten()
         self.idx_actions_with_T_1 = jnp.nonzero(self.actions_on_max[:, 1] == 1)[0].flatten()
@@ -40,7 +40,7 @@ class BicycleEnv:
         self._l = 1.11  # Distance between front tire and back tire at point on ground
         self._M_c = 15.0  # Mass of bicycle
         self._M_d = 1.7  # Mass of tire
-        self._M_p = 60  # Mass of cyclist
+        self._M_p = 60.0  # Mass of cyclist
         self._r = 0.34  # Radius of tire
         self._v = 10.0 / 3.6  # Velocity of bicycle (converted from km/h to m/s)
 
@@ -53,7 +53,7 @@ class BicycleEnv:
         self._sigma_dot = self._v / self._r
 
         # Simulation Constants
-        self._g = 9.8
+        self._g = 9.82
         self._dt = 0.01
 
         # Visualization
@@ -88,7 +88,7 @@ class BicycleEnv:
 
         inv_r_f = jnp.abs(jnp.sin(theta_t)) / self._l
         inv_r_b = jnp.abs(jnp.tan(theta_t)) / self._l
-        inv_r_CM = 1 / (jnp.sqrt((self._l - self._c) ** 2 + (self._l**2 / jnp.tan(theta_t) ** 2)) + 1e-32)
+        inv_r_CM = 1 / jnp.sqrt((self._l - self._c) ** 2 + (self._l**2 / (jnp.tan(theta_t) ** 2 + 1e-32)))
 
         # Update omega
         omega_ddot_t = self._M * self._h * self._g * jnp.sin(phi_t) - jnp.cos(phi_t) * (
@@ -98,13 +98,13 @@ class BicycleEnv:
             * (self._M_d * self._r * inv_r_f + self._M_d * self._r * inv_r_b + self._M * self._h * inv_r_CM)
         )
         omega_ddot_t /= self._Inertia_bc
-        omega_dot_t1 = omega_dot_t + self._dt * omega_ddot_t
         omega_t1 = omega_t + self._dt * omega_dot_t
+        omega_dot_t1 = omega_dot_t + self._dt * omega_ddot_t
 
         # Update theta
         theta_ddot_t = (T - self._Inertia_dv * self._sigma_dot * omega_dot_t) / self._Inertia_dl
-        theta_dot_t1 = theta_dot_t + self._dt * theta_ddot_t
         theta_t1 = theta_t + self._dt * theta_dot_t
+        theta_dot_t1 = (jnp.abs(theta_t1) <= self.theta_bound) * (theta_dot_t + self._dt * theta_ddot_t)
         theta_t1 = jnp.clip(theta_t1, -self.theta_bound, self.theta_bound)  # Handle bar angle limits
 
         # Update positions
@@ -121,7 +121,7 @@ class BicycleEnv:
         next_position = jnp.array([x_b_t1, y_b_t1, x_f_t1, y_f_t1, psi_t1])
 
         # Reward and absorbing
-        reward = (jnp.abs(omega_t1) > self.omega_bound) * jnp.array([-1])
+        reward = (jnp.abs(omega_t1) > self.omega_bound) * jnp.array([-1]) + 100 * (jnp.abs(omega_t) - jnp.abs(omega_t1))
         absorbing = (jnp.abs(omega_t1) > self.omega_bound) * jnp.array([1])
 
         return next_state, next_position, reward, absorbing.astype(bool)
