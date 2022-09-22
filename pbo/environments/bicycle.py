@@ -23,7 +23,7 @@ class BicycleEnv:
         position = [x_b, y_b, x_f, y_f]
         """
         self.noise_key = env_key
-        self.actions_on_max = jnp.array([[-1, 0], [1, 0], [0, -1], [0, 1], [0, 0]])
+        self.actions_on_max = jnp.array([[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]])
         self.idx_actions_with_d_1 = jnp.nonzero(self.actions_on_max[:, 0] == 1)[0].flatten()
         self.idx_actions_with_d_m1 = jnp.nonzero(self.actions_on_max[:, 0] == -1)[0].flatten()
         self.idx_actions_with_T_1 = jnp.nonzero(self.actions_on_max[:, 1] == 1)[0].flatten()
@@ -371,7 +371,7 @@ class BicycleEnv:
             (omegas.shape[0] * omega_dots.shape[0] * sample_thetas_theta_dots.shape[0], self.actions_on_max.shape[0])
         )
 
-        q_diff_T = (q_values[:, self.idx_actions_with_T_1] - q_values[:, self.idx_actions_with_T_m1]).mean(axis=1)
+        q_diff_T = (q_values[:, self.idx_actions_with_d_1] - q_values[:, self.idx_actions_with_d_m1]).mean(axis=1)
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
         return q_diff_T.reshape((omegas.shape[0], omega_dots.shape[0], sample_thetas_theta_dots.shape[0])).mean(axis=2)
