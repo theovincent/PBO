@@ -1,21 +1,22 @@
 {
     "env_seed": 0,
     "layers_dimension": [
-        20
+        15,
+        5
     ],
     "n_omegas": 17,
     "n_thetas": 17,
     "---- Shared parameters ---": "-",
-    "horizon": 1000,
+    "horizon": 50000,
     "gamma": 0.98,
-    "n_samples": 10000,
+    "n_samples": 20000,
     "batch_size_samples": 200,
-    "max_bellman_iterations": 15,
+    "max_bellman_iterations": 50,
     "---- FQI ---": "-",
-    "fitting_steps_fqi": 1200,
+    "fitting_steps_fqi": 600,
     "patience": 7,
     "starting_lr_fqi": 0.001,
-    "ending_lr_fqi": 1e-05,
+    "ending_lr_fqi": 5e-06,
     "---- PBOs ---": "-",
     "n_weights": 1,
     "batch_size_weights": 1,
