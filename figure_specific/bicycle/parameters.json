@@ -1,8 +1,7 @@
 {
     "env_seed": 0,
     "layers_dimension": [
-        5,
-        3
+        10
     ],
     "n_omegas": 17,
     "n_thetas": 17,
@@ -10,19 +9,19 @@
     "horizon": 50000,
     "gamma": 0.98,
     "n_samples": 7500,
-    "batch_size_samples": 200,
-    "max_bellman_iterations": 15,
+    "batch_size_samples": 500,
+    "max_bellman_iterations": 10,
     "---- FQI ---": "-",
-    "fitting_steps_fqi": 600,
+    "fitting_steps_fqi": 1200,
     "patience": 7,
     "starting_lr_fqi": 0.001,
     "ending_lr_fqi": 5e-06,
     "---- PBOs ---": "-",
     "n_weights": 1,
     "batch_size_weights": 1,
-    "training_steps": 3000,
+    "training_steps": 4000,
     "fitting_steps_pbo": 1,
-    "starting_lr_pbo": 0.0001,
-    "ending_lr_pbo": 5e-06,
+    "starting_lr_pbo": 5e-04,
+    "ending_lr_pbo": 1e-04,
     "initial_weight_std": 0.0005
 }

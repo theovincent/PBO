@@ -147,6 +147,7 @@ class BicycleEnv:
 
     @partial(jax.jit, static_argnames=("self", "q"))
     def jitted_best_action(self, q: BaseQ, q_params: hk.Params, state: jnp.array) -> jnp.ndarray:
+        # state = state.at[4].set(0)
         state_repeat = jnp.repeat(state.reshape((1, 5)), self.actions_on_max.shape[0], axis=0)
         return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]
 
@@ -172,9 +173,9 @@ class BicycleEnv:
         return jnp.array([step, sum_psi / step])
 
     def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int) -> jnp.ndarray:
-        metrics = np.ones((9, 2)) * np.nan
+        metrics = np.ones((4, 2)) * np.nan
 
-        for idx_angle, angle in enumerate(np.linspace(-jnp.pi, jnp.pi, 9)):
+        for idx_angle, angle in enumerate(np.linspace(-jnp.pi, jnp.pi, 4)):
             metrics[idx_angle] = self.simulate(q, q_params, horizon, angle)
 
         return metrics.mean(axis=0)
