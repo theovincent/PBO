@@ -64,7 +64,7 @@ class BicycleEnv:
         if state is None:
             self.state = jnp.zeros((5))
             self.reset_key, key = jax.random.split(self.reset_key)
-            self.state = self.state.at[4].set(jax.random.uniform(key, minval=-jnp.pi / 4, maxval=3 * jnp.pi / 4))
+            self.state = self.state.at[4].set(jax.random.uniform(key, minval=-jnp.pi, maxval=jnp.pi))
         else:
             self.state = state
 
@@ -134,7 +134,7 @@ class BicycleEnv:
         next_position = jnp.array([x_b_t1, y_b_t1, x_f_t1, y_f_t1])
 
         # Reward and absorbing
-        reward = -1 * (jnp.abs(omega_t1) > self.omega_bound) - 500 * jnp.abs(omega_t) - 5e-2 * jnp.square(psi_t)
+        reward = -1 * (jnp.abs(omega_t1) > self.omega_bound) - 500 * jnp.abs(omega_t)
         absorbing = (jnp.abs(omega_t1) > self.omega_bound) * jnp.array([1])
 
         return next_state, next_position, jnp.array([reward]), absorbing.astype(bool)
@@ -150,8 +150,10 @@ class BicycleEnv:
         state_repeat = jnp.repeat(state.reshape((1, 5)), self.actions_on_max.shape[0], axis=0)
         return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]
 
-    def simulate(self, q: BaseQ, q_params: hk.Params, horizon: int, start_render: int = float("inf")) -> jnp.ndarray:
-        self.reset(jnp.array([0, 0, 0, 0, jnp.pi / 2]))
+    def simulate(
+        self, q: BaseQ, q_params: hk.Params, horizon: int, angle: float, start_render: int = float("inf")
+    ) -> jnp.ndarray:
+        self.reset(jnp.array([0, 0, 0, 0, angle]))
         absorbing = False
         step = 0
         sum_psi = self.jitted_angle(self.state[4])
@@ -168,6 +170,14 @@ class BicycleEnv:
         self.close()
 
         return jnp.array([step, sum_psi / step])
+
+    def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int) -> jnp.ndarray:
+        metrics = np.ones((9, 2)) * np.nan
+
+        for idx_angle, angle in enumerate(np.linspace(-jnp.pi, jnp.pi, 9)):
+            metrics[idx_angle] = self.simulate(q, q_params, horizon, angle)
+
+        return metrics.mean(axis=0)
 
     def collect_positions(self, q: BaseQ, q_params: hk.Params, horizon: int) -> jnp.ndarray:
         self.reset(jnp.array([0, 0, 0, 0, jnp.pi / 2]))
