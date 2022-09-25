@@ -10,18 +10,19 @@ class TestBicycleEnv(unittest.TestCase):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.env_key = jax.random.PRNGKey(np.random.randint(0, 100))
+        self.gamma = np.random.random()
         self.actions = [jnp.array([d, T]) for d in [-1, 0, 1] for T in [-1, 0, 1]]
 
     def test_reset(self) -> None:
-        env = BicycleEnv(self.env_key)
+        env = BicycleEnv(self.env_key, self.gamma)
 
         state = env.reset()
-        for idx in range(5):
+        for idx in range(4):
             self.assertAlmostEqual(state[idx], env.state[idx])
             self.assertAlmostEqual(state[idx], 0)
 
     def test_step(self) -> None:
-        env = BicycleEnv(self.env_key)
+        env = BicycleEnv(self.env_key, self.gamma)
         env.reset()
 
         for _ in range(20):
@@ -34,7 +35,6 @@ class TestBicycleEnv(unittest.TestCase):
 
             if not absorbing[0]:
                 self.assertTrue(abs(next_state[0]) <= env.omega_bound)
-                self.assertEqual(reward[0], 0)
             else:
                 self.assertTrue(abs(next_state[0]) > env.omega_bound)
                 self.assertEqual(reward[0], -1)

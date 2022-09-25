@@ -17,12 +17,13 @@ class BicycleEnv:
     Jette Randlov and Preben Alstrom. 1998.
     """
 
-    def __init__(self, env_key: int) -> None:
+    def __init__(self, env_key: int, gamma: float) -> None:
         """
-        state = [omega, omega_dot, theta, theta_dot, psi]
-        position = [x_b, y_b, x_f, y_f]
+        state = [omega, omega_dot, theta, theta_dot]
+        position = [x_b, y_b, x_f, y_f, psi]
         """
         self.noise_key, self.reset_key = jax.random.split(env_key)
+        self.gamma = gamma
         self.actions_on_max = jnp.array([[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]])
         self.idx_actions_with_d_1 = jnp.nonzero(self.actions_on_max[:, 0] == 1)[0].flatten()
         self.idx_actions_with_d_m1 = jnp.nonzero(self.actions_on_max[:, 0] == -1)[0].flatten()
@@ -62,13 +63,12 @@ class BicycleEnv:
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
-            self.state = jnp.zeros((5))
+            self.state = jnp.zeros((4))
             self.reset_key, key = jax.random.split(self.reset_key)
-            self.state = self.state.at[4].set(jax.random.uniform(key, minval=-jnp.pi, maxval=jnp.pi))
         else:
             self.state = state
 
-        self.position = jnp.zeros((4))
+        self.position = jnp.zeros((5))
         self.position = self.position.at[2].set(self._l * jnp.cos(self.state[4]))
         self.position = self.position.at[3].set(self._l * jnp.sin(self.state[4]))
         self.positions = [self.position]
@@ -81,10 +81,6 @@ class BicycleEnv:
         return jnp.angle(jnp.exp(angle * 1j))
 
     @partial(jax.jit, static_argnames="self")
-    def jitted_angle_from_state(self, state):
-        return jnp.abs(self.jitted_angle(state[4]))
-
-    @partial(jax.jit, static_argnames="self")
     def jitted_step(self, action, noise_key, state, position):
         # action in [-1, 0, 1] x [-1, 0, 1]
         d = 0.02 * action[0]  # Displacement of center of mass (in meters)
@@ -93,7 +89,8 @@ class BicycleEnv:
         # Add noise to action
         d += jax.random.uniform(noise_key, minval=-1, maxval=1) * self.noise
 
-        omega_t, omega_dot_t, theta_t, theta_dot_t, psi_t = state
+        omega_t, omega_dot_t, theta_t, theta_dot_t = state
+        x_b_t, y_b_t, _, _, psi_t = position
 
         phi_t = omega_t + jnp.arctan(d / self._h)
 
@@ -123,15 +120,13 @@ class BicycleEnv:
         psi_t1 = self.jitted_angle(psi_t1)
 
         # Update positions
-        x_b_t, y_b_t, _, _ = position
-
         x_b_t1 = x_b_t + self._v * self._dt * jnp.cos(psi_t)
         y_b_t1 = y_b_t + self._v * self._dt * jnp.sin(psi_t)
         x_f_t1 = x_b_t1 + self._l * jnp.cos(psi_t)
         y_f_t1 = y_b_t1 + self._l * jnp.sin(psi_t)
 
-        next_state = jnp.array([omega_t1, omega_dot_t1, theta_t1, theta_dot_t1, psi_t1])
-        next_position = jnp.array([x_b_t1, y_b_t1, x_f_t1, y_f_t1])
+        next_state = jnp.array([omega_t1, omega_dot_t1, theta_t1, theta_dot_t1])
+        next_position = jnp.array([x_b_t1, y_b_t1, x_f_t1, y_f_t1, psi_t1])
 
         # Reward and absorbing
         reward = -1 * (jnp.abs(omega_t1) > self.omega_bound) - 500 * jnp.abs(omega_t)
@@ -147,41 +142,40 @@ class BicycleEnv:
 
     @partial(jax.jit, static_argnames=("self", "q"))
     def jitted_best_action(self, q: BaseQ, q_params: hk.Params, state: jnp.array) -> jnp.ndarray:
-        # state = state.at[4].set(0)
-        state_repeat = jnp.repeat(state.reshape((1, 5)), self.actions_on_max.shape[0], axis=0)
+        state_repeat = jnp.repeat(state.reshape((1, 4)), self.actions_on_max.shape[0], axis=0)
         return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]
 
-    def simulate(
-        self, q: BaseQ, q_params: hk.Params, horizon: int, angle: float, start_render: int = float("inf")
-    ) -> jnp.ndarray:
-        self.reset(jnp.array([0, 0, 0, 0, angle]))
+    def simulate(self, q: BaseQ, q_params: hk.Params, horizon: int, start_render: int = float("inf")) -> jnp.ndarray:
+        self.reset()
         absorbing = False
         step = 0
-        sum_psi = self.jitted_angle(self.state[4])
+        discounted_sum_reward = 0
+        discount = 1
 
         while not absorbing and step < horizon:
             best_action = self.jitted_best_action(q, q_params, self.state)
-            _, _, absorbing, _ = self.step(best_action)
+            _, reward, absorbing, _ = self.step(best_action)
 
             step += 1
-            sum_psi += self.jitted_angle_from_state(self.state)
+            discounted_sum_reward += discount * reward
+            discount *= self.gamma
             if step > start_render:
                 self.render(best_action)
 
         self.close()
 
-        return jnp.array([step, sum_psi / step])
+        return jnp.array([step, discounted_sum_reward[0]])
 
-    def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int) -> jnp.ndarray:
-        metrics = np.ones((4, 2)) * np.nan
+    def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int, n_simulations: int) -> jnp.ndarray:
+        metrics = np.ones((n_simulations, 2)) * np.nan
 
-        for idx_angle, angle in enumerate(np.linspace(-jnp.pi, jnp.pi, 4)):
-            metrics[idx_angle] = self.simulate(q, q_params, horizon, angle)
+        for idx_simulation in range(n_simulations):
+            metrics[idx_simulation] = self.simulate(q, q_params, horizon)
 
-        return metrics.mean(axis=0)
+        return metrics
 
     def collect_positions(self, q: BaseQ, q_params: hk.Params, horizon: int) -> jnp.ndarray:
-        self.reset(jnp.array([0, 0, 0, 0, jnp.pi / 2]))
+        self.reset()
         absorbing = False
         step = 0
 
@@ -202,19 +196,16 @@ class BicycleEnv:
         omegas: jnp.ndarray,
         omega_dots: jnp.ndarray,
         sample_thetas_theta_dots: jnp.ndarray,
-        sample_psis: jnp.ndarray,
     ) -> jnp.ndarray:
         n_omegas = omegas.shape[0]
         n_omega_dots = omega_dots.shape[0]
         n_sample_thetas = sample_thetas_theta_dots.shape[0]
-        n_sample_psis = sample_psis.shape[0]
-        n_boxes = n_omegas * n_omega_dots * n_sample_thetas * n_sample_psis * self.actions_on_max.shape[0]
+        n_boxes = n_omegas * n_omega_dots * n_sample_thetas * self.actions_on_max.shape[0]
 
-        idx_omegas_mesh, idx_omega_dots_mesh, idx_thetas_theta_dots_mesh, idx_psis, idx_actions_mesh = jnp.meshgrid(
+        idx_omegas_mesh, idx_omega_dots_mesh, idx_thetas_theta_dots_mesh, idx_actions_mesh = jnp.meshgrid(
             jnp.arange(n_omegas),
             jnp.arange(n_omega_dots),
             jnp.arange(n_sample_thetas),
-            jnp.arange(n_sample_psis),
             jnp.arange(self.actions_on_max.shape[0]),
             indexing="ij",
         )
@@ -225,20 +216,19 @@ class BicycleEnv:
                 omega_dots[idx_omega_dots_mesh.flatten()].reshape((n_boxes, 1)),
                 sample_thetas_theta_dots[idx_thetas_theta_dots_mesh.flatten(), 0].reshape((n_boxes, 1)),
                 sample_thetas_theta_dots[idx_thetas_theta_dots_mesh.flatten(), 1].reshape((n_boxes, 1)),
-                sample_psis[idx_psis.flatten()].reshape((n_boxes, 1)),
             )
         )
         actions = self.actions_on_max[idx_actions_mesh.flatten()]
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
         q_values = q(q_params, states, actions).reshape(
-            (n_omegas * n_omega_dots * n_sample_thetas * n_sample_psis, self.actions_on_max.shape[0])
+            (n_omegas * n_omega_dots * n_sample_thetas, self.actions_on_max.shape[0])
         )
 
         q_diff_T = (q_values[:, self.idx_actions_with_d_1] - q_values[:, self.idx_actions_with_d_m1]).mean(axis=1)
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return q_diff_T.reshape((n_omegas, n_omega_dots, n_sample_thetas * n_sample_psis)).mean(axis=2)
+        return q_diff_T.reshape((n_omegas, n_omega_dots, n_sample_thetas)).mean(axis=2)
 
     @partial(jax.jit, static_argnames=("self", "q"))
     def q_values_on_thetas(
@@ -248,19 +238,16 @@ class BicycleEnv:
         samples_omegas_omegas_dots: jnp.ndarray,
         thetas: jnp.ndarray,
         theta_dots: jnp.ndarray,
-        sample_psis: jnp.ndarray,
     ) -> jnp.ndarray:
         n_sample_omegas = samples_omegas_omegas_dots.shape[0]
         n_thetas = thetas.shape[0]
         n_theta_dots = theta_dots.shape[0]
-        n_sample_psis = sample_psis.shape[0]
-        n_boxes = n_sample_omegas * n_thetas * n_theta_dots * n_sample_psis * self.actions_on_max.shape[0]
+        n_boxes = n_sample_omegas * n_thetas * n_theta_dots * self.actions_on_max.shape[0]
 
-        (idx_omegas_omega_dots_mesh, idx_thetas_mesh, idx_theta_dots_mesh, idx_psis, idx_actions_mesh,) = jnp.meshgrid(
+        (idx_omegas_omega_dots_mesh, idx_thetas_mesh, idx_theta_dots_mesh, idx_actions_mesh,) = jnp.meshgrid(
             jnp.arange(n_sample_omegas),
             jnp.arange(n_thetas),
             jnp.arange(n_theta_dots),
-            jnp.arange(n_sample_psis),
             jnp.arange(self.actions_on_max.shape[0]),
             indexing="ij",
         )
@@ -271,27 +258,26 @@ class BicycleEnv:
                 samples_omegas_omegas_dots[idx_omegas_omega_dots_mesh.flatten(), 1].reshape((n_boxes, 1)),
                 thetas[idx_thetas_mesh.flatten()].reshape((n_boxes, 1)),
                 theta_dots[idx_theta_dots_mesh.flatten()].reshape((n_boxes, 1)),
-                sample_psis[idx_psis.flatten()].reshape((n_boxes, 1)),
             )
         )
         actions = self.actions_on_max[idx_actions_mesh.flatten()]
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
         q_values = q(q_params, states, actions).reshape(
-            (n_sample_omegas * n_thetas * n_theta_dots * n_sample_psis, self.actions_on_max.shape[0])
+            (n_sample_omegas * n_thetas * n_theta_dots, self.actions_on_max.shape[0])
         )
 
         q_diff_T = (q_values[:, self.idx_actions_with_T_1] - q_values[:, self.idx_actions_with_T_m1]).mean(axis=1)
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return q_diff_T.reshape((n_sample_omegas, n_thetas, n_theta_dots, n_sample_psis)).mean(axis=(0, 3))
+        return q_diff_T.reshape((n_sample_omegas, n_thetas, n_theta_dots)).mean(axis=0)
 
     def render(self, action: jnp.ndarray = None) -> None:
         # Store position
-        self.positions.append(self.position)
+        self.positions.append(self.position[:4])
 
         # Update max distance
-        distance = jnp.maximum(jnp.linalg.norm(self.position[:2]), jnp.linalg.norm(self.position[2:]))
+        distance = jnp.maximum(jnp.linalg.norm(self.positions[-1][[0, 1]]), jnp.linalg.norm(self.positions[-1][[2, 3]]))
         if distance > self.max_distance:
             self.max_distance = distance
 
@@ -301,7 +287,8 @@ class BicycleEnv:
         grey = (200, 200, 200)
         red = (255, 0, 0)
 
-        omega, _, theta, _, psi = self.state
+        omega, _, theta, _ = self.state
+        _, _, _, _, psi = self.position
 
         # Split in three screens
         self._viewer.line([1, 0], [1, 1], width=2)
@@ -435,8 +422,8 @@ class BicycleEnv:
         # Add positions
         for position in self.positions:
             self._viewer.line(
-                self._viewer._translate(position[:2] / (2.1 * self.max_distance), center_top),
-                self._viewer._translate(position[2:] / (2.1 * self.max_distance), center_top),
+                self._viewer._translate(position[[0, 1]] / (2.1 * self.max_distance), center_top),
+                self._viewer._translate(position[[2, 3]] / (2.1 * self.max_distance), center_top),
             )
 
         # Display max distance
