@@ -129,7 +129,7 @@ class BicycleEnv:
         next_position = jnp.array([x_b_t1, y_b_t1, x_f_t1, y_f_t1, psi_t1])
 
         # Reward and absorbing
-        reward = -1 * (jnp.abs(omega_t1) > self.omega_bound) - 500 * jnp.abs(omega_t)
+        reward = -1 * (jnp.abs(omega_t1) > self.omega_bound) + 100 * (jnp.abs(omega_t) - jnp.abs(omega_t1))
         absorbing = (jnp.abs(omega_t1) > self.omega_bound) * jnp.array([1])
 
         return next_state, next_position, jnp.array([reward]), absorbing.astype(bool)
@@ -189,7 +189,7 @@ class BicycleEnv:
         return jnp.array(self.positions)[:, :2]
 
     @partial(jax.jit, static_argnames=("self", "q"))
-    def q_values_on_omegas(
+    def best_action_on_omegas(
         self,
         q: BaseQ,
         q_params: hk.Params,
@@ -225,13 +225,13 @@ class BicycleEnv:
             (n_omegas * n_omega_dots * n_sample_thetas, self.actions_on_max.shape[0])
         )
 
-        q_diff_T = (q_values[:, self.idx_actions_with_d_1] - q_values[:, self.idx_actions_with_d_m1]).mean(axis=1)
+        best_actions = self.actions_on_max[q_values.argmax(axis=1), 0]
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return q_diff_T.reshape((n_omegas, n_omega_dots, n_sample_thetas)).mean(axis=2)
+        return best_actions.reshape((n_omegas, n_omega_dots, n_sample_thetas)).mean(axis=2)
 
     @partial(jax.jit, static_argnames=("self", "q"))
-    def q_values_on_thetas(
+    def best_action_on_thetas(
         self,
         q: BaseQ,
         q_params: hk.Params,
@@ -267,17 +267,20 @@ class BicycleEnv:
             (n_sample_omegas * n_thetas * n_theta_dots, self.actions_on_max.shape[0])
         )
 
-        q_diff_T = (q_values[:, self.idx_actions_with_T_1] - q_values[:, self.idx_actions_with_T_m1]).mean(axis=1)
+        best_actions = self.actions_on_max[q_values.argmax(axis=1), 1]
 
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return q_diff_T.reshape((n_sample_omegas, n_thetas, n_theta_dots)).mean(axis=0)
+        return best_actions.reshape((n_sample_omegas, n_thetas, n_theta_dots)).mean(axis=0)
 
     def render(self, action: jnp.ndarray = None) -> None:
         # Store position
         self.positions.append(self.position[:4])
 
         # Update max distance
-        distance = jnp.maximum(jnp.linalg.norm(self.positions[-1][[0, 1]]), jnp.linalg.norm(self.positions[-1][[2, 3]]))
+        distance = jnp.maximum(
+            jnp.linalg.norm(self.positions[-1][jnp.array([0, 1])]),
+            jnp.linalg.norm(self.positions[-1][jnp.array([2, 3])]),
+        )
         if distance > self.max_distance:
             self.max_distance = distance
 
@@ -422,8 +425,8 @@ class BicycleEnv:
         # Add positions
         for position in self.positions:
             self._viewer.line(
-                self._viewer._translate(position[[0, 1]] / (2.1 * self.max_distance), center_top),
-                self._viewer._translate(position[[2, 3]] / (2.1 * self.max_distance), center_top),
+                self._viewer._translate(position[jnp.array([0, 1])] / (2.1 * self.max_distance), center_top),
+                self._viewer._translate(position[jnp.array([2, 3])] / (2.1 * self.max_distance), center_top),
             )
 
         # Display max distance
