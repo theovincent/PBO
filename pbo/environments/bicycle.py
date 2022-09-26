@@ -24,7 +24,9 @@ class BicycleEnv:
         """
         self.noise_key, self.reset_key = jax.random.split(env_key)
         self.gamma = gamma
-        self.actions_on_max = jnp.array([[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]])
+        self.actions_on_max = jnp.array(
+            [[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1]]
+        )  # , [-1, -1], [-1, 1], [1, -1], [1, 1]])
         self.idx_actions_with_d_1 = jnp.nonzero(self.actions_on_max[:, 0] == 1)[0].flatten()
         self.idx_actions_with_d_m1 = jnp.nonzero(self.actions_on_max[:, 0] == -1)[0].flatten()
         self.idx_actions_with_T_1 = jnp.nonzero(self.actions_on_max[:, 1] == 1)[0].flatten()
@@ -64,7 +66,6 @@ class BicycleEnv:
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
             self.state = jnp.zeros((4))
-            self.reset_key, key = jax.random.split(self.reset_key)
         else:
             self.state = state
 
@@ -129,7 +130,7 @@ class BicycleEnv:
         next_position = jnp.array([x_b_t1, y_b_t1, x_f_t1, y_f_t1, psi_t1])
 
         # Reward and absorbing
-        reward = -1 * (jnp.abs(omega_t1) > self.omega_bound) + 100 * (jnp.abs(omega_t) - jnp.abs(omega_t1))
+        reward = -1 * (jnp.abs(omega_t1) > self.omega_bound) + 100000 * (jnp.abs(omega_t) - jnp.abs(omega_t1))
         absorbing = (jnp.abs(omega_t1) > self.omega_bound) * jnp.array([1])
 
         return next_state, next_position, jnp.array([reward]), absorbing.astype(bool)
