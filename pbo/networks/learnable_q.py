@@ -1,61 +1,8 @@
-from functools import partial
-
 import haiku as hk
-import optax
 import jax
 import jax.numpy as jnp
 
 from pbo.networks.base_q import BaseQ
-
-
-class LearnableQ(BaseQ):
-    def __init__(
-        self,
-        state_dim: int,
-        action_dim: int,
-        continuous_actions: bool,
-        n_actions_on_max: int,
-        action_range_on_max: float,
-        gamma: float,
-        network: hk.Module,
-        network_key: int,
-        random_weights_range: float,
-        random_weights_key: int,
-        learning_rate: dict,
-    ) -> None:
-        super().__init__(
-            state_dim,
-            action_dim,
-            continuous_actions,
-            n_actions_on_max,
-            action_range_on_max,
-            gamma,
-            network,
-            network_key,
-            random_weights_range,
-            random_weights_key,
-        )
-
-        if learning_rate is not None:
-            self.learning_rate_schedule = optax.linear_schedule(
-                learning_rate["first"], learning_rate["last"], learning_rate["duration"]
-            )
-            self.optimizer = optax.adam(self.learning_rate_schedule)
-            self.optimizer_state = self.optimizer.init(self.params)
-
-    @partial(jax.jit, static_argnames="self")
-    def learn_on_batch(
-        self, params: hk.Params, params_target: hk.Params, optimizer_state: tuple, batch_samples: jnp.ndarray
-    ) -> tuple:
-        loss, grad_loss = self.loss_and_grad(params, params_target, batch_samples)
-        updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
-        params = optax.apply_updates(params, updates)
-
-        return params, optimizer_state, loss
-
-    def reset_optimizer(self) -> None:
-        self.optimizer = optax.adam(self.learning_rate_schedule)
-        self.optimizer_state = self.optimizer.init(self.params)
 
 
 class FullyConnectedQNet(hk.Module):
@@ -72,12 +19,10 @@ class FullyConnectedQNet(hk.Module):
         state: jnp.ndarray,
         action: jnp.ndarray,
     ) -> jnp.ndarray:
-        x = jnp.hstack((state, 2 * action - 1))
+        x = jnp.hstack((state, action))
 
         for idx, layer_dimension in enumerate(self.layers_dimension, start=1):
-            x = hk.Linear(layer_dimension, w_init=hk.initializers.TruncatedNormal(stddev=0.005), name=f"linear_{idx}")(
-                x
-            )
+            x = hk.Linear(layer_dimension, name=f"linear_{idx}")(x)
             x = jax.nn.relu(x)
 
         x = hk.Linear(1, w_init=self.initializer, name="linear_last")(x)
@@ -85,37 +30,29 @@ class FullyConnectedQNet(hk.Module):
         return x
 
 
-class FullyConnectedQ(LearnableQ):
+class FullyConnectedQ(BaseQ):
     def __init__(
         self,
         state_dim: int,
         action_dim: int,
-        continuous_actions: bool,
-        n_actions_on_max: int,
-        action_range_on_max: float,
+        actions_on_max: jnp.ndarray,
         gamma: float,
         network_key: int,
-        random_weights_range: float,
-        random_weights_key: int,
-        learning_rate: dict,
         layers_dimension: list,
         zero_initializer: bool,
+        learning_rate: dict = None,
     ) -> None:
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
             return FullyConnectedQNet(layers_dimension, zero_initializer)(state, action)
 
         super().__init__(
-            state_dim,
-            action_dim,
-            continuous_actions,
-            n_actions_on_max,
-            action_range_on_max,
-            gamma,
-            network,
-            network_key,
-            random_weights_range,
-            random_weights_key,
-            learning_rate,
+            state_dim=state_dim,
+            action_dim=action_dim,
+            actions_on_max=actions_on_max,
+            gamma=gamma,
+            network=network,
+            network_key=network_key,
+            learning_rate=learning_rate,
         )
 
 
@@ -140,32 +77,28 @@ class LQRQNet(hk.Module):
         return state**2 * k + 2 * state * action * i + action**2 * m
 
 
-class LQRQ(LearnableQ):
+class LQRQ(BaseQ):
     def __init__(
         self,
         n_actions_on_max: int,
-        action_range_on_max: float,
+        max_action_on_max: float,
         network_key: int,
-        random_weights_range: float,
-        random_weights_key: int,
-        learning_rate: dict,
         zero_initializer: bool,
+        learning_rate: dict = None,
     ) -> None:
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
             return LQRQNet(zero_initializer)(state, action)
 
         super().__init__(
-            1,
-            1,
-            True,
-            n_actions_on_max,
-            action_range_on_max,
-            1,
-            network,
-            network_key,
-            random_weights_range,
-            random_weights_key,
-            learning_rate,
+            state_dim=1,
+            action_dim=1,
+            actions_on_max=jnp.linspace(-max_action_on_max, max_action_on_max, n_actions_on_max).reshape(
+                (n_actions_on_max, 1)
+            ),
+            gamma=1,
+            network=network,
+            network_key=network_key,
+            learning_rate=learning_rate,
         )
 
 
@@ -180,7 +113,7 @@ class TableQNet(hk.Module):
         self.n_states = n_states
         self.n_actions = n_actions
         if zero_initializer:
-            self.initializer = jnp.zeros
+            self.initializer = hk.initializers.Constant(0)
         else:
             self.initializer = hk.initializers.TruncatedNormal()
 
@@ -194,31 +127,25 @@ class TableQNet(hk.Module):
         return jax.vmap(lambda state_, action_: table[state_, action_])(state.astype(int), action.astype(int))
 
 
-class TableQ(LearnableQ):
+class TableQ(BaseQ):
     def __init__(
         self,
         n_states: int,
         n_actions: int,
         gamma: float,
         network_key: int,
-        random_weights_range: float,
-        random_weights_key: int,
-        learning_rate: dict,
         zero_initializer: bool,
+        learning_rate: dict = None,
     ) -> None:
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
             return TableQNet(n_states, n_actions, zero_initializer)(state, action)
 
         super().__init__(
-            1,
-            1,
-            False,
-            n_actions,
-            None,
-            gamma,
-            network,
-            network_key,
-            random_weights_range,
-            random_weights_key,
-            learning_rate,
+            state_dim=1,
+            action_dim=1,
+            actions_on_max=jnp.arange(n_actions).reshape((n_actions, 1)),
+            gamma=gamma,
+            network=network,
+            network_key=network_key,
+            learning_rate=learning_rate,
         )

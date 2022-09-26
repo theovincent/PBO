@@ -1,4 +1,4 @@
-# This file is a copy paste from https://github.com/MushroomRL/mushroom-rl
+# This file is inspired by https://github.com/MushroomRL/mushroom-rl
 
 import os
 
@@ -47,6 +47,8 @@ class Viewer:
         """
         if not self._initialized:
             pygame.init()
+            pygame.font.init()
+            self.font = pygame.font.SysFont("Comic Sans MS", 30)
             self._initialized = True
 
         if self._screen is None:
@@ -196,20 +198,18 @@ class Viewer:
             width (int, 1): the width of the torque arrow.
 
         """
-        angle_end = 3 * np.pi / 2 if torque > 0 else 0
-        angle_start = 0 if torque > 0 else np.pi / 2
         radius = abs(torque) / max_torque * max_radius
 
         r = int(radius * self._ratio[0])
         if r != 0:
             c = self._transform(center)
             rect = pygame.Rect(c[0] - r, c[1] - r, 2 * r, 2 * r)
-            pygame.draw.arc(self.screen, color, rect, angle_start, angle_end, width)
+            pygame.draw.arc(self.screen, color, rect, -np.sign(torque) * np.pi / 2, np.sign(torque) * np.pi / 2, width)
 
             arrow_center = center
-            arrow_center[1] -= radius * np.sign(torque)
-            arrow_scale = radius / 4
-            self.arrow_head(arrow_center, arrow_scale, 0, color)
+            arrow_center[1] += radius
+            arrow_scale = radius / 2
+            self.arrow_head(arrow_center, arrow_scale, np.pi * (np.sign(torque) + 1) / 2, color)
         else:
             self.screen
 
@@ -247,6 +247,19 @@ class Viewer:
         points = [self._transform([a, b]) for a, b in zip(x, y)]
         pygame.draw.lines(self.screen, color, False, points, width)
 
+    def text(self, p, text, color=(255, 255, 255)):
+        """
+        Draw some text in the image.
+
+        Args:
+            p (np.ndarray): the point where the text is displayed;
+            text (str): text to display;
+            color (tuple, (255,255,255)): the color of the line.
+
+        """
+        surf = self.font.render(text, False, color)
+        self.screen.blit(surf, self._transform(p))
+
     def display(self, s):
         """
         Display current frame and initialize the next frame to the background
@@ -275,3 +288,7 @@ class Viewer:
     @staticmethod
     def _rotate(p, theta):
         return np.array([np.cos(theta) * p[0] - np.sin(theta) * p[1], np.sin(theta) * p[0] + np.cos(theta) * p[1]])
+
+    @staticmethod
+    def _translate(p, translation):
+        return np.array([p[0] + translation[0], p[1] + translation[1]])

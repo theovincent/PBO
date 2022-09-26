@@ -1,1 +1,38 @@
-{"env_seed": 0, "oriented_state": [0.5, 0.38], "layers_dimension": [50], "n_states_x": 17, "n_states_v": 17, "---- Shared parameters ---": "-", "horizon": 100, "gamma": 0.95, "n_random_samples": 3500, "n_oriented_samples": 500, "batch_size_samples": 4000, "max_bellman_iterations": 6, "---- FQI ---": "-", "fitting_steps_fqi": 1200, "patience": 7, "starting_lr_fqi": 0.001, "ending_lr_fqi": 1e-05, "---- PBOs ---": "-", "n_weights": 1, "batch_size_weights": 1, "training_steps": 3000, "fitting_steps_pbo": 1, "starting_lr_pbo": 0.0001, "ending_lr_pbo": 5e-06, "initial_weight_std": 0.0005, "initial_bias_std": 0.005}
+{
+    "env_seed": 0,
+    "oriented_state": [
+        [
+            0.5,
+            0.8
+        ],
+        [
+            0.1,
+            1.3
+        ]
+    ],
+    "layers_dimension": [
+        30
+    ],
+    "n_states_x": 17,
+    "n_states_v": 17,
+    "---- Shared parameters ---": "-",
+    "horizon": 100,
+    "gamma": 0.95,
+    "n_random_samples": 4500,
+    "n_oriented_samples": 1000,
+    "batch_size_samples": 500,
+    "max_bellman_iterations": 15,
+    "---- FQI ---": "-",
+    "fitting_steps_fqi": 1200,
+    "patience": 7,
+    "starting_lr_fqi": 0.001,
+    "ending_lr_fqi": 1e-05,
+    "---- PBOs ---": "-",
+    "n_weights": 1,
+    "batch_size_weights": 1,
+    "training_steps": 4000,
+    "fitting_steps_pbo": 1,
+    "starting_lr_pbo": 0.001,
+    "ending_lr_pbo": 5e-06,
+    "initial_weight_std": 0.0005
+}

@@ -3,6 +3,8 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 
+from pbo.networks.base_q import BaseQ
+
 
 class ChainWalkEnv:
     def __init__(
@@ -11,15 +13,12 @@ class ChainWalkEnv:
         n_states: int,
         sucess_probability: float,
         gamma: float,
-        initial_state: jnp.ndarray = None,
     ) -> None:
         self.n_states = n_states
         self.n_actions = 2
         self.sucess_probability = sucess_probability
         self.gamma = gamma
         self.next_state_key, self.reset_key = jax.random.split(env_key)
-
-        self.initial_state = initial_state
 
         self.rewards = jnp.zeros(self.n_states)
         self.rewards = self.rewards.at[0].set(1)
@@ -47,10 +46,7 @@ class ChainWalkEnv:
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
         if state is None:
-            if self.initial_state is not None:
-                self.state = self.initial_state
-            else:
-                self.state = jax.random.randint(self.reset_key, [1], minval=0, maxval=self.n_states)
+            self.state = jax.random.randint(self.reset_key, [1], minval=0, maxval=self.n_states)
         else:
             self.state = state
 
@@ -100,3 +96,12 @@ class ChainWalkEnv:
     def value_function(self, policy: jnp.ndarray) -> jnp.ndarray:
         policy_transition_probability = self.policy_transition_probability(policy)
         return jnp.linalg.solve(jnp.eye(self.n_states) - self.gamma * policy_transition_probability, self.rewards)
+
+    @partial(jax.jit, static_argnames=("self", "q"))
+    def discretize(self, q: BaseQ, weights: jnp.ndarray, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
+        states_mesh, actions_mesh = jnp.meshgrid(states, actions, indexing="ij")
+        states_ = states_mesh.reshape((-1, 1))
+        actions_ = actions_mesh.reshape((-1, 1))
+
+        # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        return q(q.to_params(weights), states_, actions_).reshape((len(states), len(actions)))

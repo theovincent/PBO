@@ -20,15 +20,12 @@ def run_optimal():
     ## Define the environment
     import numpy as np
 
-    from pbo.environment.car_on_hill import CarOnHillEnv
+    from pbo.environments.car_on_hill import CarOnHillEnv
 
-    max_pos = 1.0
-    max_velocity = 3.0
+    env = CarOnHillEnv(gamma)
 
-    states_x = jnp.linspace(-max_pos, max_pos, n_states_x)
-    states_v = jnp.linspace(-max_velocity, max_velocity, n_states_v)
-
-    env = CarOnHillEnv(max_pos, max_velocity, gamma)
+    states_x = jnp.linspace(-env.max_position, env.max_position, n_states_x)
+    states_v = jnp.linspace(-env.max_velocity, env.max_velocity, n_states_v)
 
     ## Compute the optimal value function
     from tqdm import tqdm
@@ -46,9 +43,9 @@ def run_optimal():
 
     for idx_state_x, state_x in enumerate(tqdm(states_x)):
         for idx_state_v, state_v in enumerate(tqdm(states_v, leave=False)):
-            for idx_action, action in enumerate(range(2)):
+            for idx_action in range(2):
                 env.reset(np.array([state_x, state_v]))
-                next_state, reward, absorbing, _ = env.step(np.array([action]))
+                next_state, reward, absorbing, _ = env.step(env.actions_on_max[idx_action])
 
                 if absorbing:
                     optimal_q[idx_state_x, idx_state_v, idx_action] = reward[0]

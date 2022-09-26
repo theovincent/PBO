@@ -30,14 +30,14 @@ Figure 4a with one seed, run
 ./figure_specific/chain_walk/run_seeds.sh -n_seeds 1 -n_bellman_iteration 5
 jupyter nbconvert --to notebook --inplace --execute figure_specific/chainwalk/plots.ipynb
 ```
-You will find Figure 4a at _figure_specific/chain_walk/figures/distance_to_optimal_V_5.pdf_. The code should taken around ? minutes to run.
+You will find Figure 4a at _figure_specific/chain_walk/figures/distance_to_optimal_V_5.pdf_. The code should take around ? minutes to run.
 
 Figure 4b with one seed, run
 ```Bash
 ./figure_specific/lqr/run_seeds.sh -n_seeds 1 -n_bellman_iteration 2
 jupyter nbconvert --to notebook --inplace --execute figure_specific/lqr/plots.ipynb
 ```
-You will find Figure 4b at _figure_specific/lqr/figures/distance_to_optimal_Pi_2.pdf_. The code should taken around ? minutes to run.
+You will find Figure 4b at _figure_specific/lqr/figures/distance_to_optimal_Pi_2.pdf_. The code should take around ? minutes to run.
 
 Figure 5a and figure 5b with one seed, run
 ```Bash
@@ -45,7 +45,7 @@ Figure 5a and figure 5b with one seed, run
 jupyter nbconvert --to notebook --inplace --execute figure_specific/lqr/samples.ipynb
 jupyter nbconvert --to notebook --inplace --execute figure_specific/lqr/plots.ipynb
 ```
-You will find Figure 5a at _figure_specific/lqr/figures/distance_to_optimal_Q_6.pdf_ and Figure 5b at _figure_specific/lqr/figures/distance_to_optimal_V_6.pdf_. The code should taken around ? minutes to run.
+You will find Figure 5a at _figure_specific/lqr/figures/distance_to_optimal_Q_6.pdf_ and Figure 5b at _figure_specific/lqr/figures/distance_to_optimal_V_6.pdf_. The code should take around ? minutes to run.
 
 If any problem is encountered, make sure your files match the [file organization](#file-organization) and that the parameters _figure_specific/[environment]/plots.ipynb_ are matching the data that has been computed so far.
 
