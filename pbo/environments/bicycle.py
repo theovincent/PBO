@@ -22,7 +22,7 @@ class BicycleEnv:
         state = [omega, omega_dot, theta, theta_dot]
         position = [x_b, y_b, x_f, y_f, psi]
         """
-        self.noise_key, self.reset_key = jax.random.split(env_key)
+        self.noise_key = env_key
         self.gamma = gamma
         self.actions_on_max = jnp.array(
             [[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1]]
@@ -33,7 +33,7 @@ class BicycleEnv:
         self.idx_actions_with_T_m1 = jnp.nonzero(self.actions_on_max[:, 1] == -1)[0].flatten()
         self.goal = jnp.array([1000, 0])
 
-        self.noise = 0.02
+        self.noise = 0.02 / 10
         self.omega_bound = jnp.pi * 12.0 / 180.0
         self.theta_bound = jnp.pi * 80.0 / 180.0
 
@@ -77,11 +77,7 @@ class BicycleEnv:
 
         return self.state
 
-    @partial(jax.jit, static_argnames="self")
-    def jitted_angle(self, angle):
-        return jnp.angle(jnp.exp(angle * 1j))
-
-    @partial(jax.jit, static_argnames="self")
+    @partial(jax.jit, static_argnames=("self"))
     def jitted_step(self, action, noise_key, state, position):
         # action in [-1, 0, 1] x [-1, 0, 1]
         d = 0.02 * action[0]  # Displacement of center of mass (in meters)
@@ -118,7 +114,7 @@ class BicycleEnv:
 
         # Update psi
         psi_t1 = psi_t + self._v * self._dt * jnp.sign(theta_t) * inv_r_b
-        psi_t1 = self.jitted_angle(psi_t1)
+        psi_t1 = jnp.angle(jnp.exp(psi_t1 * 1j))
 
         # Update positions
         x_b_t1 = x_b_t + self._v * self._dt * jnp.cos(psi_t)
@@ -130,7 +126,7 @@ class BicycleEnv:
         next_position = jnp.array([x_b_t1, y_b_t1, x_f_t1, y_f_t1, psi_t1])
 
         # Reward and absorbing
-        reward = -1 * (jnp.abs(omega_t1) > self.omega_bound) + 100000 * (jnp.abs(omega_t) - jnp.abs(omega_t1))
+        reward = -1 * (jnp.abs(omega_t1) > self.omega_bound) + 10000 * (jnp.abs(omega_t) - jnp.abs(omega_t1))
         absorbing = (jnp.abs(omega_t1) > self.omega_bound) * jnp.array([1])
 
         return next_state, next_position, jnp.array([reward]), absorbing.astype(bool)
