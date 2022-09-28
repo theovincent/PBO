@@ -31,7 +31,6 @@ class BicycleEnv:
         self.idx_actions_with_d_m1 = jnp.nonzero(self.actions_on_max[:, 0] == -1)[0].flatten()
         self.idx_actions_with_T_1 = jnp.nonzero(self.actions_on_max[:, 1] == 1)[0].flatten()
         self.idx_actions_with_T_m1 = jnp.nonzero(self.actions_on_max[:, 1] == -1)[0].flatten()
-        self.goal = jnp.array([1000, 0])
 
         self.noise = 0.02 / 10
         self.omega_bound = jnp.pi * 12.0 / 180.0
