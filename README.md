@@ -13,7 +13,7 @@ pip install -e .[cpu]
 In the folder where the code is, build the image and run the container in iterative mode:
 ```bash
 docker build -t pbo_image .
-docker run -it pbo_image bash
+docker run -it --mount type=bind,src=`pwd`/figure_specific,dst=/workspace/figure_specific pbo_image bash
 ```
 
 ## Run the experiments
