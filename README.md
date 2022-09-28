@@ -12,8 +12,8 @@ pip install -e .[cpu]
 ### With Docker
 In the folder where the code is, build the image and run the container in iterative mode:
 ```bash
-docker build -t PBO
-docker run -it PBO bash
+docker build -t pbo_image .
+docker run -it pbo_image bash
 ```
 
 ## Run the experiments
@@ -27,8 +27,8 @@ and then run the jupyter notebook _figure_specific/[environment]/plots.ipynb_.
 ### Replicate figures
 Figure 4a with one seed, run
 ```Bash
-./figure_specific/chain_walk/run_seeds.sh -n_seeds 1 -n_bellman_iteration 5
-jupyter nbconvert --to notebook --inplace --execute figure_specific/chainwalk/plots.ipynb
+./figure_specific/chain_walk/run_seeds.sh --n_seeds 1 --n_bellman_iterations 5
+jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/plots.ipynb
 ```
 You will find Figure 4a at _figure_specific/chain_walk/figures/distance_to_optimal_V_5.pdf_. The code should take around ? minutes to run.
 
