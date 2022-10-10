@@ -5,4 +5,4 @@ WORKDIR /workspace
 
 COPY . .
 
-RUN pip install -e .
+RUN pip install -e .[cpu]

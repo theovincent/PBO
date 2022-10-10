@@ -100,7 +100,7 @@ class TestTableQ(unittest.TestCase):
             max_computed_values = q.max_value(params, states)
 
             self.assertAlmostEqual(
-                jnp.linalg.norm(max_computed_values - max_values.reshape((batch_size, 1))), 0, places=3
+                jnp.linalg.norm(max_computed_values - max_values.reshape((batch_size, 1))), 0, places=2
             )
 
     def test_compute_target(self) -> None:
