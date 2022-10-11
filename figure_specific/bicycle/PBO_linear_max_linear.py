@@ -30,23 +30,21 @@ def run_bicycle():
     }
 
     # Visualisation of errors and performances
-    n_omegas = parameters["n_omegas"]
-    n_thetas = parameters["n_thetas"]
     n_simulations = parameters["n_simulations"]
     horizon = parameters["horizon"]
     max_bellman_iterations_validation = max_bellman_iterations + 10
 
     # Search for an unused seed
     max_used_seed = 0
-    if not os.path.exists("figures/data/PBO_linear_max_linear/"):
-        os.makedirs("figures/data/PBO_linear_max_linear/")
-    for file in os.listdir("figures/data/PBO_linear_max_linear/"):
+    if not os.path.exists("figure_specific/bicycle/figures/data/PBO_linear_max_linear/"):
+        os.makedirs("figure_specific/bicycle/figures/data/PBO_linear_max_linear/")
+    for file in os.listdir("figure_specific/bicycle/figures/data/PBO_linear_max_linear/"):
         if int(file.split("_")[0]) == max_bellman_iterations and int(file.split("_")[2][:-4]) > max_used_seed:
             max_used_seed = int(file.split("_")[2][:-4])
     max_used_seed
 
     # keys
-    seed = max_used_seed + 1
+    seed = 8  # max_used_seed + 1
     env_key = jax.random.PRNGKey(env_seed)
     env_key, sample_key = jax.random.split(env_key)
     key = jax.random.PRNGKey(seed)

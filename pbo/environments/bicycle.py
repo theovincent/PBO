@@ -1,5 +1,6 @@
 # This file was inspired by https://github.com/teopir/ifqi
 
+import multiprocess.pool
 from functools import partial
 import numpy as np
 import haiku as hk
@@ -141,34 +142,43 @@ class BicycleEnv:
         state_repeat = jnp.repeat(state.reshape((1, 4)), self.actions_on_max.shape[0], axis=0)
         return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]
 
-    def simulate(self, q: BaseQ, q_params: hk.Params, horizon: int, start_render: int = float("inf")) -> jnp.ndarray:
-        self.reset()
+    @classmethod
+    def simulate(cls, env_key: int, gamma: float, q: BaseQ, q_params: hk.Params, horizon: int, start_render: int):
+        env = cls(env_key, gamma)
+
+        env.reset()
         absorbing = False
         step = 0
         discounted_sum_reward = 0
         discount = 1
 
         while not absorbing and step < horizon:
-            best_action = self.jitted_best_action(q, q_params, self.state)
-            _, reward, absorbing, _ = self.step(best_action)
+            best_action = env.jitted_best_action(q, q_params, env.state)
+            _, reward, absorbing, _ = env.step(best_action)
 
             step += 1
             discounted_sum_reward += discount * reward
-            discount *= self.gamma
+            discount *= env.gamma
             if step > start_render:
-                self.render(best_action)
+                env.render(best_action)
 
-        self.close()
+        env.close()
 
         return jnp.array([step, discounted_sum_reward[0]])
 
-    def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int, n_simulations: int) -> jnp.ndarray:
-        metrics = np.ones((n_simulations, 2)) * np.nan
+    def evaluate(
+        self, q: BaseQ, q_params: hk.Params, horizon: int, n_simulations: int, start_render: int = float("inf")
+    ) -> jnp.ndarray:
+        noise_keys = []
+        for _ in range(n_simulations):
+            self.noise_key, key = jax.random.split(self.noise_key)
+            noise_keys.append(key)
 
-        for idx_simulation in range(n_simulations):
-            metrics[idx_simulation] = self.simulate(q, q_params, horizon)
-
-        return metrics
+        partial_simulate = partial(
+            self.simulate, gamma=self.gamma, q=q, q_params=q_params, horizon=horizon, start_render=start_render
+        )
+        pool = multiprocess.pool.Pool()
+        return pool.map(partial_simulate, noise_keys)
 
     def collect_positions(self, q: BaseQ, q_params: hk.Params, horizon: int) -> jnp.ndarray:
         self.reset()
