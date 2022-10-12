@@ -162,3 +162,17 @@ The code should take around 1 minutes to run.
  ┣ 📂test  # tests for the environments and the networks
  ┗ 📂pbo  # main code
 ```
+
+## Using a GPU
+In the folder where the code is, create a Python virtual environment, activate it and install the package and its dependencies in editable mode:
+```bash
+python3 -m venv env_gpu
+source env_gpu/bin/activate
+pip install -e .[gpu]
+```
+
+If jax does not recognize the gpu, you may need to run
+```bash
+pip install -U jax[cuda11_cudnn82] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+```
+Taken from https://github.com/google/jax/discussions/10323.
