@@ -178,7 +178,12 @@ class BicycleEnv:
             self.simulate, gamma=self.gamma, q=q, q_params=q_params, horizon=horizon, start_render=start_render
         )
         pool = multiprocess.pool.Pool()
-        return pool.map(partial_simulate, noise_keys)
+        metrics = []
+
+        for first_key in range(0, n_simulations, 3):
+            metrics.extend(pool.map(partial_simulate, noise_keys[first_key : first_key + 3]))
+
+        return jnp.array(metrics)
 
     def collect_positions(self, q: BaseQ, q_params: hk.Params, horizon: int) -> jnp.ndarray:
         self.reset()

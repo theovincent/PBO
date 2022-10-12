@@ -44,7 +44,7 @@ def run_bicycle():
     max_used_seed
 
     # keys
-    seed = 8  # max_used_seed + 1
+    seed = max_used_seed + 1
     env_key = jax.random.PRNGKey(env_seed)
     env_key, sample_key = jax.random.split(env_key)
     key = jax.random.PRNGKey(seed)
@@ -160,7 +160,6 @@ def run_bicycle():
                     )
 
     ## Metrics
-
     metrics = np.ones((max_bellman_iterations_validation + 1, n_simulations, 2)) * np.nan
     q_weights = validation_weights
 
