@@ -1,7 +1,7 @@
 # This file was inspired by https://github.com/teopir/ifqi
 
-import multiprocess.pool
 from functools import partial
+from joblib import Parallel, delayed
 import numpy as np
 import haiku as hk
 import jax
@@ -167,39 +167,22 @@ class BicycleEnv:
         return jnp.array([step, discounted_sum_reward[0]])
 
     def evaluate(
-        self,
-        q: BaseQ,
-        q_params: hk.Params,
-        horizon: int,
-        n_simulations: int,
-        start_render: int = float("inf"),
-        multiprocess: int = 1,
+        self, q: BaseQ, q_params: hk.Params, horizon: int, n_simulations: int, start_render: int = float("inf")
     ) -> jnp.ndarray:
-        noise_keys = []
-        for _ in range(n_simulations):
-            self.noise_key, key = jax.random.split(self.noise_key)
-            noise_keys.append(key)
-
-        if multiprocess > 1:
+        with jax.default_device(jax.devices("cpu")[0]):
             partial_simulate = partial(
                 self.simulate, gamma=self.gamma, q=q, q_params=q_params, horizon=horizon, start_render=start_render
             )
-            pool = multiprocess.pool.Pool()
-            metrics = []
 
-            for first_key in range(0, n_simulations, 3):
-                metrics.extend(pool.map(partial_simulate, noise_keys[first_key : first_key + 3]))
+            noise_keys = []
+            for _ in range(n_simulations):
+                self.noise_key, key = jax.random.split(self.noise_key)
+                noise_keys.append(key)
 
-            return jnp.array(metrics)
-        else:
-            metrics = np.ones((n_simulations, 2)) * np.nan
+            # increase "n_jobs" if you have enough memory
+            metrics = Parallel(n_jobs=1)(delayed(partial_simulate)(noise_key) for noise_key in noise_keys)
 
-            for idx_simulation in range(n_simulations):
-                metrics[idx_simulation] = self.simulate(
-                    noise_keys[idx_simulation], self.gamma, q, q_params, horizon, start_render
-                )
-
-            return metrics
+        return jnp.array(metrics)
 
     def collect_positions(self, q: BaseQ, q_params: hk.Params, horizon: int) -> jnp.ndarray:
         self.reset()

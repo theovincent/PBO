@@ -60,41 +60,42 @@ def run_bicycle():
     from pbo.sample_collection.replay_buffer import ReplayBuffer
 
     ## Sample collection
-    replay_buffer = ReplayBuffer()
+    with jax.default_device(jax.devices("cpu")[0]):
+        replay_buffer = ReplayBuffer()
 
-    env.reset()
-    n_episodes = 0
-    n_steps = 0
-    positions = [[env.position]]
+        env.reset()
+        n_episodes = 0
+        n_steps = 0
+        positions = [[env.position]]
 
-    for idx_sample in range(n_samples):
-        state = env.state
+        for idx_sample in range(n_samples):
+            state = env.state
 
-        sample_key, key = jax.random.split(sample_key)
-        action = jax.random.choice(key, env.actions_on_max)
-
-        next_state, reward, absorbing, _ = env.step(action)
-        n_steps += 1
-        positions[n_episodes].append(env.position)
-
-        replay_buffer.add(state, action, reward, next_state, absorbing)
-
-        if absorbing[0] or n_steps >= 20:
             sample_key, key = jax.random.split(sample_key)
-            env.reset(
-                jax.random.multivariate_normal(
-                    key,
-                    jnp.zeros(4),
-                    jnp.array([[1e-4, -1e-4, 0, 0], [-1e-4, 1e-3, 0, 0], [0, 0, 1e-3, -1e-4], [0, 0, -1e-4, 1e-2]]),
-                )
-                / 10
-            )
-            positions[n_episodes] = np.array(positions[n_episodes])
-            positions.append([])
-            n_episodes += 1
-            n_steps = 0
+            action = jax.random.choice(key, env.actions_on_max)
 
-    replay_buffer.cast_to_jax_array()
+            next_state, reward, absorbing, _ = env.step(action)
+            n_steps += 1
+            positions[n_episodes].append(env.position)
+
+            replay_buffer.add(state, action, reward, next_state, absorbing)
+
+            if absorbing[0] or n_steps >= 20:
+                sample_key, key = jax.random.split(sample_key)
+                env.reset(
+                    jax.random.multivariate_normal(
+                        key,
+                        jnp.zeros(4),
+                        jnp.array([[1e-4, -1e-4, 0, 0], [-1e-4, 1e-3, 0, 0], [0, 0, 1e-3, -1e-4], [0, 0, -1e-4, 1e-2]]),
+                    )
+                    / 10
+                )
+                positions[n_episodes] = np.array(positions[n_episodes])
+                positions.append([])
+                n_episodes += 1
+                n_steps = 0
+
+        replay_buffer.cast_to_jax_array()
 
     ## Weight collection
     from pbo.weights_collection.weights_buffer import WeightsBuffer
@@ -111,7 +112,6 @@ def run_bicycle():
         network_key=q_network_key,
         layers_dimension=layers_dimension,
         zero_initializer=True,
-        learning_rate=learning_rate,
     )
     validation_weights = q.to_weights(q.params)
     weights_buffer.add(validation_weights)
@@ -177,4 +177,10 @@ def run_bicycle():
 
 
 if __name__ == "__main__":
+    import time
+
+    t1 = time.time()
+
     run_bicycle()
+
+    print(time.time() - t1)
