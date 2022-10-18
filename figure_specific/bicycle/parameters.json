@@ -9,7 +9,7 @@
     "---- Shared parameters ---": "-",
     "horizon": 50000,
     "gamma": 0.99,
-    "n_samples": 100000,
+    "n_samples": 70000,
     "batch_size_samples": 1000,
     "max_bellman_iterations": 8,
     "---- FQI ---": "-",
@@ -20,9 +20,9 @@
     "---- PBOs ---": "-",
     "n_weights": 1,
     "batch_size_weights": 1,
-    "training_steps": 1000,
-    "fitting_steps_pbo": 20,
+    "training_steps": 500,
+    "fitting_steps_pbo": 15,
     "starting_lr_pbo": 0.0001,
-    "ending_lr_pbo": 1e-07,
+    "ending_lr_pbo": 1e-06,
     "initial_weight_std": 1e-09
 }
