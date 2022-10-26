@@ -10,7 +10,7 @@
     "horizon": 50000,
     "gamma": 0.99,
     "n_samples": 70000,
-    "batch_size_samples": 500,
+    "batch_size_samples": 1000,
     "max_bellman_iterations": 8,
     "---- FQI ---": "-",
     "fitting_steps_fqi": 1200,
@@ -24,5 +24,5 @@
     "fitting_steps_pbo": 15,
     "starting_lr_pbo": 1e-4,
     "ending_lr_pbo": 1e-07,
-    "initial_weight_std": 1e-09
+    "initial_weight_std": 5e-09
 }
