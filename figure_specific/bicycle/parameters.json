@@ -16,13 +16,13 @@
     "fitting_steps_fqi": 1200,
     "patience": 7,
     "starting_lr_fqi": 0.005,
-    "ending_lr_fqi": 0.0001,
+    "ending_lr_fqi": 1e-4,
     "---- PBOs ---": "-",
     "n_weights": 1,
     "batch_size_weights": 1,
     "training_steps": 500,
     "fitting_steps_pbo": 15,
-    "starting_lr_pbo": 0.0001,
+    "starting_lr_pbo": 1e-4,
     "ending_lr_pbo": 1e-07,
     "initial_weight_std": 5e-09
 }
