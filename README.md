@@ -49,10 +49,12 @@ You will find Figure 5a at _figure_specific/car_on_hill/figures/distance_to_opti
 
 Figure 5b with one seed, run
 ```Bash
-./figure_specific/bicycle/run_seeds.sh --n_seeds 1 --n_bellman_iterations 8
+./figure_specific/bicycle/run_seeds_FQI.sh --n_seeds 1 --n_bellman_iterations 8
+./figure_specific/bicycle/run_seeds_PBO_deep.sh --n_seeds 1 --n_bellman_iterations 8
+./figure_specific/bicycle/run_seeds_PBO_linear.sh --n_seeds 1 --n_bellman_iterations 8
 jupyter nbconvert --to notebook --inplace --execute figure_specific/bicycle/plots.ipynb
 ```
-You will find Figure 5a at _figure_specific/bicycle/figures/seconds_8.pdf_. The code should take around 45 minutes to run.
+You will find Figure 5b at _figure_specific/bicycle/figures/seconds_8.pdf_. The code should take around 3 hours to run.
 
 If any problem is encountered, make sure your files match the [file organization](#file-organization) and that the parameters _figure_specific/[environment]/plots.ipynb_ are matching the data that has been computed so far.
 
