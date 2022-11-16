@@ -1,3 +1,4 @@
+import numpy as np
 import jax.numpy as jnp
 
 
@@ -25,6 +26,25 @@ class ReplayBuffer:
         self.rewards.append(reward)
         self.next_states.append(next_state)
         self.absorbing.append(absorbing)
+
+    def save(self, path: str) -> None:
+        np.savez(
+            path,
+            states=self.states,
+            actions=self.actions,
+            rewards=self.rewards,
+            next_states=self.next_states,
+            absorbing=self.absorbing,
+        )
+
+    def load(self, path: str) -> None:
+        dataset = np.load(path)
+
+        self.states = jnp.array(dataset["states"])
+        self.actions = jnp.array(dataset["actions"])
+        self.rewards = jnp.array(dataset["rewards"])
+        self.next_states = jnp.array(dataset["next_states"])
+        self.absorbing = jnp.array(dataset["absorbing"])
 
     def cast_to_jax_array(self) -> None:
         self.states = jnp.array(self.states)

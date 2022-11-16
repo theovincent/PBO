@@ -1,6 +1,6 @@
 {
     "env_seed": 0,
-    "oriented_state": [
+    "oriented_states": [
         [
             0.5,
             0.8
@@ -21,7 +21,6 @@
     "n_random_samples": 4500,
     "n_oriented_samples": 1000,
     "batch_size_samples": 500,
-    "max_bellman_iterations": 9,
     "---- FQI ---": "-",
     "fitting_steps_fqi": 1200,
     "patience": 7,
@@ -30,7 +29,7 @@
     "---- PBOs ---": "-",
     "n_weights": 1,
     "batch_size_weights": 1,
-    "training_steps": 4000,
+    "training_steps": 40,
     "fitting_steps_pbo": 1,
     "starting_lr_pbo": 0.001,
     "ending_lr_pbo": 5e-06,

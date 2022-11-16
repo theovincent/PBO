@@ -170,13 +170,17 @@ class CarOnHillEnv:
             return self.gamma ** (step_to_absorbing - 1) if success else -self.gamma ** (step_to_absorbing - 1)
 
     @partial(jax.jit, static_argnames=("self", "q"))
-    def diff_q_mesh(self, q: BaseQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
+    def diff_q_estimate_mesh(
+        self, q: BaseQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray
+    ) -> jnp.ndarray:
         q_mesh_ = self.q_mesh(q, q_params, states_x, states_v)
 
         return q_mesh_[:, :, 1] - q_mesh_[:, :, 0]
 
     @partial(jax.jit, static_argnames=("self", "q"))
-    def q_mesh(self, q: BaseQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray) -> jnp.ndarray:
+    def q_estimate_mesh(
+        self, q: BaseQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray
+    ) -> jnp.ndarray:
         n_boxes = states_x.shape[0] * states_v.shape[0]
         states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
 
@@ -199,7 +203,7 @@ class CarOnHillEnv:
         step = 0
 
         while not absorbing and step < horizon:
-            if q(q.params, self.state, jnp.array([1])) > q(q.params, self.state, jnp.array([-1])):
+            if q(q.params, self.state, self.actions_on_max[1]) > q(q.params, self.state, self.actions_on_max[0]):
                 action = self.actions_on_max[1]
             else:
                 action = self.actions_on_max[0]
@@ -212,7 +216,7 @@ class CarOnHillEnv:
 
         return reward == 1
 
-    def evaluate(self, q: BaseQ, horizon: int, initial_state: jnp.ndarray) -> float:
+    def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int, initial_state: jnp.ndarray) -> float:
         performance = 0
         discount = 1
         self.reset(initial_state)
@@ -220,7 +224,7 @@ class CarOnHillEnv:
         step = 0
 
         while not absorbing and step < horizon:
-            if q(q.params, self.state, jnp.array([1])) > q(q.params, self.state, jnp.array([-1])):
+            if q(q_params, self.state, self.actions_on_max[1]) > q(q_params, self.state, self.actions_on_max[0]):
                 action = self.actions_on_max[1]
             else:
                 action = self.actions_on_max[0]
@@ -232,11 +236,13 @@ class CarOnHillEnv:
 
         return performance
 
-    def v_mesh(self, q: BaseQ, horizon: int, states_x: jnp.ndarray, states_v: jnp.ndarray) -> np.ndarray:
+    def v_mesh(
+        self, q: BaseQ, q_params: hk.Params, horizon: int, states_x: jnp.ndarray, states_v: jnp.ndarray
+    ) -> np.ndarray:
         v_mesh_ = np.zeros((len(states_x), len(states_v)))
 
         for idx_state_x, state_x in enumerate(states_x):
             for idx_state_v, state_v in enumerate(states_v):
-                v_mesh_[idx_state_x, idx_state_v] = self.evaluate(q, horizon, jnp.array([state_x, state_v]))
+                v_mesh_[idx_state_x, idx_state_v] = self.evaluate(q, q_params, horizon, jnp.array([state_x, state_v]))
 
         return v_mesh_
