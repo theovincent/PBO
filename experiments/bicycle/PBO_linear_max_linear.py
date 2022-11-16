@@ -8,7 +8,7 @@ def run_bicycle():
     import os
     import json
 
-    parameters = json.load(open("figure_specific/bicycle/parameters.json"))
+    parameters = json.load(open("experiments/bicycle/parameters.json"))
     env_seed = parameters["env_seed"]
     gamma = parameters["gamma"]
     # Sample collection
@@ -36,9 +36,9 @@ def run_bicycle():
 
     # Search for an unused seed
     max_used_seed = 0
-    if not os.path.exists("figure_specific/bicycle/figures/data/PBO_linear_max_linear/"):
-        os.makedirs("figure_specific/bicycle/figures/data/PBO_linear_max_linear/")
-    for file in os.listdir("figure_specific/bicycle/figures/data/PBO_linear_max_linear/"):
+    if not os.path.exists("experiments/bicycle/figures/data/PBO_linear_max_linear/"):
+        os.makedirs("experiments/bicycle/figures/data/PBO_linear_max_linear/")
+    for file in os.listdir("experiments/bicycle/figures/data/PBO_linear_max_linear/"):
         if int(file.split("_")[0]) == max_bellman_iterations and int(file.split("_")[2][:-4]) > max_used_seed:
             max_used_seed = int(file.split("_")[2][:-4])
     max_used_seed
@@ -171,7 +171,7 @@ def run_bicycle():
         metrics[bellman_iteration] = env.evaluate(q, q.to_params(q_weights), horizon, n_simulations)
 
     np.save(
-        f"figure_specific/bicycle/figures/data/PBO_linear_max_linear/{max_bellman_iterations}_metrics_{seed}.npy",
+        f"experiments/bicycle/figures/data/PBO_linear_max_linear/{max_bellman_iterations}_metrics_{seed}.npy",
         metrics,
     )
 

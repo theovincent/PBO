@@ -145,5 +145,5 @@ dmypy.json
 **/*.pdf
 
 # Save optimal value functions of car on hill
-!figure_specific/car_on_hill/figures/data/optimal/Q.npy
-!figure_specific/car_on_hill/figures/data/optimal/V.npy
+!experiments/car_on_hill/figures/data/optimal/Q.npy
+!experiments/car_on_hill/figures/data/optimal/V.npy
