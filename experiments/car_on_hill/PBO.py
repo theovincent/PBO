@@ -157,7 +157,7 @@ def run_cli(argvs=sys.argv[1:]):
     iterated_v[0] = env.v_mesh(q, q.to_params(q_weights), p["horizon"], states_x, states_v)
 
     for iteration in tqdm(range(1, args.validation_bellman_iterations + 1)):
-        q_weights = pbo(pbo.params, q_weights)
+        q_weights = pbo(pbo.params, q_weights.reshape((1, -1)))[0]
 
         iterated_q_estimate[iteration] = env.q_estimate_mesh(q, q.to_params(q_weights), states_x, states_v)
         iterated_v[iteration] = env.v_mesh(q, q.to_params(q_weights), p["horizon"], states_x, states_v)
