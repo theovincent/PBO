@@ -58,6 +58,16 @@ You will find Figure 5b at _experiments/bicycle/figures/seconds_8.pdf_. The code
 
 If any problem is encountered, make sure your files match the [file organization](#file-organization) and that the parameters _experiments/[environment]/plots.ipynb_ are matching the data that has been computed so far.
 
+## Run Car On Hill
+```Bash
+car_on_hill_sample  # to collect the offline dataset 
+car_on_hill_fqi -b 9 -s 1  # to train and evaluate FQI
+car_on_hill_pbo -a linear -b 9 -s 1  # to train a linear PBO
+car_on_hill_pbo_evaluate -a linear -b 9 -s 1  # to evaluate it
+car_on_hill_pbo -a deep -b 9 -s 1  # to train a deep PBO
+car_on_hill_pbo_evaluate -a deep -b 9 -s 1  # to evaluate it
+```
+
 ## Run the tests
 Run all tests with
 ```Bash

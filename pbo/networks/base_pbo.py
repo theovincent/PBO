@@ -72,8 +72,8 @@ class BasePBO:
         loss = self.loss_term(iterated_weights, iterated_weights_target, samples, importance_iteration[0], ord)
 
         for idx_iteration in jnp.arange(1, self.max_bellman_iterations):
-            # To limit the back propagation to one iteration
-            # iterated_weights = jax.lax.stop_gradient(batch_iterated_weights)
+            # Uncomment to limit the back propagation to one iteration
+            # iterated_weights = jax.lax.stop_gradient(iterated_weights)
             iterated_weights = self(pbo_params, iterated_weights)
             # To backpropagate over the target
             # iterated_weights_target = self(pbo_params, iterated_weights_target)

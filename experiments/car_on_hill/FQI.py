@@ -1,3 +1,4 @@
+import os
 import sys
 import argparse
 import json
@@ -29,6 +30,8 @@ def run_cli(argvs=sys.argv[1:]):
     args = parser.parse_args(argvs)
     print(f"Training FQI on Car-On-Hill with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}...")
     p = json.load(open("experiments/car_on_hill/parameters.json"))  # p for parameters
+    if not os.path.exists("experiments/car_on_hill/figures/data/FQI/"):
+        os.makedirs("experiments/car_on_hill/figures/data/FQI/")
 
     from experiments.car_on_hill.utils import define_environment
     from pbo.sample_collection.replay_buffer import ReplayBuffer

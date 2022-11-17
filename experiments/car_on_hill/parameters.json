@@ -29,7 +29,7 @@
     "---- PBOs ---": "-",
     "n_weights": 1,
     "batch_size_weights": 1,
-    "training_steps": 40,
+    "training_steps": 4000,
     "fitting_steps_pbo": 1,
     "starting_lr_pbo": 0.001,
     "ending_lr_pbo": 5e-06,

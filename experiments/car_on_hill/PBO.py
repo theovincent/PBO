@@ -1,3 +1,4 @@
+import os
 import sys
 import argparse
 import json
@@ -34,20 +35,13 @@ def run_cli(argvs=sys.argv[1:]):
         choices=["linear", "deep"],
         required=True,
     )
-    parser.add_argument(
-        "-vbi",
-        "--validation_bellman_iterations",
-        help="Number of Bellman iteration to validate on.",
-        default=None,
-        type=int,
-    )
     args = parser.parse_args(argvs)
-    if args.validation_bellman_iterations is None:
-        args.validation_bellman_iterations = args.max_bellman_iterations + 10
     print(
         f"Training a {args.architecture} PBO on Car-On-Hill with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}..."
     )
     p = json.load(open("experiments/car_on_hill/parameters.json"))  # p for parameters
+    if not os.path.exists(f"experiments/car_on_hill/figures/data/PBO_{args.architecture}/"):
+        os.makedirs(f"experiments/car_on_hill/figures/data/PBO_{args.architecture}/")
 
     from experiments.car_on_hill.utils import define_environment
     from pbo.sample_collection.replay_buffer import ReplayBuffer
@@ -56,11 +50,12 @@ def run_cli(argvs=sys.argv[1:]):
     from pbo.weights_collection.dataloader import WeightsDataLoader
     from pbo.networks.learnable_q import FullyConnectedQ
     from pbo.networks.learnable_pbo import LinearPBO, DeepPBO
+    from pbo.utils.params import save_params
 
     key = jax.random.PRNGKey(args.seed)
     shuffle_key, q_network_key, pbo_network_key = jax.random.split(key, 3)
 
-    env, states_x, _, states_v, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
+    env, _, _, _, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
 
     replay_buffer = ReplayBuffer()
     replay_buffer.load("experiments/car_on_hill/figures/data/replay_buffer.npz")
@@ -145,39 +140,9 @@ def run_cli(argvs=sys.argv[1:]):
 
             l2_losses[training_step, fitting_step] = cumulative_l2_loss
 
-    iterated_q_estimate = np.zeros(
-        (args.validation_bellman_iterations + 1 + int(add_infinity), p["n_states_x"], p["n_states_v"], 2)
-    )
-    iterated_v = np.zeros(
-        (args.validation_bellman_iterations + 1 + int(add_infinity), p["n_states_x"], p["n_states_v"])
-    )
-
-    q_weights = weights_buffer.weights[0]
-    iterated_q_estimate[0] = env.q_estimate_mesh(q, q.to_params(q_weights), states_x, states_v)
-    iterated_v[0] = env.v_mesh(q, q.to_params(q_weights), p["horizon"], states_x, states_v)
-
-    for iteration in tqdm(range(1, args.validation_bellman_iterations + 1)):
-        q_weights = pbo(pbo.params, q_weights.reshape((1, -1)))[0]
-
-        iterated_q_estimate[iteration] = env.q_estimate_mesh(q, q.to_params(q_weights), states_x, states_v)
-        iterated_v[iteration] = env.v_mesh(q, q.to_params(q_weights), p["horizon"], states_x, states_v)
-
-    if add_infinity:
-        q_weights = pbo.fixed_point(pbo.params)
-        iterated_q_estimate[args.validation_bellman_iterations + 1] = env.q_estimate_mesh(
-            q, q.to_params(q_weights), states_x, states_v
-        )
-        iterated_v[args.validation_bellman_iterations + 1] = env.v_mesh(
-            q, q.to_params(q_weights), p["horizon"], states_x, states_v
-        )
-
-    np.save(
-        f"experiments/car_on_hill/figures/data/PBO_{args.architecture}/{args.max_bellman_iterations}_Q_{args.seed}.npy",
-        iterated_q_estimate,
-    )
-    np.save(
-        f"experiments/car_on_hill/figures/data/PBO_{args.architecture}/{args.max_bellman_iterations}_V_{args.seed}.npy",
-        iterated_v,
+    save_params(
+        f"experiments/car_on_hill/figures/data/PBO_{args.architecture}/{args.max_bellman_iterations}_P_{args.seed}",
+        pbo.params,
     )
     np.save(
         f"experiments/car_on_hill/figures/data/PBO_{args.architecture}/{args.max_bellman_iterations}_L_{args.seed}.npy",
