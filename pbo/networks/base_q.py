@@ -135,3 +135,57 @@ class BaseQ:
     def reset_optimizer(self) -> None:
         self.optimizer = optax.adam(self.learning_rate_schedule)
         self.optimizer_state = self.optimizer.init(self.params)
+
+
+class BaseMultiHeadQ(BaseQ):
+    def __init__(
+        self,
+        n_heads: int,
+        state_dim: int,
+        action_dim: int,
+        actions_on_max: jnp.ndarray,
+        gamma: float,
+        network: hk.Module,
+        network_key: int,
+        learning_rate: dict,
+    ) -> None:
+        self.n_heads = n_heads
+        super().__init__(
+            state_dim=state_dim,
+            action_dim=action_dim,
+            actions_on_max=actions_on_max,
+            gamma=gamma,
+            network=network,
+            network_key=network_key,
+            learning_rate=learning_rate,
+        )
+
+    @partial(jax.jit, static_argnames="self")
+    def compute_target(self, q_params: hk.Params, samples: dict) -> jnp.ndarray:
+        return jnp.repeat(samples["reward"], self.n_heads, axis=1) + jnp.repeat(
+            1 - samples["absorbing"], self.n_heads, axis=1
+        ) * self.gamma * self.max_value(q_params, samples["next_state"])
+
+    @partial(jax.jit, static_argnames="self")
+    def max_value(self, q_params: hk.Params, states: jnp.ndarray) -> jnp.ndarray:
+        index_states = jnp.arange(states.shape[0])
+
+        indexes_states_mesh, indexes_actions_mesh = jnp.meshgrid(index_states, self.index_actions_on_max, indexing="ij")
+        states_ = states[indexes_states_mesh.flatten()]
+        actions_ = self.actions_on_max[indexes_actions_mesh.flatten()]
+
+        # Dangerous reshape: the indexing of meshgrid is 'ij'.
+        max_values = self(q_params, states_, actions_).reshape(
+            (states.shape[0], self.actions_on_max.shape[0], self.n_heads)
+        )
+
+        return max_values.max(axis=1)
+
+    @partial(jax.jit, static_argnames=("self", "ord"))
+    def loss(self, q_params: hk.Params, q_params_target: hk.Params, samples: dict, ord: int = 2) -> jnp.ndarray:
+        target = self.compute_target(q_params_target, samples)
+
+        if ord == 1:
+            return jnp.abs(self(q_params, samples["state"], samples["action"])[:, 1:] - target[:, :-1]).mean()
+        else:
+            return jnp.square(self(q_params, samples["state"], samples["action"])[:, 1:] - target[:, :-1]).mean()

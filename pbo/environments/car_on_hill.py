@@ -173,7 +173,7 @@ class CarOnHillEnv:
     def diff_q_estimate_mesh(
         self, q: BaseQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray
     ) -> jnp.ndarray:
-        q_mesh_ = self.q_mesh(q, q_params, states_x, states_v)
+        q_mesh_ = self.q_estimate_mesh(q, q_params, states_x, states_v)
 
         return q_mesh_[:, :, 1] - q_mesh_[:, :, 0]
 
