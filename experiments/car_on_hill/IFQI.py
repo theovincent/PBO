@@ -51,7 +51,7 @@ def run_cli(argvs=sys.argv[1:]):
     data_loader_samples = SampleDataLoader(replay_buffer, p["batch_size_samples"], shuffle_key)
 
     q = FullyConnectedQ(
-        n_heads=args.max_bellman_iterations,
+        n_heads=args.max_bellman_iterations + 1,
         state_dim=2,
         action_dim=1,
         actions_on_max=env.actions_on_max,
