@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 
 def count_samples(
@@ -30,8 +31,8 @@ def count_samples(
     samples_count = np.zeros((len(discrete_dim_one_boxes) - 1, len(discrete_dim_two_boxes) - 1))
     rewards_count = np.zeros((len(discrete_dim_one_boxes) - 1, len(discrete_dim_two_boxes) - 1))
 
-    for idx_in_list, (idx_dim_one, idx_dim_two) in enumerate(
-        zip(indexes_states_boxes[dimensions_inside_boxes], indexes_actions_boxes[dimensions_inside_boxes])
+    for idx_in_list, (idx_dim_one, idx_dim_two) in tqdm(
+        enumerate(zip(indexes_states_boxes[dimensions_inside_boxes], indexes_actions_boxes[dimensions_inside_boxes]))
     ):
         samples_count[idx_dim_one, idx_dim_two] += 1
         rewards_count[idx_dim_one, idx_dim_two] += pruned_rewards[idx_in_list]

@@ -69,7 +69,7 @@ def run_cli(argvs=sys.argv[1:]):
         )
 
         if args.architecture == "linear":
-            add_infinity = False
+            add_infinity = True
             pbo = LinearPBO(
                 q=q,
                 max_bellman_iterations=args.max_bellman_iterations,

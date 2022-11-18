@@ -1,4 +1,5 @@
 import json
+import numpy as np
 import jax
 import jax.numpy as jnp
 from tqdm import tqdm
@@ -14,8 +15,9 @@ def run_cli():
 
     from experiments.car_on_hill.utils import define_environment
     from pbo.sample_collection.replay_buffer import ReplayBuffer
+    from pbo.sample_collection.count_samples import count_samples
 
-    env, _, _, _, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
+    env, _, states_x_boxes, _, states_v_boxes = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
     sample_key = jax.random.PRNGKey(p["env_seed"])
 
     replay_buffer = ReplayBuffer()
@@ -63,3 +65,9 @@ def run_cli():
     print(f"Number of episodes: {n_episodes}")
 
     replay_buffer.save("experiments/car_on_hill/figures/data/replay_buffer.npz")
+
+    replay_buffer.cast_to_jax_array()
+    samples_count, _, _ = count_samples(
+        replay_buffer.states[:, 0], replay_buffer.states[:, 1], states_x_boxes, states_v_boxes, replay_buffer.rewards
+    )
+    np.save(f"experiments/car_on_hill/figures/data/samples_count.npy", samples_count)
