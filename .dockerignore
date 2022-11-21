@@ -8,13 +8,8 @@ Dockerfile
 
 # Avoid copying htlm and npy files
 **/*.html
-**/*.npy
 
 # Avoid copying images and pdfs
-**/*.png 
+**/*.png
 **/*.jpg
 **/*.pdf
-
-# Still copy the optimal value functions of car on hill
-!experiments/car_on_hill/figures/data/optimal/Q.npy
-!experiments/car_on_hill/figures/data/optimal/V.npy

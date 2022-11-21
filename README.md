@@ -10,11 +10,7 @@ pip install -e .[cpu]
 ```
 
 ### With Docker
-In the folder where the code is, build the image and run the container in iterative mode:
-```bash
-docker build -t pbo_image .
-docker run -it --mount type=bind,src=`pwd`/experiments,dst=/workspace/experiments pbo_image bash
-```
+Please see the [README](./docker/README.md) file made for that.
 
 ## Run the experiments
 For an `environment` and an `algorithm`, a jupyter notebook running the associated the experience can be found at _experiments/[environment]/[algorithm].ipynb_.
