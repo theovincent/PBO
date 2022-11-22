@@ -22,6 +22,7 @@ do
     echo "launch evaluate fqi for seed" $seed 
     submission_evaluate_fqi=$(sbatch -J evaluate_fqi --dependency=afterok:$submission_id_train_fqi --mem-per-cpu=4Gc --time=10:00 --output=out/evaluate_fqi_$seed.out launch_job/car_on_hill/evaluate_fqi.sh -s $seed -b $MAX_BELLMAN_ITERATION)
 
+
     # PBO linear
     echo "launch train pbo linear for seed" $seed 
     submission_train_pbo_linear=$(sbatch -J train_pbo_linear --mem-per-cpu=8Gc --time=10:00 --output=out/train_pbo_linear_$seed.out launch_job/car_on_hill/train_pbo_linear.sh -s $seed -b $MAX_BELLMAN_ITERATION -a linear)

@@ -36,7 +36,7 @@ def run_cli(argvs=sys.argv[1:]):
     from experiments.car_on_hill.utils import define_environment
     from pbo.sample_collection.replay_buffer import ReplayBuffer
     from pbo.sample_collection.dataloader import SampleDataLoader
-    from pbo.networks.learnable_multi_head_q import FullyConnectedQ
+    from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
     from pbo.utils.params import save_params
 
     key = jax.random.PRNGKey(args.seed)
@@ -50,7 +50,7 @@ def run_cli(argvs=sys.argv[1:]):
     replay_buffer.load("experiments/car_on_hill/figures/data/replay_buffer.npz")
     data_loader_samples = SampleDataLoader(replay_buffer, p["batch_size_samples"], shuffle_key)
 
-    q = FullyConnectedQ(
+    q = FullyConnectedMultiHeadQ(
         n_heads=args.max_bellman_iterations + 1,
         state_dim=2,
         action_dim=1,

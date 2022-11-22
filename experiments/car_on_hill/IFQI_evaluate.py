@@ -35,7 +35,7 @@ def run_cli(argvs=sys.argv[1:]):
         p = json.load(open("experiments/car_on_hill/parameters.json"))  # p for parameters
 
         from experiments.car_on_hill.utils import define_environment
-        from pbo.networks.learnable_multi_head_q import FullyConnectedQ
+        from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
         from pbo.utils.params import load_params
 
         key = jax.random.PRNGKey(args.seed)
@@ -43,7 +43,7 @@ def run_cli(argvs=sys.argv[1:]):
 
         env, states_x, _, states_v, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
 
-        q = FullyConnectedQ(
+        q = FullyConnectedMultiHeadQ(
             n_heads=args.max_bellman_iterations + 1,
             state_dim=2,
             action_dim=1,
@@ -58,7 +58,7 @@ def run_cli(argvs=sys.argv[1:]):
         def evaluate(
             iteration: int,
             v_list: list,
-            q: FullyConnectedQ,
+            q: FullyConnectedMultiHeadQ,
             q_weights: jnp.ndarray,
             horizon: int,
             states_x: np.ndarray,

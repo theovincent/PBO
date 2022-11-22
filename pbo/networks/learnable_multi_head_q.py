@@ -5,7 +5,7 @@ import jax.numpy as jnp
 from pbo.networks.base_q import BaseMultiHeadQ
 
 
-class FullyConnectedQNet(hk.Module):
+class FullyConnectedMultiHeadQNet(hk.Module):
     def __init__(self, n_heads: int, layers_dimension: list, zero_initializer: bool = False) -> None:
         super().__init__(name="FullyConnectedNet")
         self.n_heads = n_heads
@@ -36,7 +36,7 @@ class FullyConnectedQNet(hk.Module):
         return output
 
 
-class FullyConnectedQ(BaseMultiHeadQ):
+class FullyConnectedMultiHeadQ(BaseMultiHeadQ):
     def __init__(
         self,
         n_heads: int,
@@ -50,7 +50,7 @@ class FullyConnectedQ(BaseMultiHeadQ):
         learning_rate: dict = None,
     ) -> None:
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
-            return FullyConnectedQNet(n_heads, layers_dimension, zero_initializer)(state, action)
+            return FullyConnectedMultiHeadQNet(n_heads, layers_dimension, zero_initializer)(state, action)
 
         super().__init__(
             n_heads,
