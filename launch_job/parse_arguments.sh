@@ -27,6 +27,10 @@ function parse_arguments() {
                 COLLECT_SAMPLE=true
                 shift
                 ;;
+            -a | --architecture)
+                shift
+                shift
+                ;;
             -?*)
                 printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
                 shift

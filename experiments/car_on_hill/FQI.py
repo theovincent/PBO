@@ -37,13 +37,14 @@ def run_cli(argvs=sys.argv[1:]):
     from pbo.sample_collection.replay_buffer import ReplayBuffer
     from pbo.sample_collection.dataloader import SampleDataLoader
     from pbo.networks.learnable_q import FullyConnectedQ
+    from pbo.utils.params import save_params
 
     key = jax.random.PRNGKey(args.seed)
     shuffle_key, q_network_key, _ = jax.random.split(
         key, 3
     )  # 3 keys are generated to be coherent with the other trainings
 
-    env, states_x, _, states_v, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
+    env, _, _, _, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
 
     replay_buffer = ReplayBuffer()
     replay_buffer.load("experiments/car_on_hill/figures/data/replay_buffer.npz")
@@ -63,13 +64,10 @@ def run_cli(argvs=sys.argv[1:]):
             "duration": p["fitting_steps_fqi"] * len(replay_buffer) // p["batch_size_samples"],
         },
     )
-    iterated_q_estimate = np.zeros((args.max_bellman_iterations + 1, p["n_states_x"], p["n_states_v"], 2))
-    iterated_v = np.zeros((args.max_bellman_iterations + 1, p["n_states_x"], p["n_states_v"]))
-
-    iterated_q_estimate[0] = env.q_estimate_mesh(q, q.params, states_x, states_v)
-    iterated_v[0] = env.v_mesh(q, q.params, p["horizon"], states_x, states_v)
 
     l2_losses = np.ones((args.max_bellman_iterations, p["fitting_steps_fqi"])) * np.nan
+    iterated_params = {}
+    iterated_params["0"] = q.params
 
     for bellman_iteration in tqdm(range(1, args.max_bellman_iterations + 1)):
         q.reset_optimizer()
@@ -97,11 +95,10 @@ def run_cli(argvs=sys.argv[1:]):
             if patience > p["patience"]:
                 break
 
-        iterated_q_estimate[bellman_iteration] = env.q_estimate_mesh(q, q.params, states_x, states_v)
-        iterated_v[bellman_iteration] = env.v_mesh(q, q.params, p["horizon"], states_x, states_v)
+        iterated_params[f"{bellman_iteration}"] = q.params
 
-    np.save(
-        f"experiments/car_on_hill/figures/data/FQI/{args.max_bellman_iterations}_Q_{args.seed}.npy", iterated_q_estimate
+    save_params(
+        f"experiments/car_on_hill/figures/data/FQI/{args.max_bellman_iterations}_P_{args.seed}",
+        iterated_params,
     )
-    np.save(f"experiments/car_on_hill/figures/data/FQI/{args.max_bellman_iterations}_V_{args.seed}.npy", iterated_v)
     np.save(f"experiments/car_on_hill/figures/data/FQI/{args.max_bellman_iterations}_L_{args.seed}.npy", l2_losses)
