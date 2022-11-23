@@ -18,11 +18,6 @@ function parse_arguments() {
                 shift
                 shift
                 ;;
-            -s | --seed)
-                SEED=$2
-                shift
-                shift
-                ;;
             -b | --max_bellman_iterations)
                 MAX_BELLMAN_ITERATION=$2
                 shift
@@ -48,19 +43,9 @@ function parse_arguments() {
     then
         echo "experiment name is missing, use -e" >&2
         exit
-    fi
-
-    if [[ $SEED == "" ]] && [[ $FIRST_SEED == "" ]] && [[ $LAST_SEED == "" ]]
+    elif ( [[ $FIRST_SEED != "" ]] && [[ $LAST_SEED = "" ]] ) || ( [[ $FIRST_SEED == "" ]] && [[ $LAST_SEED != "" ]] )
     then
-        echo "seed information is missing, use -s or (-fs and -ls)" >&2
-        exit
-    elif [[ $SEED != "" ]] && ( [[ $FIRST_SEED != "" ]] || [[ $LAST_SEED != "" ]] )
-    then
-        echo "you need to choose between -s and (-fs and -ls)" >&2
-        exit
-    elif [[ $SEED == "" ]] && ( [[ $FIRST_SEED == "" ]] || [[ $LAST_SEED == "" ]] )
-    then
-        echo "you need to specify -fs and -ls" >&2
+        echo "you need to specify -fs and -ls, not only one" >&2
         exit
     elif [[ $MAX_BELLMAN_ITERATION == "" ]]
     then

@@ -5,4 +5,4 @@ parse_arguments $@
 
 source env_cpu/bin/activate 
 
-car_on_hill_pbo_evaluate -e $EXPERIMENT_NAME -s $SEED -b $MAX_BELLMAN_ITERATION -a linear
+car_on_hill_pbo_evaluate -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID -b $MAX_BELLMAN_ITERATION -a linear
