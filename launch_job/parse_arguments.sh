@@ -28,10 +28,6 @@ function parse_arguments() {
                 shift
                 shift
                 ;;
-            -c | --collect_sample)
-                COLLECT_SAMPLE=true
-                shift
-                ;;
             -a | --architecture)
                 shift
                 shift
@@ -70,10 +66,5 @@ function parse_arguments() {
     then
         echo "max_bellman_iterations is missing, use -b" >&2
         exit
-    fi
-
-    if [[ $COLLECT_SAMPLE == "" ]]
-    then
-        COLLECT_SAMPLE=false
     fi
 }
