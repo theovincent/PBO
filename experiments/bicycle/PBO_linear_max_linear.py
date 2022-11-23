@@ -128,11 +128,11 @@ def run_bicycle():
 
     from pbo.sample_collection.dataloader import SampleDataLoader
     from pbo.weights_collection.dataloader import WeightsDataLoader
-    from pbo.networks.learnable_pbo import DeepPBO
+    from pbo.networks.learnable_pbo import LinearMaxLinearPBO
 
     data_loader_samples = SampleDataLoader(replay_buffer, batch_size_samples, shuffle_key)
     data_loader_weights = WeightsDataLoader(weights_buffer, batch_size_weights, shuffle_key)
-    pbo = DeepPBO(
+    pbo = LinearMaxLinearPBO(
         q=q,
         max_bellman_iterations=max_bellman_iterations,
         network_key=pbo_network_key,

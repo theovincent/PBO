@@ -13,3 +13,11 @@ Dockerfile
 **/*.png
 **/*.jpg
 **/*.pdf
+
+# Avoid pushing experiments output
+experiments/car_on_hill/figures
+**/*.out
+
+# Save optimal value functions of car on hill
+!experiments/car_on_hill/figures/data/optimal/Q.npy
+!experiments/car_on_hill/figures/data/optimal/V.npy

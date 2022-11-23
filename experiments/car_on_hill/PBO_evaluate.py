@@ -84,6 +84,7 @@ def run_cli(argvs=sys.argv[1:]):
                 q=q,
                 max_bellman_iterations=args.max_bellman_iterations,
                 network_key=pbo_network_key,
+                layers_dimension=p["pbo_layers_dimension"],
                 learning_rate={"first": 0, "last": 0, "duration": 0},
                 initial_weight_std=0.1,
             )
