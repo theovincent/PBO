@@ -1,3 +1,5 @@
+import os
+import shutil
 from typing import Tuple
 import numpy as np
 
@@ -17,3 +19,17 @@ def define_environment(
     states_v_boxes = np.linspace(-env.max_velocity, env.max_velocity + boxes_v_size, n_states_v + 1) - boxes_v_size / 2
 
     return env, states_x, states_x_boxes, states_v, states_v_boxes
+
+
+def create_experiment_folders(experiment_name):
+    if not os.path.exists(f"experiments/car_on_hill/figures/{experiment_name}"):
+        os.makedirs(f"experiments/car_on_hill/figures/{experiment_name}/")
+        shutil.copyfile(
+            "experiments/car_on_hill/parameters.json",
+            f"experiments/car_on_hill/figures/{experiment_name}/parameters.json",
+        )
+
+        os.mkdir(f"experiments/car_on_hill/figures/{experiment_name}/FQI/")
+        os.mkdir(f"experiments/car_on_hill/figures/{experiment_name}/PBO_linear/")
+        os.mkdir(f"experiments/car_on_hill/figures/{experiment_name}/PBO_deep/")
+        os.mkdir(f"experiments/car_on_hill/figures/{experiment_name}/IFQI/")

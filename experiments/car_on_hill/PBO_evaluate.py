@@ -14,6 +14,13 @@ def run_cli(argvs=sys.argv[1:]):
 
         parser = argparse.ArgumentParser("Evaluate a PBO on Car-On-Hill.")
         parser.add_argument(
+            "-e",
+            "--experiment_name",
+            help="Experiment name.",
+            type=str,
+            required=True,
+        )
+        parser.add_argument(
             "-s",
             "--seed",
             help="Seed of the training.",
@@ -42,10 +49,13 @@ def run_cli(argvs=sys.argv[1:]):
             type=int,
         )
         args = parser.parse_args(argvs)
+        print(f"{args.experiment_name}:")
         print(
             f"Evaluating a {args.architecture} PBO on Car-On-Hill with {args.max_bellman_iterations} + {args.validation_bellman_iterations} Bellman iterations and seed {args.seed} ..."
         )
-        p = json.load(open("experiments/car_on_hill/parameters.json"))  # p for parameters
+        p = json.load(
+            open(f"experiments/car_on_hill/figures/{args.experiment_name}/parameters.json")
+        )  # p for parameters
 
         from experiments.car_on_hill.utils import define_environment
         from pbo.networks.learnable_q import FullyConnectedQ
@@ -89,7 +99,7 @@ def run_cli(argvs=sys.argv[1:]):
                 initial_weight_std=0.1,
             )
         pbo.params = load_params(
-            f"experiments/car_on_hill/figures/data/PBO_{args.architecture}/{args.max_bellman_iterations}_P_{args.seed}"
+            f"experiments/car_on_hill/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_P_{args.seed}"
         )
 
         def evaluate(
@@ -176,10 +186,10 @@ def run_cli(argvs=sys.argv[1:]):
             process.join()
 
         np.save(
-            f"experiments/car_on_hill/figures/data/PBO_{args.architecture}/{args.max_bellman_iterations}_V_{args.seed}.npy",
+            f"experiments/car_on_hill/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_V_{args.seed}.npy",
             iterated_v,
         )
         np.save(
-            f"experiments/car_on_hill/figures/data/PBO_{args.architecture}/{args.max_bellman_iterations}_Q_{args.seed}.npy",
+            f"experiments/car_on_hill/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_Q_{args.seed}.npy",
             iterated_q_estimate,
         )

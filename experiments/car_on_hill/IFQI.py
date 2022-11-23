@@ -1,4 +1,3 @@
-import os
 import sys
 import argparse
 import json
@@ -14,6 +13,13 @@ def run_cli(argvs=sys.argv[1:]):
 
     parser = argparse.ArgumentParser("Train IFQI on Car-On-Hill.")
     parser.add_argument(
+        "-e",
+        "--experiment_name",
+        help="Experiment name.",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
         "-s",
         "--seed",
         help="Seed of the training.",
@@ -28,10 +34,9 @@ def run_cli(argvs=sys.argv[1:]):
         required=True,
     )
     args = parser.parse_args(argvs)
+    print(f"{args.experiment_name}:")
     print(f"Training IFQI on Car-On-Hill with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}...")
-    p = json.load(open("experiments/car_on_hill/parameters.json"))  # p for parameters
-    if not os.path.exists("experiments/car_on_hill/figures/data/IFQI/"):
-        os.makedirs("experiments/car_on_hill/figures/data/IFQI/")
+    p = json.load(open(f"experiments/car_on_hill/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
     from experiments.car_on_hill.utils import define_environment
     from pbo.sample_collection.replay_buffer import ReplayBuffer
@@ -83,10 +88,10 @@ def run_cli(argvs=sys.argv[1:]):
             l2_losses[training_step, fitting_step] = cumulative_l2_loss
 
     save_params(
-        f"experiments/car_on_hill/figures/data/IFQI/{args.max_bellman_iterations}_P_{args.seed}",
+        f"experiments/car_on_hill/figures/{args.experiment_name}/IFQI/{args.max_bellman_iterations}_P_{args.seed}",
         q.params,
     )
     np.save(
-        f"experiments/car_on_hill/figures/data/IFQI/{args.max_bellman_iterations}_L_{args.seed}.npy",
+        f"experiments/car_on_hill/figures/{args.experiment_name}/IFQI/{args.max_bellman_iterations}_L_{args.seed}.npy",
         l2_losses,
     )
