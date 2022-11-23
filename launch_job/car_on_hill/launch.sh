@@ -7,7 +7,7 @@ mkdir out/$EXPERIMENT_NAME
 mkdir error/$EXPERIMENT_NAME
 
 echo "launch collect sample"
-submission_collect_sample=$(sbatch -J collect_sample --mem-per-cpu=2Gc --time=00:50 --output=out/$EXPERIMENT_NAME/collect_sample.out --error=error/$EXPERIMENT_NAME/collect_sample.out launch_job/car_on_hill/collect_sample.sh -e $EXPERIMENT_NAME -s 0 - b 0)
+submission_collect_sample=$(sbatch -J collect_sample --mem-per-cpu=2Gc --time=00:50 --output=out/$EXPERIMENT_NAME/collect_sample.out --error=error/$EXPERIMENT_NAME/collect_sample.out launch_job/car_on_hill/collect_sample.sh -e $EXPERIMENT_NAME -s 0 -b 0)
 
 IFS=" " read -ra split_submission_collect_sample <<< $submission_collect_sample
 submission_id_collect_sample=${split_submission_collect_sample[-1]}
