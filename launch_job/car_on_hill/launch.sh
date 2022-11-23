@@ -3,8 +3,8 @@
 source launch_job/parse_arguments.sh -e $EXPERIMENT_NAME
 parse_arguments $@
 
-mkdir experiments/out/$EXPERIMENT_NAME
-mkdir experiments/error/$EXPERIMENT_NAME
+mkdir out/$EXPERIMENT_NAME
+mkdir error/$EXPERIMENT_NAME
 
 echo "launch collect sample"
 submission_collect_sample=$(sbatch -J collect_sample --mem-per-cpu=2Gc --time=00:50 --output=out/$EXPERIMENT_NAME/collect_sample.out --error=error/$EXPERIMENT_NAME/collect_sample.out launch_job/car_on_hill/collect_sample.sh -e $EXPERIMENT_NAME)
