@@ -5,4 +5,4 @@ parse_arguments $@
 
 source env_gpu/bin/activate 
 
-car_on_hill_ifqi -s $SEED -b $MAX_BELLMAN_ITERATION
+car_on_hill_ifqi -e $EXPERIMENT_NAME -s $SEED -b $MAX_BELLMAN_ITERATION

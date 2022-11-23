@@ -5,4 +5,4 @@ parse_arguments $@
 
 source env_cpu/bin/activate 
 
-car_on_hill_fqi_evaluate -s $SEED -b $MAX_BELLMAN_ITERATION
+car_on_hill_fqi_evaluate -e $EXPERIMENT_NAME -s $SEED -b $MAX_BELLMAN_ITERATION
