@@ -80,8 +80,8 @@ def run_cli(argvs=sys.argv[1:]):
 
     replay_buffer.save(f"experiments/car_on_hill/figures/{args.experiment_name}/replay_buffer.npz")
 
-    replay_buffer.cast_to_jax_array()
-    samples_count, _, _ = count_samples(
-        replay_buffer.states[:, 0], replay_buffer.states[:, 1], states_x_boxes, states_v_boxes, replay_buffer.rewards
-    )
-    np.save(f"experiments/car_on_hill/figures/{args.experiment_name}/samples_count.npy", samples_count)
+    # replay_buffer.cast_to_jax_array()
+    # samples_count, _, _ = count_samples(
+    #     replay_buffer.states[:, 0], replay_buffer.states[:, 1], states_x_boxes, states_v_boxes, replay_buffer.rewards
+    # )
+    # np.save(f"experiments/car_on_hill/figures/{args.experiment_name}/samples_count.npy", samples_count)
