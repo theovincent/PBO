@@ -3,8 +3,15 @@
 source launch_job/parse_arguments.sh
 parse_arguments $@
 
-mkdir -p out/$EXPERIMENT_NAME
-mkdir -p error/$EXPERIMENT_NAME
+[ -d out/$EXPERIMENT_NAME ] || mkdir -p out/$EXPERIMENT_NAME
+[ -d error/$EXPERIMENT_NAME ] || mkdir -p error/$EXPERIMENT_NAME
+
+[ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME ] || makedirs experiments/car_on_hill/figures/$EXPERIMENT_NAME
+[ -f experiments/car_on_hill/figures/$EXPERIMENT_NAME/parameters.json ] || cp experiments/car_on_hill/parameters.json experiments/car_on_hill/figures/$EXPERIMENT_NAME/parameters.json
+[ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/FQI ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/FQI
+[ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_linear
+[ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_deep
+[ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/IFQI ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/IFQI
 
 
 # Collect data
