@@ -23,8 +23,20 @@ function parse_arguments() {
                 shift
                 shift
                 ;;
-            -a | --architecture)
+            -sfqi | --skip_fqi)
+                FQI=false
                 shift
+                ;;
+            -spbo_linear | --skip_pbo_linear)
+                PBO_linear=false
+                shift
+                ;;
+            -spbo_deep | --skip_pbo_deep)
+                PBO_deep=false
+                shift
+                ;;
+            -sifqi | --skip_ifqi)
+                IFQI=false
                 shift
                 ;;
             -?*)
@@ -51,5 +63,21 @@ function parse_arguments() {
     then
         echo "max_bellman_iterations is missing, use -b" >&2
         exit
+    fi
+    if [[ $FQI == "" ]]
+    then
+        FQI=true
+    fi
+    if [[ $PBO_linear == "" ]]
+    then
+        PBO_linear=true
+    fi
+    if [[ $PBO_deep == "" ]]
+    then
+        PBO_deep=true
+    fi
+    if [[ $IFQI == "" ]]
+    then
+        IFQI=true
     fi
 }
