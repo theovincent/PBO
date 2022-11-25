@@ -40,7 +40,7 @@ if [[ $PBO_linear = true ]]
 then
     # PBO linear
     echo "launch train pbo linear"
-    submission_train_pbo_linear=$(sbatch -J train_pbo_linear --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=2 --mem-per-cpu=750Mc --time=1:30:00 --output=out/$EXPERIMENT_NAME/train_pbo_linear_%a.out --error=error/$EXPERIMENT_NAME/train_pbo_linear_%a.out launch_job/car_on_hill/train_pbo_linear.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a linear)
+    submission_train_pbo_linear=$(sbatch -J train_pbo_linear --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=2 --mem-per-cpu=750Mc --time=3:30:00 --output=out/$EXPERIMENT_NAME/train_pbo_linear_%a.out --error=error/$EXPERIMENT_NAME/train_pbo_linear_%a.out launch_job/car_on_hill/train_pbo_linear.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a linear)
 
     IFS=" " read -ra split_submission_train_pbo_linear <<< $submission_train_pbo_linear
     submission_id_train_pbo_linear=${split_submission_train_pbo_linear[-1]}
@@ -60,7 +60,7 @@ then
     submission_id_train_pbo_deep=${split_submission_train_pbo_deep[-1]}
 
     echo "launch evaluate pbo deep"
-    submission_evaluate_pbo_deep=$(sbatch -J evaluate_pbo_deep --dependency=afterok:$submission_id_train_pbo_deep,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=100Mc --time=10:00 --output=out/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out --error=error/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out launch_job/car_on_hill/evaluate_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep)
+    submission_evaluate_pbo_deep=$(sbatch -J evaluate_pbo_deep --dependency=afterok:$submission_id_train_pbo_deep,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=500Mc --time=10:00 --output=out/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out --error=error/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out launch_job/car_on_hill/evaluate_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep)
 fi
 
 
@@ -68,7 +68,7 @@ if [[ $IFQI = true ]]
 then
     # IFQI
     echo "launch train ifqi"
-    submission_train_ifqi=$(sbatch -J train_ifqi --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=2 --mem-per-cpu=750Mc --time=1:30:00 --output=out/$EXPERIMENT_NAME/train_ifqi_%a.out --error=error/$EXPERIMENT_NAME/train_ifqi_%a.out launch_job/car_on_hill/train_ifqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+    submission_train_ifqi=$(sbatch -J train_ifqi --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=2 --mem-per-cpu=750Mc --time=3:30:00 --output=out/$EXPERIMENT_NAME/train_ifqi_%a.out --error=error/$EXPERIMENT_NAME/train_ifqi_%a.out launch_job/car_on_hill/train_ifqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 
     IFS=" " read -ra split_submission_train_ifqi <<< $submission_train_ifqi
     submission_id_train_ifqi=${split_submission_train_ifqi[-1]}

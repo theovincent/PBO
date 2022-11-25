@@ -37,9 +37,14 @@
     ],
     "n_weights": 1,
     "batch_size_weights": 1,
-    "training_steps": 5000,
+    "training_steps_pbo": 5000,
     "fitting_steps_pbo": 4,
     "starting_lr_pbo": 0.001,
     "ending_lr_pbo": 5e-06,
-    "initial_weight_std": 0.0000005
+    "initial_weight_std": 0.0000005,
+    "---- IFQIs ---": "-",
+    "training_steps_ifqi": 5000,
+    "fitting_steps_ifqi": 4,
+    "starting_lr_ifqi": 0.001,
+    "ending_lr_ifqi": 5e-06
 }

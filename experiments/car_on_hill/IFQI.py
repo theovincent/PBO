@@ -52,7 +52,7 @@ def run_cli(argvs=sys.argv[1:]):
     env, _, _, _, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
 
     replay_buffer = ReplayBuffer()
-    replay_buffer.load("experiments/car_on_hill/figures/data/replay_buffer.npz")
+    replay_buffer.load(f"experiments/car_on_hill/figures/{args.experiment_name}/replay_buffer.npz")
     data_loader_samples = SampleDataLoader(replay_buffer, p["batch_size_samples"], shuffle_key)
 
     q = FullyConnectedMultiHeadQ(
@@ -65,17 +65,17 @@ def run_cli(argvs=sys.argv[1:]):
         layers_dimension=p["layers_dimension"],
         zero_initializer=True,
         learning_rate={
-            "first": p["starting_lr_pbo"],
-            "last": p["ending_lr_pbo"],
-            "duration": p["training_steps"] * p["fitting_steps_pbo"] * len(replay_buffer) // p["batch_size_samples"],
+            "first": p["starting_lr_ifqi"],
+            "last": p["ending_lr_ifqi"],
+            "duration": p["training_steps"] * p["fitting_steps_ifqi"] * len(replay_buffer) // p["batch_size_samples"],
         },
     )
-    l2_losses = np.ones((p["training_steps"], p["fitting_steps_pbo"])) * np.nan
+    l2_losses = np.ones((p["training_steps"], p["fitting_steps_ifqi"])) * np.nan
 
-    for training_step in tqdm(range(p["training_steps"])):
+    for training_step in tqdm(range(p["training_steps_ifqi"])):
         params_target = q.params
 
-        for fitting_step in range(p["fitting_steps_pbo"]):
+        for fitting_step in range(p["fitting_steps_ifqi"]):
             cumulative_l2_loss = 0
 
             data_loader_samples.shuffle()
