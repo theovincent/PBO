@@ -67,12 +67,15 @@ def run_cli(argvs=sys.argv[1:]):
         learning_rate={
             "first": p["starting_lr_ifqi"],
             "last": p["ending_lr_ifqi"],
-            "duration": p["training_steps"] * p["fitting_steps_ifqi"] * len(replay_buffer) // p["batch_size_samples"],
+            "duration": p["training_steps_ifqi"]
+            * p["fitting_steps_ifqi"]
+            * len(replay_buffer)
+            // p["batch_size_samples"],
         },
     )
-    l2_losses = np.ones((p["training_steps"], p["fitting_steps_ifqi"])) * np.nan
+    l2_losses = np.ones((p["training_steps_ifqi"], p["fitting_steps_ifqi"])) * np.nan
 
-    for training_step in tqdm(range(p["training_steps_ifqi"])):
+    for training_step in tqdm(range(p["training_steps_ifqi_ifqi"])):
         params_target = q.params
 
         for fitting_step in range(p["fitting_steps_ifqi"]):
