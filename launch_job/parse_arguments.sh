@@ -39,6 +39,11 @@ function parse_arguments() {
                 IFQI=false
                 shift
                 ;;
+            -c | --count_samples)
+                COUNT_SAMPLES=true
+                shift
+                shift
+                ;;
             -?*)
                 printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
                 shift
@@ -79,5 +84,9 @@ function parse_arguments() {
     if [[ $IFQI == "" ]]
     then
         IFQI=true
+    fi
+    if [[ $COUNT_SAMPLES == "" ]]
+    then
+        COUNT_SAMPLES=false
     fi
 }

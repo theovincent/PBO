@@ -20,6 +20,13 @@ def run_cli(argvs=sys.argv[1:]):
         type=str,
         required=True,
     )
+    parser.add_argument(
+        "-c",
+        "--count_samples",
+        help="Count the number of samples.",
+        type=bool,
+        default=False,
+    )
     args = parser.parse_args(argvs)
     print(f"{args.experiment_name}:")
 
@@ -29,7 +36,7 @@ def run_cli(argvs=sys.argv[1:]):
 
     create_experiment_folders(args.experiment_name)
     p = json.load(open(f"experiments/car_on_hill/figures/{args.experiment_name}/parameters.json"))  # p for parameters
-    print(f"Collecting {p['n_random_samples'] + p['n_oriented_samples']} samples on Car-On-Hill...")
+    print(f"Collecting {p['n_random_samples'] + p['n_oriented_samples']} samples on Car-On-Hill, count samples = {args.count_samples}...")
 
     env, _, states_x_boxes, _, states_v_boxes = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
     sample_key = jax.random.PRNGKey(p["env_seed"])
@@ -80,8 +87,9 @@ def run_cli(argvs=sys.argv[1:]):
 
     replay_buffer.save(f"experiments/car_on_hill/figures/{args.experiment_name}/replay_buffer.npz")
 
-    replay_buffer.cast_to_jax_array()
-    samples_count, _, _ = count_samples(
-        replay_buffer.states[:, 0], replay_buffer.states[:, 1], states_x_boxes, states_v_boxes, replay_buffer.rewards
-    )
-    np.save(f"experiments/car_on_hill/figures/{args.experiment_name}/samples_count.npy", samples_count)
+    if args.count_samples:
+        replay_buffer.cast_to_jax_array()
+        samples_count, _, _ = count_samples(
+            replay_buffer.states[:, 0], replay_buffer.states[:, 1], states_x_boxes, states_v_boxes, replay_buffer.rewards
+        )
+        np.save(f"experiments/car_on_hill/figures/{args.experiment_name}/samples_count.npy", samples_count)
