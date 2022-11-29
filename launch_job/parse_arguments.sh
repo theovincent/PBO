@@ -42,7 +42,6 @@ function parse_arguments() {
             -c | --count_samples)
                 COUNT_SAMPLES=true
                 shift
-                shift
                 ;;
             -?*)
                 printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2

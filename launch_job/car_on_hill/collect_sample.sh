@@ -5,4 +5,9 @@ parse_arguments $@
 
 source env_cpu/bin/activate 
 
-car_on_hill_sample -e $EXPERIMENT_NAME -c $COUNT_SAMPLES
+if [[ $COUNT_SAMPLES = true ]]
+then
+    car_on_hill_sample -e $EXPERIMENT_NAME -c
+else
+    car_on_hill_sample -e $EXPERIMENT_NAME
+fi
