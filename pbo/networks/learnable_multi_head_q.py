@@ -20,17 +20,17 @@ class FullyConnectedMultiHeadQNet(hk.Module):
         state: jnp.ndarray,
         action: jnp.ndarray,
     ) -> jnp.ndarray:
-        x = jnp.hstack((state, action))
-        x = jnp.atleast_2d(x)
-        output = jnp.zeros((x.shape[0], self.n_heads))
+        input = jnp.hstack((state, action))
+        input = jnp.atleast_2d(input)
+        output = jnp.zeros((input.shape[0], self.n_heads))
 
         for idx_head in range(self.n_heads):
             for idx, layer_dimension in enumerate(self.layers_dimension, start=1):
-                x = hk.Linear(layer_dimension, name=f"head_{idx_head}_linear_{idx}")(x)
-                x = jax.nn.relu(x)
+                x_head = hk.Linear(layer_dimension, name=f"head_{idx_head}_linear_{idx}")(input)
+                x_head = jax.nn.relu(x_head)
 
             output = output.at[:, idx_head].set(
-                hk.Linear(1, w_init=self.initializer, name=f"head_{idx_head}_linear_last")(x)[:, 0]
+                hk.Linear(1, w_init=self.initializer, name=f"head_{idx_head}_linear_last")(x_head)[:, 0]
             )
 
         return output

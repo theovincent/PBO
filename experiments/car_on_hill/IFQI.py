@@ -75,7 +75,7 @@ def run_cli(argvs=sys.argv[1:]):
     )
     l2_losses = np.ones((p["training_steps_ifqi"], p["fitting_steps_ifqi"])) * np.nan
 
-    for training_step in tqdm(range(p["training_steps_ifqi_ifqi"])):
+    for training_step in tqdm(range(p["training_steps_ifqi"])):
         params_target = q.params
 
         for fitting_step in range(p["fitting_steps_ifqi"]):
