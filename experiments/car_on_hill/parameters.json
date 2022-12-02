@@ -11,15 +11,14 @@
         ]
     ],
     "layers_dimension": [
-        15,
-        10
+        30
     ],
     "n_states_x": 17,
     "n_states_v": 17,
     "---- Shared parameters ---": "-",
     "horizon": 100,
     "gamma": 0.95,
-    "n_random_samples": 10000,
+    "n_random_samples": 4500,
     "n_oriented_samples": 1000,
     "batch_size_samples": 500,
     "---- FQI ---": "-",
@@ -29,9 +28,9 @@
     "ending_lr_fqi": 1e-05,
     "---- PBOs ---": "-",
     "pbo_layers_dimension": [
-        5,
-        5,
-        5
+        2,
+        2,
+        2
     ],
     "n_weights": 1,
     "batch_size_weights": 1,
