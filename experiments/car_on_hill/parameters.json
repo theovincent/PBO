@@ -25,7 +25,7 @@
     "fitting_steps_fqi": 1200,
     "patience": 30,
     "starting_lr_fqi": 0.001,
-    "ending_lr_fqi": 1e-05,
+    "ending_lr_fqi": 5e-07,
     "---- PBOs ---": "-",
     "pbo_layers_dimension": [
         2,
@@ -35,7 +35,7 @@
     "n_weights": 1,
     "batch_size_weights": 1,
     "training_steps_pbo": 1000,
-    "fitting_steps_pbo": 20,
+    "fitting_steps_pbo": 10,
     "starting_lr_pbo": 0.001,
     "ending_lr_pbo": 5e-07,
     "initial_weight_std": 0.0000005,
