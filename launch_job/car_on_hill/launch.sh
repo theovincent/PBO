@@ -16,7 +16,7 @@ parse_arguments $@
 
 # Collect data
 echo "launch collect sample"
-submission_collect_sample=$(sbatch -J collect_sample --cpus-per-task=1 --mem-per-cpu=250Mc --time=50:00 --output=out/$EXPERIMENT_NAME/collect_sample.out --error=error/$EXPERIMENT_NAME/collect_sample.out -p amd,amd2,rtx,rtx2 launch_job/car_on_hill/collect_sample.sh -e $EXPERIMENT_NAME -b 0 -c $COUNT_SAMPLES)
+submission_collect_sample=$(sbatch -J collect_sample --cpus-per-task=1 --mem-per-cpu=250Mc --time=50:00 --output=out/$EXPERIMENT_NAME/collect_sample.out --error=error/$EXPERIMENT_NAME/collect_sample.out -p amd,amd2,rtx,rtx2 launch_job/car_on_hill/collect_sample.sh -e $EXPERIMENT_NAME -b 0 $COUNT_SAMPLES)
 
 IFS=" " read -ra split_submission_collect_sample <<< $submission_collect_sample
 submission_id_collect_sample=${split_submission_collect_sample[-1]}
@@ -54,13 +54,13 @@ if [[ $PBO_deep = true ]]
 then
     # PBO deep
     echo "launch train pbo deep"
-    submission_train_pbo_deep=$(sbatch -J train_pbo_deep --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=1 --mem-per-cpu=750Mc --time=7:30:00 --output=out/$EXPERIMENT_NAME/train_pbo_deep_%a.out --error=error/$EXPERIMENT_NAME/train_pbo_deep_%a.out -p amd,amd2,rtx,rtx2 launch_job/car_on_hill/train_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep)
+    submission_train_pbo_deep=$(sbatch -J train_pbo_deep --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=1 --mem-per-cpu=750Mc --time=7:30:00 --output=out/$EXPERIMENT_NAME/train_pbo_deep_%a.out --error=error/$EXPERIMENT_NAME/train_pbo_deep_%a.out -p amd,amd2,rtx,rtx2 launch_job/car_on_hill/train_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
 
     IFS=" " read -ra split_submission_train_pbo_deep <<< $submission_train_pbo_deep
     submission_id_train_pbo_deep=${split_submission_train_pbo_deep[-1]}
 
     echo "launch evaluate pbo deep"
-    submission_evaluate_pbo_deep=$(sbatch -J evaluate_pbo_deep --dependency=afterok:$submission_id_train_pbo_deep,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=600Mc --time=10:00 --output=out/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out --error=error/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out -p amd,amd2,rtx,rtx2 launch_job/car_on_hill/evaluate_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep)
+    submission_evaluate_pbo_deep=$(sbatch -J evaluate_pbo_deep --dependency=afterok:$submission_id_train_pbo_deep,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=600Mc --time=10:00 --output=out/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out --error=error/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out -p amd,amd2,rtx,rtx2 launch_job/car_on_hill/evaluate_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
 fi
 
 

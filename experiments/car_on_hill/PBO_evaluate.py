@@ -48,11 +48,17 @@ def run_cli(argvs=sys.argv[1:]):
             default=10,
             type=int,
         )
+        parser.add_argument(
+            "-c", "--conv", help="PBO made out of convolutional layers or not.", default=False, action="store_true"
+        )
         args = parser.parse_args(argvs)
         print(f"{args.experiment_name}:")
         print(
             f"Evaluating a {args.architecture} PBO on Car-On-Hill with {args.max_bellman_iterations} + {args.validation_bellman_iterations} Bellman iterations and seed {args.seed} ..."
         )
+        if args.conv:
+            print("PBO with convolutionnal layers.")
+
         p = json.load(
             open(f"experiments/car_on_hill/figures/{args.experiment_name}/parameters.json")
         )  # p for parameters
@@ -97,6 +103,7 @@ def run_cli(argvs=sys.argv[1:]):
                 layers_dimension=p["pbo_layers_dimension"],
                 learning_rate={"first": 0, "last": 0, "duration": 0},
                 initial_weight_std=0.1,
+                conv=args.conv,
             )
         pbo.params = load_params(
             f"experiments/car_on_hill/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_P_{args.seed}"

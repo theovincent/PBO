@@ -39,8 +39,12 @@ function parse_arguments() {
                 IFQI=false
                 shift
                 ;;
-            -c | --count_samples)
-                COUNT_SAMPLES=true
+            -sc | --skip_count_samples)
+                SKIP_COUNT_SAMPLES=true
+                shift
+                ;;
+            --conv)
+                CONV="-c"
                 shift
                 ;;
             -?*)
@@ -84,8 +88,12 @@ function parse_arguments() {
     then
         IFQI=true
     fi
-    if [[ $COUNT_SAMPLES == "" ]]
+    if [[ $SKIP_COUNT_SAMPLES == "" ]]
     then
-        COUNT_SAMPLES=false
+        COUNT_SAMPLES="-c"
+    fi
+    if [[ $CONV == "" ]]
+    then
+        CONV=false
     fi
 }
