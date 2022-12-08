@@ -74,5 +74,5 @@ then
     submission_id_train_ifqi=${split_submission_train_ifqi[-1]}
 
     echo "launch evaluate ifqi"
-    submission_evaluate_ifqi=$(sbatch -J evaluate_ifqi --dependency=afterok:$submission_id_train_ifqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=100Mc --time=10:00 --output=out/$EXPERIMENT_NAME/evaluate_ifqi_%a.out --error=error/$EXPERIMENT_NAME/evaluate_ifqi_%a.out -p amd,amd2,rtx,rtx2 launch_job/car_on_hill/evaluate_ifqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+    submission_evaluate_ifqi=$(sbatch -J evaluate_ifqi --dependency=afterok:$submission_id_train_ifqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=150Mc --time=10:00 --output=out/$EXPERIMENT_NAME/evaluate_ifqi_%a.out --error=error/$EXPERIMENT_NAME/evaluate_ifqi_%a.out -p amd,amd2,rtx,rtx2 launch_job/car_on_hill/evaluate_ifqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 fi
