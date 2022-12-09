@@ -43,7 +43,7 @@ function parse_arguments() {
                 SKIP_COUNT_SAMPLES=true
                 shift
                 ;;
-            --conv)
+            -c | --conv)
                 CONV="-c"
                 shift
                 ;;
@@ -91,9 +91,5 @@ function parse_arguments() {
     if [[ $SKIP_COUNT_SAMPLES == "" ]]
     then
         COUNT_SAMPLES="-c"
-    fi
-    if [[ $CONV == "" ]]
-    then
-        CONV=false
     fi
 }
