@@ -229,7 +229,7 @@ class DeepConvPBONet(hk.Module):
         for idx, layer_dimension in enumerate(self.layers_dimension, start=1):
             x = hk.Conv1D(
                 output_channels=layer_dimension,
-                kernel_shape=50,
+                kernel_shape=15,
                 stride=1,
                 padding="SAME",
                 name=f"conv_{idx}",
@@ -239,7 +239,7 @@ class DeepConvPBONet(hk.Module):
 
         x = hk.Conv1D(
             output_channels=1,
-            kernel_shape=50,
+            kernel_shape=15,
             stride=1,
             padding="SAME",
             name=f"conv_last",
