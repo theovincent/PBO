@@ -136,19 +136,19 @@ class CustomLinearPBO(BasePBO):
 
 class LinearMaxLinearPBONet(hk.Module):
     def __init__(self, layer_dimension: int, initial_weight_std: float) -> None:
-        super().__init__(name="LinearPBONet")
+        super().__init__(name="LinearMaxLinearPBONet")
         self.layer_dimension = layer_dimension
         self.initial_weight_std = initial_weight_std
 
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
         x = hk.Linear(
-            2 * self.layer_dimension,
+            4 * self.layer_dimension,
             name="linear1",
             w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
         )(weights)
         x = jax.nn.relu(x)
         x = hk.Linear(
-            self.layer_dimension,
+            2 * self.layer_dimension,
             name="linear2",
             w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
         )(x)
@@ -191,37 +191,62 @@ class LinearMaxLinearPBO(BasePBO):
 
 
 class DeepPBONet(hk.Module):
-    def __init__(self, layer_dimension: int, initial_weight_std: float) -> None:
-        super().__init__(name="LinearPBONet")
-        self.layer_dimension = layer_dimension
+    def __init__(self, weights_dimension: int, layers_dimension: list, initial_weight_std: float) -> None:
+        super().__init__(name="DeepPBONet")
+        self.weights_dimension = weights_dimension
+        self.layers_dimension = layers_dimension
         self.initial_weight_std = initial_weight_std
 
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        x = weights
+
+        for idx, layer_dimension in enumerate(self.layers_dimension, start=1):
+            x = hk.Linear(
+                self.weights_dimension * layer_dimension,
+                name=f"linear_{idx}",
+                w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
+            )(x)
+            x = jax.nn.relu(x)
+
         x = hk.Linear(
-            4 * self.layer_dimension,
-            name="linear1",
-            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
-        )(weights)
-        x = jax.nn.relu(x)
-        x = hk.Linear(
-            2 * self.layer_dimension,
-            name="linear2",
-            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
-        )(x)
-        x = hk.MaxPool(window_shape=2, strides=2, padding="VALID", channel_axis=0)(x)
-        x = hk.Linear(
-            self.layer_dimension,
-            name="linear3",
-            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
-        )(x)
-        x = jax.nn.relu(x)
-        x = hk.Linear(
-            self.layer_dimension,
-            name="linear4",
+            self.weights_dimension,
+            name="linear_last",
             w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
         )(x)
 
         return x
+
+
+class DeepConvPBONet(hk.Module):
+    def __init__(self, layers_dimension: list, initial_weight_std: float) -> None:
+        super().__init__(name="DeepConvPBONet")
+        self.layers_dimension = layers_dimension
+        self.initial_weight_std = initial_weight_std
+
+    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        x = jnp.expand_dims(weights, axis=2)
+
+        for idx, layer_dimension in enumerate(self.layers_dimension, start=1):
+            x = hk.Conv1D(
+                output_channels=layer_dimension,
+                kernel_shape=15,
+                stride=1,
+                padding="SAME",
+                name=f"conv_{idx}",
+                w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
+            )(x)
+            x = jax.nn.relu(x)
+
+        x = hk.Conv1D(
+            output_channels=1,
+            kernel_shape=15,
+            stride=1,
+            padding="SAME",
+            name=f"conv_last",
+            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
+        )(x)
+
+        return x[:, :, 0]
 
 
 class DeepPBO(BasePBO):
@@ -230,11 +255,21 @@ class DeepPBO(BasePBO):
         q: BaseQ,
         max_bellman_iterations: int,
         network_key: int,
+        layers_dimension: list,
         learning_rate: dict,
         initial_weight_std: float,
+        conv: bool,
     ) -> None:
-        def network(weights: jnp.ndarray) -> jnp.ndarray:
-            return DeepPBONet(q.weights_dimension, initial_weight_std)(weights)
+
+        if conv:
+
+            def network(weights: jnp.ndarray) -> jnp.ndarray:
+                return DeepConvPBONet(layers_dimension, initial_weight_std)(weights)
+
+        else:
+
+            def network(weights: jnp.ndarray) -> jnp.ndarray:
+                return DeepPBONet(q.weights_dimension, layers_dimension, initial_weight_std)(weights)
 
         super().__init__(
             q=q,

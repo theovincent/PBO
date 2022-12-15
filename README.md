@@ -10,53 +10,59 @@ pip install -e .[cpu]
 ```
 
 ### With Docker
-In the folder where the code is, build the image and run the container in iterative mode:
-```bash
-docker build -t pbo_image .
-docker run -it --mount type=bind,src=`pwd`/figure_specific,dst=/workspace/figure_specific pbo_image bash
-```
+Please see the [README](./docker/README.md) file made for that.
 
 ## Run the experiments
-For an `environment` and an `algorithm`, a jupyter notebook running the associated the experience can be found at _figure_specific/[environment]/[algorithm].ipynb_.
+For an `environment` and an `algorithm`, a jupyter notebook running the associated the experience can be found at _experiments/[environment]/[algorithm].ipynb_.
 
-For example, the jupyter notebook _figure_specific/chain_walk/PBO_linear.ipynb_ trains a linear PBO on the Chain-Walk environment.
+For example, the jupyter notebook _experiments/chain_walk/PBO_linear.ipynb_ trains a linear PBO on the Chain-Walk environment.
 
-To generate the plots with $N$ seeds with $K$ Bellman iterations, you first need to generate the data by running `./figure_specific/[environment]/run_seeds.sh -n_seeds N -n_bellman_iteration K`
-and then run the jupyter notebook _figure_specific/[environment]/plots.ipynb_.
+To generate the plots with $N$ seeds with $K$ Bellman iterations, you first need to generate the data by running `./experiments/[environment]/run_seeds.sh -n_seeds N -n_bellman_iteration K`
+and then run the jupyter notebook _experiments/[environment]/plots.ipynb_.
 
 ### Replicate figures
 Figure 4a with one seed, run
 ```Bash
-./figure_specific/chain_walk/run_seeds.sh --n_seeds 1 --n_bellman_iterations 5
-jupyter nbconvert --to notebook --inplace --execute figure_specific/chain_walk/plots.ipynb
+./experiments/chain_walk/run_seeds.sh --n_seeds 1 --n_bellman_iterations 5
+jupyter nbconvert --to notebook --inplace --execute experiments/chain_walk/plots.ipynb
 ```
-You will find Figure 4a at _figure_specific/chain_walk/figures/distance_to_optimal_V_5.pdf_. The code should take around 5 minutes to run.
+You will find Figure 4a at _experiments/chain_walk/figures/distance_to_optimal_V_5.pdf_. The code should take around 5 minutes to run.
 
 Figure 4b with one seed, run
 ```Bash
-./figure_specific/lqr/run_seeds.sh --n_seeds 1 --n_bellman_iterations 2
-jupyter nbconvert --to notebook --inplace --execute figure_specific/lqr/plots.ipynb
+./experiments/lqr/run_seeds.sh --n_seeds 1 --n_bellman_iterations 2
+jupyter nbconvert --to notebook --inplace --execute experiments/lqr/plots.ipynb
 ```
-You will find Figure 4b at _figure_specific/lqr/figures/distance_to_optimal_Pi_2.pdf_. The code should take around 2 minutes to run.
+You will find Figure 4b at _experiments/lqr/figures/distance_to_optimal_Pi_2.pdf_. The code should take around 2 minutes to run.
 
 Figure 5a with one seed, run
 ```Bash
-./figure_specific/car_on_hill/run_seeds.sh --n_seeds 1 --n_bellman_iterations 9
-jupyter nbconvert --to notebook --inplace --execute figure_specific/car_on_hill/samples.ipynb
-jupyter nbconvert --to notebook --inplace --execute figure_specific/car_on_hill/plots.ipynb
+./experiments/car_on_hill/run_seeds.sh --n_seeds 1 --n_bellman_iterations 9
+jupyter nbconvert --to notebook --inplace --execute experiments/car_on_hill/samples.ipynb
+jupyter nbconvert --to notebook --inplace --execute experiments/car_on_hill/plots.ipynb
 ```
-You will find Figure 5a at _figure_specific/car_on_hill/figures/distance_to_optimal_V_9.pdf_. The code should take around 30 minutes to run.
+You will find Figure 5a at _experiments/car_on_hill/figures/distance_to_optimal_V_9.pdf_. The code should take around 30 minutes to run.
 
 Figure 5b with one seed, run
 ```Bash
-./figure_specific/bicycle/run_seeds_FQI.sh --n_seeds 1 --n_bellman_iterations 8
-./figure_specific/bicycle/run_seeds_PBO_deep.sh --n_seeds 1 --n_bellman_iterations 8
-./figure_specific/bicycle/run_seeds_PBO_linear.sh --n_seeds 1 --n_bellman_iterations 8
-jupyter nbconvert --to notebook --inplace --execute figure_specific/bicycle/plots.ipynb
+./experiments/bicycle/run_seeds_FQI.sh --n_seeds 1 --n_bellman_iterations 8
+./experiments/bicycle/run_seeds_PBO_deep.sh --n_seeds 1 --n_bellman_iterations 8
+./experiments/bicycle/run_seeds_PBO_linear.sh --n_seeds 1 --n_bellman_iterations 8
+jupyter nbconvert --to notebook --inplace --execute experiments/bicycle/plots.ipynb
 ```
-You will find Figure 5b at _figure_specific/bicycle/figures/seconds_8.pdf_. The code should take around 3 hours to run.
+You will find Figure 5b at _experiments/bicycle/figures/seconds_8.pdf_. The code should take around 3 hours to run.
 
-If any problem is encountered, make sure your files match the [file organization](#file-organization) and that the parameters _figure_specific/[environment]/plots.ipynb_ are matching the data that has been computed so far.
+If any problem is encountered, make sure your files match the [file organization](#file-organization) and that the parameters _experiments/[environment]/plots.ipynb_ are matching the data that has been computed so far.
+
+## Run Car On Hill
+```Bash
+car_on_hill_sample  # to collect the offline dataset 
+car_on_hill_fqi -b 9 -s 1  # to train and evaluate FQI
+car_on_hill_pbo -a linear -b 9 -s 1  # to train a linear PBO
+car_on_hill_pbo_evaluate -a linear -b 9 -s 1  # to evaluate it
+car_on_hill_pbo -a deep -b 9 -s 1  # to train a deep PBO
+car_on_hill_pbo_evaluate -a deep -b 9 -s 1  # to evaluate it
+```
 
 ## Run the tests
 Run all tests with
@@ -69,7 +75,7 @@ The code should take around 1 minutes to run.
 ```
 📦PBO
  ┣ 📂env  # environment files
- ┣ 📂figure_specific  # files to run the experiments
+ ┣ 📂experiments  # files to run the experiments
  ┃ ┣ 📂bicycle
  ┃ ┃ ┣ 📂figures
  ┃ ┃ ┃ ┣ 📂data
@@ -178,3 +184,17 @@ If jax does not recognize the gpu, you may need to run
 pip install -U jax[cuda11_cudnn82] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
 Taken from https://github.com/google/jax/discussions/10323.
+
+
+## Using in a cluster
+Download miniconda on the server host to get Python 3.8:
+```Bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.12.0-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+Upgrade pip and install virtualenv
+```Bash
+python3 -m pip install --user --upgrade pip
+python3 -m pip install --user virtualenv
+```
+Now you can go back to the [user installation](#user-installation) guidelines.
