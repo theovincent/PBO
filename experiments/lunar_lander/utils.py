@@ -1,7 +1,6 @@
 import os
 import shutil
-from typing import Tuple
-import numpy as np
+from tqdm import tqdm
 import jax
 import haiku as hk
 
@@ -35,7 +34,7 @@ def collect_random_samples(
 ) -> None:
     env.reset()
 
-    for _ in range(n_initial_samples):
+    for _ in tqdm(range(n_initial_samples)):
         state = env.state
 
         env.sample_key, key = jax.random.split(env.sample_key)
@@ -48,23 +47,21 @@ def collect_random_samples(
             env.reset()
 
 
-def collect_sample(
+def collect_samples(
     env: LunarLanderEnv,
     replay_buffer: ReplayBuffer,
     q: BaseQ,
     q_params: hk.Params,
-    n_samples: int,
+    n_steps: int,
     horizon: int,
     epsilon: float,
 ) -> None:
-    env.reset()
-
-    for _ in range(n_samples):
+    for _ in range(n_steps):
         state = env.state
 
         env.sample_key, key = jax.random.split(env.sample_key)
         if jax.random.uniform(key) > epsilon:
-            action = q(q_params, state_to_repeat, env.actions_on_max).kind_of_an_argmax()
+            action = env.jitted_best_action(q, q_params, state)
         else:
             action = jax.random.choice(key, env.actions_on_max)
 
@@ -72,5 +69,5 @@ def collect_sample(
 
         replay_buffer.add(state, action, reward, next_state, absorbing)
 
-        if absorbing or env.n_steps > horizon:
+        if absorbing or env.n_steps >= horizon:
             env.reset()

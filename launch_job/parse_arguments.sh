@@ -27,6 +27,10 @@ function parse_arguments() {
                 FQI=false
                 shift
                 ;;
+            -sdqn | --skip_dqn)
+                DQN=false
+                shift
+                ;;
             -spbo_linear | --skip_pbo_linear)
                 PBO_linear=false
                 shift
@@ -75,6 +79,10 @@ function parse_arguments() {
     if [[ $FQI == "" ]]
     then
         FQI=true
+    fi
+    if [[ $DQI == "" ]]
+    then
+        DQN=true
     fi
     if [[ $PBO_linear == "" ]]
     then

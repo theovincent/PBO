@@ -1,7 +1,11 @@
 from typing import Tuple
+from functools import partial
 import gymnasium as gym
 import jax
 import jax.numpy as jnp
+import haiku as hk
+
+from pbo.networks.base_q import BaseQ
 
 
 class LunarLanderEnv:
@@ -25,3 +29,9 @@ class LunarLanderEnv:
         self.n_steps += 1
 
         return jnp.array(self.state), jnp.array([reward]), jnp.array([absorbing]), info
+
+    @partial(jax.jit, static_argnames=("self", "q"))
+    def jitted_best_action(self, q: BaseQ, q_params: hk.Params, state: jnp.ndarray) -> jnp.ndarray:
+        state_repeat = jnp.repeat(state.reshape((1, 8)), self.actions_on_max.shape[0], axis=0)
+
+        return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]

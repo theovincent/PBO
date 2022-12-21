@@ -1,17 +1,43 @@
+from typing import Dict
 import numpy as np
 import jax.numpy as jnp
+import jax
 
 
 class ReplayBuffer:
-    def __init__(self) -> None:
-        self.states = []
-        self.actions = []
-        self.rewards = []
-        self.next_states = []
-        self.absorbing = []
+    def __init__(self, max_size: int = 10000) -> None:
+        self.max_size: int = max_size
+        self.len: int = 0
+        self.idx: int = 0
 
-    def __len__(self) -> int:
-        return len(self.states)
+    def set_first(
+        self,
+        state: jnp.ndarray,
+        action: jnp.ndarray,
+        reward: jnp.ndarray,
+        next_state: jnp.ndarray,
+        absorbing: jnp.ndarray,
+    ) -> None:
+        self.states = jnp.zeros((self.max_size,) + state.shape, dtype=state.dtype)
+        self.actions = jnp.zeros((self.max_size,) + action.shape, dtype=action.dtype)
+        self.rewards = jnp.zeros((self.max_size,) + reward.shape, dtype=reward.dtype)
+        self.next_states = jnp.zeros((self.max_size,) + next_state.shape, dtype=next_state.dtype)
+        self.absorbings = jnp.zeros((self.max_size,) + absorbing.shape, dtype=absorbing.dtype)
+
+    def add_sample(
+        self,
+        state: jnp.ndarray,
+        action: jnp.ndarray,
+        reward: jnp.ndarray,
+        next_state: jnp.ndarray,
+        absorbing: jnp.ndarray,
+        idx: int,
+    ) -> None:
+        self.states = self.states.at[idx].set(state)
+        self.actions = self.actions.at[idx].set(action)
+        self.rewards = self.rewards.at[idx].set(reward)
+        self.next_states = self.next_states.at[idx].set(next_state)
+        self.absorbings = self.absorbings.at[idx].set(absorbing)
 
     def add(
         self,
@@ -21,11 +47,15 @@ class ReplayBuffer:
         next_state: jnp.ndarray,
         absorbing: jnp.ndarray,
     ) -> None:
-        self.states.append(state)
-        self.actions.append(action)
-        self.rewards.append(reward)
-        self.next_states.append(next_state)
-        self.absorbing.append(absorbing)
+        if self.idx >= self.max_size:
+            self.idx = 0
+
+        if self.len == 0:
+            self.set_first(state, action, reward, next_state, absorbing)
+        self.add_sample(state, action, reward, next_state, absorbing, self.idx)
+
+        self.idx += 1
+        self.len = min(self.len + 1, self.max_size)
 
     def save(self, path: str) -> None:
         np.savez(
@@ -34,7 +64,7 @@ class ReplayBuffer:
             actions=self.actions,
             rewards=self.rewards,
             next_states=self.next_states,
-            absorbing=self.absorbing,
+            absorbing=self.absorbings,
         )
 
     def load(self, path: str) -> None:
@@ -44,11 +74,15 @@ class ReplayBuffer:
         self.actions = jnp.array(dataset["actions"])
         self.rewards = jnp.array(dataset["rewards"])
         self.next_states = jnp.array(dataset["next_states"])
-        self.absorbing = jnp.array(dataset["absorbing"])
+        self.absorbings = jnp.array(dataset["absorbings"])
 
-    def cast_to_jax_array(self) -> None:
-        self.states = jnp.array(self.states)
-        self.actions = jnp.array(self.actions)
-        self.rewards = jnp.array(self.rewards)
-        self.next_states = jnp.array(self.next_states)
-        self.absorbing = jnp.array(self.absorbing)
+    def sample_random_batch(self, sample_key: jax.random.PRNGKeyArray, n_samples: int) -> Dict[str, jnp.ndarray]:
+        idxs = jax.random.randint(sample_key, shape=(n_samples,), minval=0, maxval=self.len)
+
+        return {
+            "state": self.states[idxs],
+            "action": self.actions[idxs],
+            "reward": self.rewards[idxs],
+            "next_state": self.next_states[idxs],
+            "absorbing": self.absorbings[idxs],
+        }

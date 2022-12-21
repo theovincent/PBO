@@ -9,7 +9,6 @@ from pbo.sample_collection.replay_buffer import ReplayBuffer
 class SampleDataLoader:
     def __init__(self, replay_buffer: ReplayBuffer, batch_size: int, shuffle_key: jax.random.PRNGKeyArray) -> None:
         self.replay_buffer = copy.copy(replay_buffer)
-        self.replay_buffer.cast_to_jax_array()
         self.n_samples = len(replay_buffer)
         self.batch_size = batch_size
         self.shuffle_key = shuffle_key

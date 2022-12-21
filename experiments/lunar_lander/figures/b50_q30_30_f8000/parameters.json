@@ -1,0 +1,38 @@
+{
+    "env_seed": 0,
+    "layers_dimension": [
+        30,
+        30
+    ],
+    "---- Shared parameters ---": "-",
+    "horizon": 1000,
+    "gamma": 0.99,
+    "n_initial_samples": 250,
+    "max_size": 10000,
+    "batch_size_samples": 32,
+    "---- DQN ---": "-",
+    "fitting_updates_dqn": 8000,
+    "starting_lr_dqn": 3e-03,
+    "ending_lr_dqn": 1e-05,
+    "starting_eps_dqn": 1,
+    "ending_eps_dqn": 0.01,
+    "steps_per_update_dqn": 1,
+    "---- PBOs ---": "-",
+    "pbo_layers_dimension": [
+        2,
+        2,
+        2
+    ],
+    "n_weights": 1,
+    "batch_size_weights": 1,
+    "training_steps_pbo": 1000,
+    "fitting_steps_pbo": 10,
+    "starting_lr_pbo": 0.001,
+    "ending_lr_pbo": 5e-07,
+    "initial_weight_std": 0.0000005,
+    "---- IFQIs ---": "-",
+    "training_steps_ifqi": 1000,
+    "fitting_steps_ifqi": 40,
+    "starting_lr_ifqi": 0.001,
+    "ending_lr_ifqi": 5e-07
+}
