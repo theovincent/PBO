@@ -146,6 +146,7 @@ dmypy.json
 
 # Avoid pushing experiments output
 experiments/car_on_hill/figures
+experiments/lunar_lander/figures
 **/*.out
 
 # Save optimal value functions of car on hill

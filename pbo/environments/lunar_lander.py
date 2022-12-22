@@ -1,6 +1,8 @@
 from typing import Tuple
 from functools import partial
+from gymnasium.wrappers.monitoring import video_recorder
 import gymnasium as gym
+import numpy as np
 import jax
 import jax.numpy as jnp
 import haiku as hk
@@ -15,7 +17,7 @@ class LunarLanderEnv:
         self.reset_key, self.sample_key = jax.random.split(env_key)
         self.actions_on_max = jnp.array([[0], [1], [2], [3]])
 
-        self.env = gym.make("LunarLander-v2")
+        self.env = gym.make("LunarLander-v2", render_mode="rgb_array")
 
     def reset(self) -> jnp.ndarray:
         self.reset_key, key = jax.random.split(self.reset_key)
@@ -35,3 +37,27 @@ class LunarLanderEnv:
         state_repeat = jnp.repeat(state.reshape((1, 8)), self.actions_on_max.shape[0], axis=0)
 
         return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]
+
+    def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int, video_path: str = "try") -> float:
+        vid = video_recorder.VideoRecorder(
+            self.env, path=f"experiments/lunar_lander/figures/{video_path}.mp4", disable_logger=True
+        )
+        cumulative_reward = jnp.array([0])
+        discount = 1
+        absorbing = jnp.array([False])
+        self.reset()
+
+        while not absorbing[0] and self.n_steps < horizon:
+            self.env.render()
+            vid.capture_frame()
+
+            action = self.jitted_best_action(q, q_params, self.state)
+            _, reward, absorbing, _ = self.step(action)
+
+            cumulative_reward += discount * reward
+            discount *= self.gamma
+
+        self.env.close()
+        vid.close()
+
+        return np.array(cumulative_reward)[0]

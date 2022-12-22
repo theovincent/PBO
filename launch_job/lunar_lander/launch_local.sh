@@ -18,7 +18,8 @@ do
         echo "launch train dqn"
         lunar_lander_dqn -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
 
-        # lunar_lander_dqn_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
+        echo "launch evaluate dqn"
+        lunar_lander_dqn_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
     fi 
 
 
