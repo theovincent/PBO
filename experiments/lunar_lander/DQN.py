@@ -86,16 +86,16 @@ def run_cli(argvs=sys.argv[1:]):
                 replay_buffer,
                 q,
                 q.params,
-                p["steps_per_update_dqn"],
+                p["steps_per_update"],
                 p["horizon"],
                 epsilon_schedule((bellman_iteration - 1) * p["fitting_updates_dqn"] + update),
             )
 
             sample_key, key = jax.random.split(sample_key)
-            batch_data = replay_buffer.sample_random_batch(sample_key, p["batch_size_samples"])
+            batch_samples = replay_buffer.sample_random_batch(sample_key, p["batch_size_samples"])
 
             q.params, q.optimizer_state, l2_loss = q.learn_on_batch(
-                q.params, params_target, q.optimizer_state, batch_data
+                q.params, params_target, q.optimizer_state, batch_samples
             )
 
             l2_losses[bellman_iteration - 1, update] = l2_loss
