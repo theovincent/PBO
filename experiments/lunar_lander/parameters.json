@@ -25,7 +25,7 @@
     ],
     "n_weights": 1,
     "batch_size_weights": 1,
-    "training_steps_pbo": 100,
+    "training_steps_pbo": 1000,
     "fitting_updates_pbo": 100,
     "starting_lr_pbo": 0.001,
     "ending_lr_pbo": 5e-07,
