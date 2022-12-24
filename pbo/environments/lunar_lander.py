@@ -38,7 +38,7 @@ class LunarLanderEnv:
 
         return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]
 
-    def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int, video_path: str = "try") -> float:
+    def evaluate_and_record(self, q: BaseQ, q_params: hk.Params, horizon: int, video_path: str) -> float:
         vid = video_recorder.VideoRecorder(
             self.env, path=f"experiments/lunar_lander/figures/{video_path}.mp4", disable_logger=True
         )
@@ -61,3 +61,24 @@ class LunarLanderEnv:
         vid.close()
 
         return np.array(cumulative_reward)[0]
+
+    def evaluate_(self, q: BaseQ, q_params: hk.Params, horizon: int) -> float:
+        cumulative_reward = jnp.array([0])
+        discount = 1
+        absorbing = jnp.array([False])
+        self.reset()
+
+        while not absorbing[0] and self.n_steps < horizon:
+            action = self.jitted_best_action(q, q_params, self.state)
+            _, reward, absorbing, _ = self.step(action)
+
+            cumulative_reward += discount * reward
+            discount *= self.gamma
+
+        return np.array(cumulative_reward)[0]
+
+    def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int, video_path: str = None) -> float:
+        if video_path is None:
+            return self.evaluate_(q, q_params, horizon)
+        else:
+            return self.evaluate_and_record(q, q_params, horizon, video_path)
