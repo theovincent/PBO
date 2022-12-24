@@ -80,7 +80,7 @@ function parse_arguments() {
     then
         FQI=true
     fi
-    if [[ $DQI == "" ]]
+    if [[ $DQN == "" ]]
     then
         DQN=true
     fi
