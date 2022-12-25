@@ -22,11 +22,12 @@
         2,
         2,
         2,
+        2,
         2
     ],
     "n_weights": 1,
     "batch_size_weights": 1,
-    "training_steps_pbo": 1600,
+    "training_steps_pbo": 3000,
     "fitting_updates_pbo": 25,
     "starting_lr_pbo": 0.0001,
     "ending_lr_pbo": 5e-07,

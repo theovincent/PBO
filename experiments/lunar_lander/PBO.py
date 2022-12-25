@@ -81,7 +81,7 @@ def run_cli(argvs=sys.argv[1:]):
         zero_initializer=True,
     )
     epsilon_schedule = optax.linear_schedule(
-        p["starting_eps_pbo"], p["ending_eps_pbo"], args.max_bellman_iterations * p["fitting_updates_pbo"]
+        p["starting_eps_pbo"], p["ending_eps_pbo"], p["training_steps_pbo"] * p["fitting_updates_pbo"]
     )
     weights_buffer = WeightsBuffer()
     weights_buffer.add(q.to_weights(q.params))
@@ -104,10 +104,7 @@ def run_cli(argvs=sys.argv[1:]):
             learning_rate={
                 "first": p["starting_lr_pbo"],
                 "last": p["ending_lr_pbo"],
-                "duration": p["training_steps_pbo"]
-                * p["fitting_updates_pbo"]
-                * replay_buffer.len
-                // p["batch_size_samples"],
+                "duration": p["training_steps_pbo"] * p["fitting_updates_pbo"],
             },
             initial_weight_std=p["initial_weight_std"],
         )
@@ -121,10 +118,7 @@ def run_cli(argvs=sys.argv[1:]):
             learning_rate={
                 "first": p["starting_lr_pbo"],
                 "last": p["ending_lr_pbo"],
-                "duration": p["training_steps_pbo"]
-                * p["fitting_updates_pbo"]
-                * replay_buffer.len
-                // p["batch_size_samples"],
+                "duration": p["training_steps_pbo"] * p["fitting_updates_pbo"],
             },
             initial_weight_std=p["initial_weight_std"],
             conv=args.conv,
