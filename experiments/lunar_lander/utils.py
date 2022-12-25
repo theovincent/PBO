@@ -1,11 +1,14 @@
 import os
 import shutil
+from functools import partial
 from tqdm import tqdm
 import jax
+import jax.numpy as jnp
 import haiku as hk
 
 from pbo.environments.lunar_lander import LunarLanderEnv
 from pbo.sample_collection.replay_buffer import ReplayBuffer
+from pbo.networks.base_pbo import BasePBO
 from pbo.networks.base_q import BaseQ
 
 
@@ -71,3 +74,13 @@ def collect_samples(
 
         if absorbing or env.n_steps >= horizon:
             env.reset()
+
+
+@partial(jax.jit, static_argnames="n_iterations")
+def iterated_q(pbo: BasePBO, pbo_params: hk.Params, q_weights: jnp.ndarray, n_iterations: int) -> jnp.ndarray:
+    iterated_q_weights = q_weights
+
+    for _ in range(n_iterations):
+        iterated_q_weights = pbo(pbo_params, iterated_q_weights.reshape((1, -1)))[0]
+
+    return iterated_q_weights

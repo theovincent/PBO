@@ -28,8 +28,8 @@ do
         echo "launch train pbo linear"
         lunar_lander_pbo -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a linear
 
-        # echo "launch evaluate pbo linear"
-        # lunar_lander_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a linear
+        echo "launch evaluate pbo linear"
+        lunar_lander_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a linear
     fi
 
 
@@ -39,7 +39,7 @@ do
         echo "launch train pbo deep"
         lunar_lander_pbo -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a deep
 
-        # echo "launch evaluate pbo deep"
-        # lunar_lander_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a deep
+        echo "launch evaluate pbo deep"
+        lunar_lander_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a deep
     fi
 done

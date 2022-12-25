@@ -54,7 +54,7 @@ def run_cli(argvs=sys.argv[1:]):
         print("PBO with convolutionnal layers.")
     p = json.load(open(f"experiments/lunar_lander/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.lunar_lander.utils import define_environment, collect_random_samples, collect_samples
+    from experiments.lunar_lander.utils import define_environment, collect_random_samples, collect_samples, iterated_q
     from pbo.sample_collection.replay_buffer import ReplayBuffer
     from pbo.weights_collection.weights_buffer import WeightsBuffer
     from pbo.weights_collection.dataloader import WeightsDataLoader
@@ -138,11 +138,12 @@ def run_cli(argvs=sys.argv[1:]):
 
         for fitting_step in tqdm(range(p["fitting_updates_pbo"]), leave=False):
             cumulative_l2_loss = 0
+            q_weights_exploration = iterated_q(pbo, pbo.params, weights_buffer.weights[0], args.max_bellman_iterations)
             collect_samples(
                 env,
                 replay_buffer,
                 q,
-                q.params,
+                q.to_params(q_weights_exploration),
                 p["steps_per_update"],
                 p["horizon"],
                 epsilon_schedule(training_step * p["fitting_updates_pbo"] + fitting_step),

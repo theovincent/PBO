@@ -45,7 +45,7 @@ if [[ $PBO_deep = true ]]
 then
     # PBO deep
     echo "launch train pbo deep"
-    submission_train_pbo_deep=$(sbatch -J train_pbo_deep --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=1 --mem-per-cpu=750Mc --time=7:30:00 --output=out/$EXPERIMENT_NAME/train_pbo_deep_%a.out --error=error/$EXPERIMENT_NAME/train_pbo_deep_%a.out -p amd,amd2,rtx,rtx2 launch_job/lunar_lander/train_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
+    submission_train_pbo_deep=$(sbatch -J train_pbo_deep --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=1 --mem-per-cpu=1200Mc --time=7:30:00 --output=out/$EXPERIMENT_NAME/train_pbo_deep_%a.out --error=error/$EXPERIMENT_NAME/train_pbo_deep_%a.out -p amd,amd2,rtx,rtx2 launch_job/lunar_lander/train_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
 
     IFS=" " read -ra split_submission_train_pbo_deep <<< $submission_train_pbo_deep
     submission_id_train_pbo_deep=${split_submission_train_pbo_deep[-1]}
