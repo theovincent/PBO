@@ -76,7 +76,7 @@ def collect_samples(
             env.reset()
 
 
-@partial(jax.jit, static_argnames="n_iterations")
+@partial(jax.jit, static_argnames=("pbo", "n_iterations"))
 def iterated_q(pbo: BasePBO, pbo_params: hk.Params, q_weights: jnp.ndarray, n_iterations: int) -> jnp.ndarray:
     iterated_q_weights = q_weights
 
