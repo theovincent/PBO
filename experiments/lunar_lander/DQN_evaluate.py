@@ -68,7 +68,11 @@ def run_cli(argvs=sys.argv[1:]):
 
         def evaluate(iteration: int, j_list: list, q: FullyConnectedQ, q_weights: jnp.ndarray, horizon: int):
             j_list[iteration] = env.evaluate(
-                q, q.to_params(q_weights), horizon, video_path=f"{args.experiment_name}/DQN/{iteration}_{args.seed}"
+                q,
+                q.to_params(q_weights),
+                horizon,
+                p["n_evaluations"],
+                video_path=f"{args.experiment_name}/DQN/{iteration}_{args.seed}",
             )
 
         manager = multiprocessing.Manager()
