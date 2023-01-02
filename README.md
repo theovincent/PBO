@@ -6,7 +6,7 @@ In the folder where the code is, create a Python virtual environment, activate i
 ```bash
 python3 -m venv env
 source env/bin/activate
-pip install -e .[cpu]
+pip install -e .
 ```
 
 ### With Docker
@@ -176,12 +176,12 @@ In the folder where the code is, create a Python virtual environment, activate i
 ```bash
 python3 -m venv env_gpu
 source env_gpu/bin/activate
-pip install -e .[gpu]
+pip install -e .
 ```
 
 If jax does not recognize the gpu, you may need to run
 ```bash
-pip install -U jax[cuda11_cudnn82] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+pip install -U jax[cuda11_cudnn82]==0.3.22 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
 Taken from https://github.com/google/jax/discussions/10323.
 
