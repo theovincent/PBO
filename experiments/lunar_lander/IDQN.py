@@ -41,7 +41,7 @@ def run_cli(argvs=sys.argv[1:]):
     )
     p = json.load(open(f"experiments/lunar_lander/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.lunar_lander.utils import define_environment, collect_random_samples, collect_samples
+    from experiments.lunar_lander.utils import define_environment, collect_random_samples, collect_samples_multi_head
     from pbo.sample_collection.replay_buffer import ReplayBuffer
     from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
     from pbo.utils.params import save_params
@@ -81,14 +81,10 @@ def run_cli(argvs=sys.argv[1:]):
         params_target = q.params
 
         for fitting_step in range(p["fitting_updates_idqn"]):
-            q_inference = jax.jit(
-                lambda q_params_, state_, action_: q(q_params_, state_, action_)[..., args.max_bellman_iterations]
-            )
-
-            collect_samples(
+            collect_samples_multi_head(
                 env,
                 replay_buffer,
-                q_inference,
+                q,
                 q.params,
                 p["steps_per_update"],
                 p["horizon"],

@@ -38,6 +38,12 @@ class LunarLanderEnv:
 
         return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]
 
+    @partial(jax.jit, static_argnames=("self", "q"))
+    def jitted_best_action_multi_head(self, q: BaseQ, q_params: hk.Params, state: jnp.ndarray) -> jnp.ndarray:
+        state_repeat = jnp.repeat(state.reshape((1, 8)), self.actions_on_max.shape[0], axis=0)
+
+        return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max)[:, -1].argmax()]
+
     def evaluate_and_record(self, q: BaseQ, q_params: hk.Params, horizon: int, video_path: str) -> float:
         vid = video_recorder.VideoRecorder(
             self.env, path=f"experiments/lunar_lander/figures/{video_path}.mp4", disable_logger=True
