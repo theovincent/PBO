@@ -10,4 +10,4 @@ else
     source env_cpu/bin/activate
 fi
 
-lunar_lander_pbo -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID -b $MAX_BELLMAN_ITERATION -a linear
+lunar_lander_idqn -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID -b $MAX_BELLMAN_ITERATION

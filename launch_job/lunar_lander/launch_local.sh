@@ -8,6 +8,7 @@ parse_arguments $@
 [ -d experiments/lunar_lander/figures/$EXPERIMENT_NAME/DQN ] || mkdir experiments/lunar_lander/figures/$EXPERIMENT_NAME/DQN
 [ -d experiments/lunar_lander/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/lunar_lander/figures/$EXPERIMENT_NAME/PBO_linear
 [ -d experiments/lunar_lander/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/lunar_lander/figures/$EXPERIMENT_NAME/PBO_deep
+[ -d experiments/lunar_lander/figures/$EXPERIMENT_NAME/IDQN ] || mkdir experiments/lunar_lander/figures/$EXPERIMENT_NAME/IDQN
 
 for (( seed=$FIRST_SEED; seed<=$LAST_SEED; seed++ ))
 do
@@ -42,4 +43,14 @@ do
         echo "launch evaluate pbo deep"
         lunar_lander_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a deep
     fi
+
+    if [[ $IDQN = true ]]
+    then
+        # IDQN
+        echo "launch train idqn"
+        lunar_lander_idqn -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
+
+        echo "launch evaluate idqn"
+        lunar_lander_idqn_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
+    fi 
 done

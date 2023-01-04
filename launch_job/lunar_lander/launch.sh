@@ -11,6 +11,7 @@ parse_arguments $@
 [ -d experiments/lunar_lander/figures/$EXPERIMENT_NAME/DQN ] || mkdir experiments/lunar_lander/figures/$EXPERIMENT_NAME/DQN
 [ -d experiments/lunar_lander/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/lunar_lander/figures/$EXPERIMENT_NAME/PBO_linear
 [ -d experiments/lunar_lander/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/lunar_lander/figures/$EXPERIMENT_NAME/PBO_deep
+[ -d experiments/lunar_lander/figures/$EXPERIMENT_NAME/IDQN ] || mkdir experiments/lunar_lander/figures/$EXPERIMENT_NAME/IDQN
 
 
 if [[ $DQN = true ]]
@@ -53,3 +54,16 @@ then
     echo "launch evaluate pbo deep"
     submission_evaluate_pbo_deep=$(sbatch -J evaluate_pbo_deep --dependency=afterok:$submission_id_train_pbo_deep --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=4000Mc --time=15:00 --output=out/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out --error=error/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out -p amd,amd2 launch_job/lunar_lander/evaluate_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
 fi
+
+if [[ $IDQN = true ]]
+then
+    # IDQN
+    echo "launch train idqn"
+    submission_train_idqn=$(sbatch -J train_idqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=1 --mem-per-cpu=750Mc --time=9:30:00 --output=out/$EXPERIMENT_NAME/train_idqn_%a.out --error=error/$EXPERIMENT_NAME/train_idqn_%a.out -p amd,amd2 launch_job/lunar_lander/train_idqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+
+    IFS=" " read -ra split_submission_train_idqn <<< $submission_train_idqn
+    submission_id_train_idqn=${split_submission_train_idqn[-1]}
+
+    echo "launch evaluate idqn"
+    submission_evaluate_idqn=$(sbatch -J evaluate_idqn --dependency=afterok:$submission_id_train_idqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=4000Mc --time=15:00 --output=out/$EXPERIMENT_NAME/evaluate_idqn_%a.out --error=error/$EXPERIMENT_NAME/evaluate_idqn_%a.out -p amd,amd2 launch_job/lunar_lander/evaluate_idqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+fi 
