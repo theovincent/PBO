@@ -1,9 +1,9 @@
 import sys
 import argparse
-from tqdm import tqdm
 import json
 import numpy as np
 import jax
+from tqdm import tqdm
 import optax
 
 
@@ -12,7 +12,7 @@ def run_cli(argvs=sys.argv[1:]):
 
     warnings.simplefilter(action="ignore", category=FutureWarning)
 
-    parser = argparse.ArgumentParser("Train DQN on Lunar Lander.")
+    parser = argparse.ArgumentParser("Train IDQN on Lunar Lander.")
     parser.add_argument(
         "-e",
         "--experiment_name",
@@ -30,18 +30,20 @@ def run_cli(argvs=sys.argv[1:]):
     parser.add_argument(
         "-b",
         "--max_bellman_iterations",
-        help="Maximum number of Bellman iterations.",
+        help="Maximum number of Bellman iteration.",
         type=int,
         required=True,
     )
     args = parser.parse_args(argvs)
     print(f"{args.experiment_name}:")
-    print(f"Training DQN on Lunar Lander with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}...")
+    print(
+        f"Training IDQN on Lunar Lander with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}..."
+    )
     p = json.load(open(f"experiments/lunar_lander/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
     from experiments.lunar_lander.utils import define_environment, collect_random_samples, collect_samples
     from pbo.sample_collection.replay_buffer import ReplayBuffer
-    from pbo.networks.learnable_q import FullyConnectedQ
+    from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
     from pbo.utils.params import save_params
 
     key = jax.random.PRNGKey(args.seed)
@@ -54,7 +56,8 @@ def run_cli(argvs=sys.argv[1:]):
     replay_buffer = ReplayBuffer(p["max_size"])
     collect_random_samples(env, replay_buffer, p["n_initial_samples"], p["horizon"])
 
-    q = FullyConnectedQ(
+    q = FullyConnectedMultiHeadQ(
+        n_heads=args.max_bellman_iterations + 1,
         state_dim=8,
         action_dim=1,
         actions_on_max=env.actions_on_max,
@@ -63,23 +66,21 @@ def run_cli(argvs=sys.argv[1:]):
         layers_dimension=p["layers_dimension"],
         zero_initializer=True,
         learning_rate={
-            "first": p["starting_lr_dqn"],
-            "last": p["ending_lr_dqn"],
-            "duration": args.max_bellman_iterations * p["fitting_updates_dqn"],
+            "first": p["starting_lr_idqn"],
+            "last": p["ending_lr_idqn"],
+            "duration": p["training_steps_idqn"] * p["fitting_updates_idqn"],
         },
     )
     epsilon_schedule = optax.linear_schedule(
-        p["starting_eps_dqn"], p["ending_eps_dqn"], args.max_bellman_iterations * p["fitting_updates_dqn"]
+        p["starting_eps_idqn"], p["ending_eps_idqn"], args.max_bellman_iterations * p["fitting_updates_idqn"]
     )
 
-    l2_losses = np.ones((args.max_bellman_iterations, p["fitting_updates_dqn"])) * np.nan
-    iterated_params = {}
-    iterated_params["0"] = q.params
+    l2_losses = np.ones((p["training_steps_idqn"], p["fitting_updates_idqn"])) * np.nan
 
-    for bellman_iteration in tqdm(range(1, args.max_bellman_iterations + 1)):
+    for training_step in tqdm(range(p["training_steps_idqn"])):
         params_target = q.params
 
-        for update in tqdm(range(p["fitting_updates_dqn"]), leave=False):
+        for fitting_step in range(p["fitting_updates_idqn"]):
             collect_samples(
                 env,
                 replay_buffer,
@@ -87,7 +88,7 @@ def run_cli(argvs=sys.argv[1:]):
                 q.params,
                 p["steps_per_update"],
                 p["horizon"],
-                epsilon_schedule((bellman_iteration - 1) * p["fitting_updates_dqn"] + update),
+                epsilon_schedule(training_step * p["fitting_updates_idqn"] + fitting_step),
             )
 
             sample_key, key = jax.random.split(sample_key)
@@ -97,15 +98,13 @@ def run_cli(argvs=sys.argv[1:]):
                 q.params, params_target, q.optimizer_state, batch_samples
             )
 
-            l2_losses[bellman_iteration - 1, update] = l2_loss
-
-        iterated_params[f"{bellman_iteration}"] = q.params
+            l2_losses[training_step, fitting_step] = l2_loss
 
     save_params(
-        f"experiments/lunar_lander/figures/{args.experiment_name}/DQN/{args.max_bellman_iterations}_P_{args.seed}",
-        iterated_params,
+        f"experiments/lunar_lander/figures/{args.experiment_name}/IDQN/{args.max_bellman_iterations}_P_{args.seed}",
+        q.params,
     )
     np.save(
-        f"experiments/lunar_lander/figures/{args.experiment_name}/DQN/{args.max_bellman_iterations}_L_{args.seed}.npy",
+        f"experiments/lunar_lander/figures/{args.experiment_name}/IDQN/{args.max_bellman_iterations}_L_{args.seed}.npy",
         l2_losses,
     )

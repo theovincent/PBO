@@ -33,9 +33,11 @@
     "starting_eps_pbo": 1,
     "ending_eps_pbo": 0.01,
     "initial_weight_std": 0.0000005,
-    "---- IFQIs ---": "-",
-    "training_steps_ifqi": 1000,
-    "fitting_steps_ifqi": 40,
-    "starting_lr_ifqi": 0.001,
-    "ending_lr_ifqi": 5e-07
+    "---- IDQNs ---": "-",
+    "training_steps_idqn": 10,
+    "fitting_updates_idqn": 4,
+    "starting_lr_idqn": 0.001,
+    "ending_lr_idqn": 5e-07,
+    "starting_eps_idqn": 1,
+    "ending_eps_idqn": 0.01
 }
