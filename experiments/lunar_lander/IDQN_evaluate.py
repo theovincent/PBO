@@ -75,7 +75,9 @@ def run_cli(argvs=sys.argv[1:]):
             q_weights: jnp.ndarray,
             horizon: int,
         ):
-            q_inference = lambda q_params_, state_, action_: q(q_params_, state_, action_)[..., iteration]
+            q_inference = jax.jit(
+                lambda q_params_, state_, action_: q(q_params_, state_, action_)[..., args.max_bellman_iterations]
+            )
 
             j_list[iteration] = env.evaluate(
                 q_inference,

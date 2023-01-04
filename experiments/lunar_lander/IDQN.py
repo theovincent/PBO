@@ -81,10 +81,14 @@ def run_cli(argvs=sys.argv[1:]):
         params_target = q.params
 
         for fitting_step in range(p["fitting_updates_idqn"]):
+            q_inference = jax.jit(
+                lambda q_params_, state_, action_: q(q_params_, state_, action_)[..., args.max_bellman_iterations]
+            )
+
             collect_samples(
                 env,
                 replay_buffer,
-                q,
+                q_inference,
                 q.params,
                 p["steps_per_update"],
                 p["horizon"],
