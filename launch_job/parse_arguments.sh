@@ -88,7 +88,10 @@ function parse_arguments() {
     then
         FQI=true
     fi
-
+    if [[ $DQN == "" ]]
+    then
+        DQN=true
+    fi
     if [[ $PBO_linear == "" ]]
     then
         PBO_linear=true

@@ -18,7 +18,7 @@ if [[ $DQN = true ]]
 then
     # DQN
     echo "launch train dqn"
-    submission_train_dqn=$(sbatch -J train_dqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=1 --mem-per-cpu=750Mc --time=3:30:00 --output=out/$EXPERIMENT_NAME/train_dqn_%a.out --error=error/$EXPERIMENT_NAME/train_dqn_%a.out -p amd,amd2 launch_job/lunar_lander/train_dqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+    submission_train_dqn=$(sbatch -J train_dqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=3:30:00 --output=out/$EXPERIMENT_NAME/train_dqn_%a.out --error=error/$EXPERIMENT_NAME/train_dqn_%a.out -p amd,amd2 launch_job/lunar_lander/train_dqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 
     IFS=" " read -ra split_submission_train_dqn <<< $submission_train_dqn
     submission_id_train_dqn=${split_submission_train_dqn[-1]}
@@ -32,7 +32,7 @@ if [[ $PBO_linear = true ]]
 then
     # PBO linear
     echo "launch train pbo linear"
-    submission_train_pbo_linear=$(sbatch -J train_pbo_linear --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=1 --mem-per-cpu=750Mc --time=3:30:00 --output=out/$EXPERIMENT_NAME/train_pbo_linear_%a.out --error=error/$EXPERIMENT_NAME/train_pbo_linear_%a.out -p amd,amd2 launch_job/lunar_lander/train_pbo_linear.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a linear)
+    submission_train_pbo_linear=$(sbatch -J train_pbo_linear --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=3:30:00 --output=out/$EXPERIMENT_NAME/train_pbo_linear_%a.out --error=error/$EXPERIMENT_NAME/train_pbo_linear_%a.out -p amd,amd2 launch_job/lunar_lander/train_pbo_linear.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a linear)
 
     IFS=" " read -ra split_submission_train_pbo_linear <<< $submission_train_pbo_linear
     submission_id_train_pbo_linear=${split_submission_train_pbo_linear[-1]}
@@ -59,7 +59,7 @@ if [[ $IDQN = true ]]
 then
     # IDQN
     echo "launch train idqn"
-    submission_train_idqn=$(sbatch -J train_idqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=1 --mem-per-cpu=750Mc --time=9:30:00 --output=out/$EXPERIMENT_NAME/train_idqn_%a.out --error=error/$EXPERIMENT_NAME/train_idqn_%a.out -p amd,amd2 launch_job/lunar_lander/train_idqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+    submission_train_idqn=$(sbatch -J train_idqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=1200Mc --time=9:30:00 --output=out/$EXPERIMENT_NAME/train_idqn_%a.out --error=error/$EXPERIMENT_NAME/train_idqn_%a.out -p amd,amd2 launch_job/lunar_lander/train_idqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 
     IFS=" " read -ra split_submission_train_idqn <<< $submission_train_idqn
     submission_id_train_idqn=${split_submission_train_idqn[-1]}
