@@ -67,7 +67,7 @@ def run_cli(argvs=sys.argv[1:]):
 
     env, _, _, _, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
 
-    replay_buffer = ReplayBuffer()
+    replay_buffer = ReplayBuffer(p["n_random_samples"] + p["n_oriented_samples"])
     replay_buffer.load(f"experiments/car_on_hill/figures/{args.experiment_name}/replay_buffer.npz")
     data_loader_samples = SampleDataLoader(replay_buffer, p["batch_size_samples"], shuffle_key)
 
@@ -103,7 +103,7 @@ def run_cli(argvs=sys.argv[1:]):
                 "last": p["ending_lr_pbo"],
                 "duration": p["training_steps_pbo"]
                 * p["fitting_steps_pbo"]
-                * len(replay_buffer)
+                * replay_buffer.len
                 // p["batch_size_samples"],
             },
             initial_weight_std=p["initial_weight_std"],
@@ -120,7 +120,7 @@ def run_cli(argvs=sys.argv[1:]):
                 "last": p["ending_lr_pbo"],
                 "duration": p["training_steps_pbo"]
                 * p["fitting_steps_pbo"]
-                * len(replay_buffer)
+                * replay_buffer.len
                 // p["batch_size_samples"],
             },
             initial_weight_std=p["initial_weight_std"],

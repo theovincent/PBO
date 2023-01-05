@@ -51,7 +51,7 @@ def run_cli(argvs=sys.argv[1:]):
 
     env, _, _, _, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
 
-    replay_buffer = ReplayBuffer()
+    replay_buffer = ReplayBuffer(p["n_random_samples"] + p["n_oriented_samples"])
     replay_buffer.load(f"experiments/car_on_hill/figures/{args.experiment_name}/replay_buffer.npz")
     data_loader_samples = SampleDataLoader(replay_buffer, p["batch_size_samples"], shuffle_key)
 
@@ -66,7 +66,7 @@ def run_cli(argvs=sys.argv[1:]):
         learning_rate={
             "first": p["starting_lr_fqi"],
             "last": p["ending_lr_fqi"],
-            "duration": p["fitting_steps_fqi"] * len(replay_buffer) // p["batch_size_samples"],
+            "duration": p["fitting_steps_fqi"] * replay_buffer.len // p["batch_size_samples"],
         },
     )
 

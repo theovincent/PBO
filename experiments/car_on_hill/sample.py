@@ -25,21 +25,20 @@ def run_cli(argvs=sys.argv[1:]):
     )
     args = parser.parse_args(argvs)
     print(f"{args.experiment_name}:")
-
-    from experiments.car_on_hill.utils import define_environment, create_experiment_folders
-    from pbo.sample_collection.replay_buffer import ReplayBuffer
-    from pbo.sample_collection.count_samples import count_samples
-
-    create_experiment_folders(args.experiment_name)
     p = json.load(open(f"experiments/car_on_hill/figures/{args.experiment_name}/parameters.json"))  # p for parameters
     print(
         f"Collecting {p['n_random_samples'] + p['n_oriented_samples']} samples on Car-On-Hill, count samples = {args.count_samples}..."
     )
 
-    env, _, states_x_boxes, _, states_v_boxes = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
+    from experiments.car_on_hill.utils import define_environment
+    from pbo.sample_collection.replay_buffer import ReplayBuffer
+    from pbo.sample_collection.count_samples import count_samples
+
     sample_key = jax.random.PRNGKey(p["env_seed"])
 
-    replay_buffer = ReplayBuffer()
+    env, _, states_x_boxes, _, states_v_boxes = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
+
+    replay_buffer = ReplayBuffer(p["n_random_samples"] + p["n_oriented_samples"])
 
     env.reset()
     n_episodes = 0
@@ -86,7 +85,6 @@ def run_cli(argvs=sys.argv[1:]):
     replay_buffer.save(f"experiments/car_on_hill/figures/{args.experiment_name}/replay_buffer.npz")
 
     if args.count_samples:
-        replay_buffer.cast_to_jax_array()
         samples_count, _, _ = count_samples(
             replay_buffer.states[:, 0],
             replay_buffer.states[:, 1],
