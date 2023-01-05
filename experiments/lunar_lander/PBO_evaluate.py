@@ -119,7 +119,7 @@ def run_cli(argvs=sys.argv[1:]):
                 q,
                 q_params,
                 horizon,
-                p["n_evaluations"],
+                p["n_simulations"],
                 video_path=f"{args.experiment_name}/PBO_{args.architecture}/{iteration}_{args.seed}",
             )
 

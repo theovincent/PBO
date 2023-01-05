@@ -71,7 +71,7 @@ def run_cli(argvs=sys.argv[1:]):
                 q,
                 q.to_params(q_weights),
                 horizon,
-                p["n_evaluations"],
+                p["n_simulations"],
                 video_path=f"{args.experiment_name}/DQN/{iteration}_{args.seed}",
             )
 

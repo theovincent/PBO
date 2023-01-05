@@ -84,16 +84,16 @@ class LunarLanderEnv:
         return np.array(cumulative_reward)[0]
 
     def evaluate(
-        self, q: BaseQ, q_params: hk.Params, horizon: int, n_evaluations: int, video_path: str = None
+        self, q: BaseQ, q_params: hk.Params, horizon: int, n_simulations: int, video_path: str = None
     ) -> float:
-        rewards = np.zeros(n_evaluations)
+        rewards = np.zeros(n_simulations)
 
         if video_path is None:
             rewards[0] = self.evaluate_(q, q_params, horizon)
         else:
             rewards[0] = self.evaluate_and_record(q, q_params, horizon, video_path)
 
-        for idx_evaluation in range(1, n_evaluations):
-            rewards[idx_evaluation] = self.evaluate_(q, q_params, horizon)
+        for idx_simulation in range(1, n_simulations):
+            rewards[idx_simulation] = self.evaluate_(q, q_params, horizon)
 
         return rewards.mean()

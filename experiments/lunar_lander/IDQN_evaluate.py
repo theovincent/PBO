@@ -81,7 +81,7 @@ def run_cli(argvs=sys.argv[1:]):
                 q_inference,
                 q.to_params(q_weights),
                 horizon,
-                p["n_evaluations"],
+                p["n_simulations"],
                 video_path=f"{args.experiment_name}/IDQN/{iteration}_{args.seed}",
             )
 

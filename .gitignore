@@ -145,6 +145,7 @@ dmypy.json
 **/*.pdf
 
 # Avoid pushing experiments output
+experiments/bicycle/figures
 experiments/car_on_hill/figures
 experiments/lunar_lander/figures
 experiments/lunar_lander/transfer_from_ias_cluster.sh
