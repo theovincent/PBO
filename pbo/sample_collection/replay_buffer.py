@@ -5,7 +5,7 @@ import jax
 
 
 class ReplayBuffer:
-    def __init__(self, max_size: int = 10000) -> None:
+    def __init__(self, max_size: int) -> None:
         self.max_size: int = max_size
         self.len: int = 0
         self.idx: int = 0
@@ -64,7 +64,7 @@ class ReplayBuffer:
             actions=self.actions,
             rewards=self.rewards,
             next_states=self.next_states,
-            absorbing=self.absorbings,
+            absorbings=self.absorbings,
         )
 
     def load(self, path: str) -> None:
@@ -75,6 +75,8 @@ class ReplayBuffer:
         self.rewards = jnp.array(dataset["rewards"])
         self.next_states = jnp.array(dataset["next_states"])
         self.absorbings = jnp.array(dataset["absorbings"])
+
+        self.len = self.states.shape[0]
 
     def sample_random_batch(self, sample_key: jax.random.PRNGKeyArray, n_samples: int) -> Dict[str, jnp.ndarray]:
         idxs = jax.random.randint(sample_key, shape=(n_samples,), minval=0, maxval=self.len)

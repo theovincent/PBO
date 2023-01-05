@@ -1,7 +1,6 @@
 # This file was inspired by https://github.com/teopir/ifqi
 
 from functools import partial
-from joblib import Parallel, delayed
 import numpy as np
 import haiku as hk
 import jax
@@ -142,47 +141,27 @@ class BicycleEnv:
         state_repeat = jnp.repeat(state.reshape((1, 4)), self.actions_on_max.shape[0], axis=0)
         return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]
 
-    @classmethod
-    def simulate(cls, env_key: int, gamma: float, q: BaseQ, q_params: hk.Params, horizon: int, start_render: int):
-        env = cls(env_key, gamma)
+    def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int, n_simulations: int) -> np.ndarray:
+        rewards = np.zeros((n_simulations, 2))
 
-        env.reset()
-        absorbing = False
-        step = 0
-        discounted_sum_reward = 0
-        discount = 1
+        for idx_simulation in range(n_simulations):
+            self.reset()
+            absorbing = False
+            n_steps = 0
+            cumulative_reward = 0
+            discount = 1
 
-        while not absorbing and step < horizon:
-            best_action = env.jitted_best_action(q, q_params, env.state)
-            _, reward, absorbing, _ = env.step(best_action)
+            while not absorbing and n_steps < horizon:
+                best_action = self.jitted_best_action(q, q_params, self.state)
+                _, reward, absorbing, _ = self.step(best_action)
 
-            step += 1
-            discounted_sum_reward += discount * reward
-            discount *= env.gamma
-            if step > start_render:
-                env.render(best_action)
+                n_steps += 1
+                cumulative_reward += discount * reward
+                discount *= self.gamma
 
-        env.close()
+            rewards[idx_simulation] = np.array([n_steps, cumulative_reward[0]])
 
-        return jnp.array([step, discounted_sum_reward[0]])
-
-    def evaluate(
-        self, q: BaseQ, q_params: hk.Params, horizon: int, n_simulations: int, start_render: int = float("inf")
-    ) -> jnp.ndarray:
-        with jax.default_device(jax.devices("cpu")[0]):
-            partial_simulate = partial(
-                self.simulate, gamma=self.gamma, q=q, q_params=q_params, horizon=horizon, start_render=start_render
-            )
-
-            noise_keys = []
-            for _ in range(n_simulations):
-                self.noise_key, key = jax.random.split(self.noise_key)
-                noise_keys.append(key)
-
-            # increase "n_jobs" if you have enough memory
-            metrics = Parallel(n_jobs=1)(delayed(partial_simulate)(noise_key) for noise_key in noise_keys)
-
-        return jnp.array(metrics)
+        return rewards.mean(axis=0)
 
     def collect_positions(self, q: BaseQ, q_params: hk.Params, horizon: int) -> jnp.ndarray:
         self.reset()
