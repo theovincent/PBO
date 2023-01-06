@@ -5,7 +5,7 @@ from pbo.weights_collection.weights_buffer import WeightsBuffer
 
 
 class WeightsDataLoader:
-    def __init__(self, weights_buffer: WeightsBuffer, batch_size: int, shuffle_key: int) -> None:
+    def __init__(self, weights_buffer: WeightsBuffer, batch_size: int, shuffle_key: jax.random.PRNGKeyArray) -> None:
         self.weights = weights_buffer.weights
         self.n_weights = len(weights_buffer)
         self.batch_size = batch_size

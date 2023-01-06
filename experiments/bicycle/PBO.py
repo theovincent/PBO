@@ -12,7 +12,7 @@ def run_cli(argvs=sys.argv[1:]):
 
     warnings.simplefilter(action="ignore", category=FutureWarning)
 
-    parser = argparse.ArgumentParser("Train a PBO on Car-On-Hill.")
+    parser = argparse.ArgumentParser("Train a PBO on Bicycle.")
     parser.add_argument(
         "-e",
         "--experiment_name",
@@ -47,13 +47,13 @@ def run_cli(argvs=sys.argv[1:]):
     args = parser.parse_args(argvs)
     print(f"{args.experiment_name}:")
     print(
-        f"Training a {args.architecture} PBO on Car-On-Hill with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}..."
+        f"Training a {args.architecture} PBO on Bicycle with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}..."
     )
     if args.conv:
         print("PBO with convolutionnal layers.")
-    p = json.load(open(f"experiments/car_on_hill/figures/{args.experiment_name}/parameters.json"))  # p for parameters
+    p = json.load(open(f"experiments/bicycle/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.car_on_hill.utils import define_environment
+    from experiments.bicycle.utils import define_environment
     from pbo.sample_collection.replay_buffer import ReplayBuffer
     from pbo.weights_collection.weights_buffer import WeightsBuffer
     from pbo.sample_collection.dataloader import SampleDataLoader
@@ -65,15 +65,15 @@ def run_cli(argvs=sys.argv[1:]):
     key = jax.random.PRNGKey(args.seed)
     shuffle_key, q_network_key, pbo_network_key = jax.random.split(key, 3)
 
-    env, _, _, _, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
+    env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
 
-    replay_buffer = ReplayBuffer(p["n_random_samples"] + p["n_oriented_samples"])
-    replay_buffer.load(f"experiments/car_on_hill/figures/{args.experiment_name}/replay_buffer.npz")
+    replay_buffer = ReplayBuffer(p["n_samples"])
+    replay_buffer.load(f"experiments/bicycle/figures/{args.experiment_name}/replay_buffer.npz")
     data_loader_samples = SampleDataLoader(replay_buffer, p["batch_size_samples"], shuffle_key)
 
     q = FullyConnectedQ(
-        state_dim=2,
-        action_dim=1,
+        state_dim=4,
+        action_dim=2,
         actions_on_max=env.actions_on_max,
         gamma=p["gamma"],
         network_key=q_network_key,
@@ -153,10 +153,10 @@ def run_cli(argvs=sys.argv[1:]):
             l2_losses[training_step, fitting_step] = cumulative_l2_loss
 
     save_params(
-        f"experiments/car_on_hill/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_P_{args.seed}",
+        f"experiments/bicycle/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_P_{args.seed}",
         pbo.params,
     )
     np.save(
-        f"experiments/car_on_hill/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_L_{args.seed}.npy",
+        f"experiments/bicycle/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_L_{args.seed}.npy",
         l2_losses,
     )

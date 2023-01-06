@@ -6,9 +6,9 @@ from pbo.sample_collection.replay_buffer import ReplayBuffer
 
 
 class SampleDataLoader:
-    def __init__(self, replay_buffer: ReplayBuffer, batch_size: int, shuffle_key: int) -> None:
+    def __init__(self, replay_buffer: ReplayBuffer, batch_size: int, shuffle_key: jax.random.PRNGKeyArray) -> None:
         self.replay_buffer = replay_buffer
-        self.n_samples = len(replay_buffer)
+        self.n_samples = replay_buffer.len
         self.batch_size = batch_size
         self.shuffle_key = shuffle_key
 
@@ -25,7 +25,7 @@ class SampleDataLoader:
             "action": self.replay_buffer.actions[idxs],
             "reward": self.replay_buffer.rewards[idxs],
             "next_state": self.replay_buffer.next_states[idxs],
-            "absorbing": self.replay_buffer.absorbing[idxs],
+            "absorbing": self.replay_buffer.absorbings[idxs],
         }
 
     def __getitem__(self, idx: int) -> dict:

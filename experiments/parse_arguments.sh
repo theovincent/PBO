@@ -1,3 +1,5 @@
+#!/bin/bash
+
 function parse_arguments() {
     while [[ $# -gt 0 ]]; do
         case $1 in

@@ -6,7 +6,7 @@ In the folder where the code is, create a Python virtual environment, activate i
 ```bash
 python3 -m venv env
 source env/bin/activate
-pip install -e .[cpu]
+pip install -e .
 ```
 
 ### With Docker
@@ -176,23 +176,28 @@ In the folder where the code is, create a Python virtual environment, activate i
 ```bash
 python3 -m venv env_gpu
 source env_gpu/bin/activate
-pip install -e .[gpu]
+pip install -e .
 ```
 
 If jax does not recognize the gpu, you may need to run
 ```bash
-pip install -U jax[cuda11_cudnn82] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+pip install -U jax[cuda11_cudnn82]==0.3.22 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
 Taken from https://github.com/google/jax/discussions/10323.
 
 
-## Using in a cluster
+## Using a cluster
 Download miniconda on the server host to get Python 3.8:
 ```Bash
 wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.12.0-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
 ```
-Upgrade pip and install virtualenv
+Install cuda packages with:
+```Bash
+conda install -c conda-forge cudatoolkit-dev
+```
+do not forget to set the environment variable *LD_LIBRARY_PATH* correctly.
+Finally, upgrade pip and install virtualenv
 ```Bash
 python3 -m pip install --user --upgrade pip
 python3 -m pip install --user virtualenv

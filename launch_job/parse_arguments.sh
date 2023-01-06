@@ -27,6 +27,10 @@ function parse_arguments() {
                 FQI=false
                 shift
                 ;;
+            -sdqn | --skip_dqn)
+                DQN=false
+                shift
+                ;;
             -spbo_linear | --skip_pbo_linear)
                 PBO_linear=false
                 shift
@@ -39,12 +43,20 @@ function parse_arguments() {
                 IFQI=false
                 shift
                 ;;
+            -sidqn | --skip_idqn)
+                IDQN=false
+                shift
+                ;;
             -sc | --skip_count_samples)
                 SKIP_COUNT_SAMPLES=true
                 shift
                 ;;
             -c | --conv)
                 CONV="-c"
+                shift
+                ;;
+            -g | --gpu)
+                GPU=true
                 shift
                 ;;
             -?*)
@@ -76,6 +88,10 @@ function parse_arguments() {
     then
         FQI=true
     fi
+    if [[ $DQN == "" ]]
+    then
+        DQN=true
+    fi
     if [[ $PBO_linear == "" ]]
     then
         PBO_linear=true
@@ -88,8 +104,16 @@ function parse_arguments() {
     then
         IFQI=true
     fi
+    if [[ $IDQN == "" ]]
+    then
+        IDQN=true
+    fi
     if [[ $SKIP_COUNT_SAMPLES == "" ]]
     then
         COUNT_SAMPLES="-c"
+    fi
+    if [[ $GPU == "" ]]
+    then
+        GPU=false
     fi
 }

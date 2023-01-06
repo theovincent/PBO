@@ -37,7 +37,7 @@ class FullyConnectedQ(BaseQ):
         action_dim: int,
         actions_on_max: jnp.ndarray,
         gamma: float,
-        network_key: int,
+        network_key: jax.random.PRNGKeyArray,
         layers_dimension: list,
         zero_initializer: bool,
         learning_rate: dict = None,
