@@ -27,6 +27,10 @@ function parse_arguments() {
                 FQI=false
                 shift
                 ;;
+            -slspi | --skip_lspi)
+                LSPI=false
+                shift
+                ;;
             -sdqn | --skip_dqn)
                 DQN=false
                 shift
@@ -35,8 +39,16 @@ function parse_arguments() {
                 PBO_linear=false
                 shift
                 ;;
+            -spbo_max_linear | --skip_pbo_max_linear)
+                PBO_max_linear=false
+                shift
+                ;;
             -spbo_deep | --skip_pbo_deep)
                 PBO_deep=false
+                shift
+                ;;
+            -spbo_optimal | --skip_pbo_optimal)
+                PBO_optimal=false
                 shift
                 ;;
             -sifqi | --skip_ifqi)
@@ -88,6 +100,10 @@ function parse_arguments() {
     then
         FQI=true
     fi
+    if [[ $LSPI == "" ]]
+    then
+        LSPI=true
+    fi
     if [[ $DQN == "" ]]
     then
         DQN=true
@@ -96,9 +112,17 @@ function parse_arguments() {
     then
         PBO_linear=true
     fi
+    if [[ $PBO_max_linear == "" ]]
+    then
+        PBO_max_linear=true
+    fi
     if [[ $PBO_deep == "" ]]
     then
         PBO_deep=true
+    fi
+    if [[ $PBO_optimal == "" ]]
+    then
+        PBO_optimal=true
     fi
     if [[ $IFQI == "" ]]
     then

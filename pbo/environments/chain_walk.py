@@ -2,6 +2,7 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
+import haiku as hk
 
 from pbo.networks.base_q import BaseQ
 
@@ -15,7 +16,13 @@ class ChainWalkEnv:
         gamma: float,
     ) -> None:
         self.n_states = n_states
+        self.states = jnp.arange(self.n_states)
         self.n_actions = 2
+        self.actions = jnp.arange(self.n_actions)
+        states_mesh, actions_mesh = jnp.meshgrid(self.states, self.actions, indexing="ij")
+        self.states_grid = states_mesh.reshape((-1, 1))
+        self.actions_grid = actions_mesh.reshape((-1, 1))
+
         self.sucess_probability = sucess_probability
         self.gamma = gamma
         self.next_state_key, self.reset_key = jax.random.split(env_key)
@@ -98,10 +105,6 @@ class ChainWalkEnv:
         return jnp.linalg.solve(jnp.eye(self.n_states) - self.gamma * policy_transition_probability, self.rewards)
 
     @partial(jax.jit, static_argnames=("self", "q"))
-    def discretize(self, q: BaseQ, weights: jnp.ndarray, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
-        states_mesh, actions_mesh = jnp.meshgrid(states, actions, indexing="ij")
-        states_ = states_mesh.reshape((-1, 1))
-        actions_ = actions_mesh.reshape((-1, 1))
-
+    def discretize(self, q: BaseQ, q_params: hk.Params) -> jnp.ndarray:
         # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return q(q.to_params(weights), states_, actions_).reshape((len(states), len(actions)))
+        return q(q_params, self.states_grid, self.actions_grid).reshape((self.n_states, self.n_actions))
