@@ -59,7 +59,6 @@ def run_cli(argvs=sys.argv[1:]):
 
         from experiments.chain_walk.utils import define_environment
         from pbo.networks.learnable_q import TableQ
-        import haiku as hk
         from pbo.networks.learnable_pbo import LinearPBO, MaxLinearPBO, DeepPBO
         from pbo.utils.params import load_params
 

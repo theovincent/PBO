@@ -77,9 +77,16 @@ def run_cli(argvs=sys.argv[1:]):
     weights_buffer = WeightsBuffer()
     weights_buffer.add(q.to_weights(q.params))
 
+    q_random = TableQ(
+        n_states=p["n_states"],
+        n_actions=env.n_actions,
+        gamma=p["gamma"],
+        network_key=jax.random.PRNGKey(0),
+        zero_initializer=False,
+    )
     # Add random weights
     while len(weights_buffer) < p["n_weights"]:
-        weights = q.random_init_weights()
+        weights = q_random.random_init_weights()
         weights_buffer.add(weights)
 
     weights_buffer.cast_to_jax_array()
