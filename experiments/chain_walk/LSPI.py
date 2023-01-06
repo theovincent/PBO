@@ -58,6 +58,8 @@ def run_cli(argvs=sys.argv[1:]):
 
     q_i = env.discretize(q, q.params)
     policy_q = q_i.argmax(axis=1)
+    q_functions[0] = q_i
+    v_functions[0] = env.value_function(policy_q)
 
     for bellman_iteration in tqdm(range(1, args.max_bellman_iterations + 1)):
         A = np.zeros((q.weights_dimension, q.weights_dimension))

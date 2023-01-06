@@ -34,7 +34,7 @@ then
     submission_id_train_fqi=${split_submission_train_fqi[-1]}
 
     echo "launch evaluate fqi"
-    submission_evaluate_fqi=$(sbatch -J c_evaluate_fqi --dependency=afterok:$submission_id_train_fqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=100Mc --time=10:00 --output=out/chain_walk/$EXPERIMENT_NAME/evaluate_fqi_%a.out --error=error/chain_walk/$EXPERIMENT_NAME/evaluate_fqi_%a.out -p amd,amd2 launch_job/chain_walk/evaluate_fqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+    submission_evaluate_fqi=$(sbatch -J c_evaluate_fqi --dependency=afterok:$submission_id_train_fqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=200Mc --time=10:00 --output=out/chain_walk/$EXPERIMENT_NAME/evaluate_fqi_%a.out --error=error/chain_walk/$EXPERIMENT_NAME/evaluate_fqi_%a.out -p amd,amd2 launch_job/chain_walk/evaluate_fqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 fi 
 
 if [[ $LSPI = true ]]
