@@ -26,7 +26,6 @@ def run_cli(argvs=sys.argv[1:]):
 
     from experiments.chain_walk.utils import define_environment
     from pbo.sample_collection.replay_buffer import ReplayBuffer
-    from pbo.sample_collection.count_samples import count_samples
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["n_states"], p["sucess_probability"], p["gamma"])
 

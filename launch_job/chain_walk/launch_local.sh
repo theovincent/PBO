@@ -19,14 +19,14 @@ chain_walk_sample -e $EXPERIMENT_NAME
 
 if [[ $LSPI = true ]]
 then
-    # FQI
-    echo "launch train and evaluate fqi"
+    # LSPI
+    echo "launch train and evaluate lspi"
     chain_walk_lspi -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION
 fi 
 
 if [[ $PBO_optimal = true ]]
 then
-    # FQI
+    # PBO optimal
     echo "launch evaluate pbo optimal"
     chain_walk_pbo_optimal_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION
 fi 

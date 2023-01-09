@@ -41,13 +41,7 @@ if [[ $LSPI = true ]]
 then
     # LSPI
     echo "launch train lspi"
-    submission_train_lspi=$(sbatch -J c_train_lspi --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=30:00 --output=out/chain_walk/$EXPERIMENT_NAME/train_lspi.out --error=error/chain_walk/$EXPERIMENT_NAME/train_lspi.out -p amd,amd2 launch_job/chain_walk/train_lspi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
-
-    IFS=" " read -ra split_submission_train_lspi <<< $submission_train_lspi
-    submission_id_train_lspi=${split_submission_train_lspi[-1]}
-
-    echo "launch evaluate lspi"
-    submission_evaluate_lspi=$(sbatch -J c_evaluate_lspi --dependency=afterok:$submission_id_train_lspi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=100Mc --time=10:00 --output=out/chain_walk/$EXPERIMENT_NAME/evaluate_lspi.out --error=error/chain_walk/$EXPERIMENT_NAME/evaluate_lspi.out -p amd,amd2 launch_job/chain_walk/evaluate_lspi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+    submission_train_lspi=$(sbatch -J c_train_lspi --dependency=afterok:$submission_id_collect_sample --cpus-per-task=3 --mem-per-cpu=750Mc --time=30:00 --output=out/chain_walk/$EXPERIMENT_NAME/train_lspi.out --error=error/chain_walk/$EXPERIMENT_NAME/train_lspi.out -p amd,amd2 launch_job/chain_walk/train_lspi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 fi
 
 
