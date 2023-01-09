@@ -30,10 +30,11 @@
     "pbo_layers_dimension": [
         2,
         2,
+        2,
         2
     ],
-    "n_weights": 1,
-    "batch_size_weights": 1,
+    "n_weights": 100,
+    "batch_size_weights": 25,
     "training_steps_pbo": 1000,
     "fitting_steps_pbo": 10,
     "starting_lr_pbo": 0.001,

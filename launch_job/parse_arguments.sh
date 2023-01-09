@@ -43,6 +43,10 @@ function parse_arguments() {
                 PBO_max_linear=false
                 shift
                 ;;
+            -spbo_custom_linear | --skip_pbo_custom_linear)
+                PBO_custom_linear=false
+                shift
+                ;;
             -spbo_deep | --skip_pbo_deep)
                 PBO_deep=false
                 shift
@@ -115,6 +119,10 @@ function parse_arguments() {
     if [[ $PBO_max_linear == "" ]]
     then
         PBO_max_linear=true
+    fi
+    if [[ $PBO_custom_linear == "" ]]
+    then
+        PBO_custom_linear=true
     fi
     if [[ $PBO_deep == "" ]]
     then
