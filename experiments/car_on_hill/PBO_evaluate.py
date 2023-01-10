@@ -5,6 +5,8 @@ import json
 import jax
 import numpy as np
 
+from experiments.base.parser import addparse
+
 
 def run_cli(argvs=sys.argv[1:]):
     with jax.default_device(jax.devices("cpu")[0]):
@@ -13,44 +15,7 @@ def run_cli(argvs=sys.argv[1:]):
         warnings.simplefilter(action="ignore", category=FutureWarning)
 
         parser = argparse.ArgumentParser("Evaluate a PBO on Car-On-Hill.")
-        parser.add_argument(
-            "-e",
-            "--experiment_name",
-            help="Experiment name.",
-            type=str,
-            required=True,
-        )
-        parser.add_argument(
-            "-s",
-            "--seed",
-            help="Seed of the training.",
-            type=int,
-            required=True,
-        )
-        parser.add_argument(
-            "-b",
-            "--max_bellman_iterations",
-            help="Maximum number of Bellman iteration.",
-            type=int,
-            required=True,
-        )
-        parser.add_argument(
-            "-a",
-            "--architecture",
-            help="Class of the PBO.",
-            choices=["linear", "deep"],
-            required=True,
-        )
-        parser.add_argument(
-            "-v",
-            "--validation_bellman_iterations",
-            help="Number of Bellman iteration to validate on.",
-            default=10,
-            type=int,
-        )
-        parser.add_argument(
-            "-c", "--conv", help="PBO made out of convolutional layers or not.", default=False, action="store_true"
-        )
+        addparse(parser, seed=True, architecture=True, validation_bellman_iterations=True)
         args = parser.parse_args(argvs)
         print(f"{args.experiment_name}:")
         print(
@@ -63,7 +28,7 @@ def run_cli(argvs=sys.argv[1:]):
             open(f"experiments/car_on_hill/figures/{args.experiment_name}/parameters.json")
         )  # p for parameters
 
-        from experiments.car_on_hill.utils import define_environment
+        from experiments.car_on_hill.utils import define_environment, define_q
         from pbo.networks.learnable_q import FullyConnectedQ
         import haiku as hk
         from pbo.networks.learnable_pbo import LinearPBO, DeepPBO
@@ -74,15 +39,7 @@ def run_cli(argvs=sys.argv[1:]):
 
         env, states_x, _, states_v, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
 
-        q = FullyConnectedQ(
-            state_dim=2,
-            action_dim=1,
-            actions_on_max=env.actions_on_max,
-            gamma=p["gamma"],
-            network_key=q_network_key,
-            layers_dimension=p["layers_dimension"],
-            zero_initializer=True,
-        )
+        q = define_q(env.actions_on_max, p["gamma"], q_network_key, p["layers_dimension"])
 
         if args.architecture == "linear":
             add_infinity = True

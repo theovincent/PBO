@@ -6,6 +6,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from experiments.base.parser import addparse
+
 
 def run_cli(argvs=sys.argv[1:]):
     with jax.default_device(jax.devices("cpu")[0]):
@@ -14,27 +16,7 @@ def run_cli(argvs=sys.argv[1:]):
         warnings.simplefilter(action="ignore", category=FutureWarning)
 
         parser = argparse.ArgumentParser("Evaluate a DQN on Lunar Lander.")
-        parser.add_argument(
-            "-e",
-            "--experiment_name",
-            help="Experiment name.",
-            type=str,
-            required=True,
-        )
-        parser.add_argument(
-            "-s",
-            "--seed",
-            help="Seed of the training.",
-            type=int,
-            required=True,
-        )
-        parser.add_argument(
-            "-b",
-            "--max_bellman_iterations",
-            help="Maximum number of Bellman iteration.",
-            type=int,
-            required=True,
-        )
+        addparse(parser, seed=True)
         args = parser.parse_args(argvs)
         print(f"{args.experiment_name}:")
         print(
@@ -44,7 +26,7 @@ def run_cli(argvs=sys.argv[1:]):
             open(f"experiments/lunar_lander/figures/{args.experiment_name}/parameters.json")
         )  # p for parameters
 
-        from experiments.lunar_lander.utils import define_environment
+        from experiments.lunar_lander.utils import define_environment, define_q
         from pbo.networks.learnable_q import FullyConnectedQ
         from pbo.utils.params import load_params
 
@@ -53,15 +35,7 @@ def run_cli(argvs=sys.argv[1:]):
 
         env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
 
-        q = FullyConnectedQ(
-            state_dim=8,
-            action_dim=1,
-            actions_on_max=env.actions_on_max,
-            gamma=p["gamma"],
-            network_key=q_network_key,
-            layers_dimension=p["layers_dimension"],
-            zero_initializer=True,
-        )
+        q = define_q(env.actions_on_max, p["gamma"], q_network_key, p["layers_dimension"])
         iterated_params = load_params(
             f"experiments/lunar_lander/figures/{args.experiment_name}/DQN/{args.max_bellman_iterations}_P_{args.seed}"
         )

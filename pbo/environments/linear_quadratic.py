@@ -29,7 +29,7 @@ class LinearQuadraticEnv:
 
     """
 
-    def __init__(self, env_key: int, max_init_state: float = None) -> None:
+    def __init__(self, env_key: jax.random.PRNGKeyArray, max_init_state: float = None) -> None:
         """
         Constructor.
 
@@ -39,21 +39,19 @@ class LinearQuadraticEnv:
                 within -max_init_state, max_init_state.
 
         """
-        self.parameters_key, self.reset_key = jax.random.split(env_key)
-
         # Generate a controllable environmnent
         controllable = False
 
         while not controllable:
-            self.parameters_key, key = jax.random.split(self.parameters_key)
+            env_key, key = jax.random.split(env_key)
             self.A = jax.random.uniform(key, minval=-1, maxval=1)
-            self.parameters_key, key = jax.random.split(self.parameters_key)
+            env_key, key = jax.random.split(env_key)
             self.B = jax.random.uniform(key, minval=-1, maxval=1)
-            self.parameters_key, key = jax.random.split(self.parameters_key)
+            env_key, key = jax.random.split(env_key)
             self.Q = jax.random.uniform(key, minval=-1, maxval=0)
-            self.parameters_key, key = jax.random.split(self.parameters_key)
+            env_key, key = jax.random.split(env_key)
             self.R = jax.random.uniform(key, minval=-1, maxval=1)
-            self.parameters_key, key = jax.random.split(self.parameters_key)
+            env_key, key = jax.random.split(env_key)
             self.S = jax.random.uniform(key, minval=-1, maxval=1)
 
             self.P = sc_linalg.solve_discrete_are(self.A, self.B, self.Q, self.R, s=self.S)[0, 0]
@@ -87,13 +85,8 @@ class LinearQuadraticEnv:
     def check_riccati_equation(P: float, A: float, B: float, Q: float, R: float, S: float) -> bool:
         return abs(Q + A**2 * P - (S + A * P * B) ** 2 / (R + B**2 * P) - P) < 1e-8
 
-    def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
-        if state is None:
-            self.state = jax.random.uniform(
-                self.reset_key, (1,), minval=-self.max_init_state, maxval=self.max_init_state
-            )
-        else:
-            self.state = state
+    def reset(self, state: jnp.ndarray) -> jnp.ndarray:
+        self.state = state
 
         return self.state
 

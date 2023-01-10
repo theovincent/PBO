@@ -5,6 +5,8 @@ import jax
 import numpy as np
 from tqdm import tqdm
 
+from experiments.base.parser import addparse
+
 
 def run_cli(argvs=sys.argv[1:]):
     with jax.default_device(jax.devices("cpu")[0]):
@@ -13,27 +15,7 @@ def run_cli(argvs=sys.argv[1:]):
         warnings.simplefilter(action="ignore", category=FutureWarning)
 
         parser = argparse.ArgumentParser("Evaluate FQI on Chain Walk.")
-        parser.add_argument(
-            "-e",
-            "--experiment_name",
-            help="Experiment name.",
-            type=str,
-            required=True,
-        )
-        parser.add_argument(
-            "-s",
-            "--seed",
-            help="Seed of the training.",
-            type=int,
-            required=True,
-        )
-        parser.add_argument(
-            "-b",
-            "--max_bellman_iterations",
-            help="Maximum number of Bellman iteration.",
-            type=int,
-            required=True,
-        )
+        addparse(parser, seed=True)
         args = parser.parse_args(argvs)
         print(f"{args.experiment_name}:")
         print(
@@ -43,19 +25,12 @@ def run_cli(argvs=sys.argv[1:]):
             open(f"experiments/chain_walk/figures/{args.experiment_name}/parameters.json")
         )  # p for parameters
 
-        from experiments.chain_walk.utils import define_environment
-        from pbo.networks.learnable_q import TableQ
+        from experiments.chain_walk.utils import define_environment, define_q
         from pbo.utils.params import load_params
 
         env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["n_states"], p["sucess_probability"], p["gamma"])
 
-        q = TableQ(
-            n_states=p["n_states"],
-            n_actions=env.n_actions,
-            gamma=p["gamma"],
-            network_key=jax.random.PRNGKey(0),
-            zero_initializer=True,
-        )
+        q = define_q(p["n_states"], env.n_actions, p["gamma"], jax.random.PRNGKey(0))
         iterated_params = load_params(
             f"experiments/chain_walk/figures/{args.experiment_name}/FQI/{args.max_bellman_iterations}_P_{args.seed}"
         )

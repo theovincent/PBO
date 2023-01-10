@@ -10,7 +10,7 @@ from pbo.networks.base_q import BaseQ
 class ChainWalkEnv:
     def __init__(
         self,
-        env_key: int,
+        env_key: jax.random.PRNGKeyArray,
         n_states: int,
         sucess_probability: float,
         gamma: float,
@@ -25,7 +25,7 @@ class ChainWalkEnv:
 
         self.sucess_probability = sucess_probability
         self.gamma = gamma
-        self.next_state_key, self.reset_key = jax.random.split(env_key)
+        self.noise_key = env_key
 
         self.rewards = jnp.zeros(self.n_states)
         self.rewards = self.rewards.at[0].set(1)
@@ -51,17 +51,14 @@ class ChainWalkEnv:
         self.R = self.R.at[-1].set(1)
         self.R = self.R.at[-2].set(1)
 
-    def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
-        if state is None:
-            self.state = jax.random.randint(self.reset_key, [1], minval=0, maxval=self.n_states)
-        else:
-            self.state = state
+    def reset(self, state: jnp.ndarray) -> jnp.ndarray:
+        self.state = state
 
         return self.state
 
     def step(self, action: jnp.ndarray) -> tuple:
         if 0 < self.state[0] < self.n_states - 1:
-            self.next_state_key, key = jax.random.split(self.next_state_key)
+            self.noise_key, key = jax.random.split(self.noise_key)
             if jax.random.uniform(key) <= self.sucess_probability:
                 self.state = self.state - 1 if action[0] == 0 else self.state + 1
             reward = 0

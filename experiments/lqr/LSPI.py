@@ -5,6 +5,8 @@ import numpy as np
 import jax
 from tqdm import tqdm
 
+from experiments.base.parser import addparse
+
 
 def run_cli(argvs=sys.argv[1:]):
     import warnings
@@ -12,36 +14,13 @@ def run_cli(argvs=sys.argv[1:]):
     warnings.simplefilter(action="ignore", category=FutureWarning)
 
     parser = argparse.ArgumentParser("Train LSPI on LQR.")
-    parser.add_argument(
-        "-e",
-        "--experiment_name",
-        help="Experiment name.",
-        type=str,
-        required=True,
-    )
-    parser.add_argument(
-        "-s",
-        "--seed",
-        help="Seed of the training.",
-        type=int,
-        required=True,
-    )
-    parser.add_argument(
-        "-b",
-        "--max_bellman_iterations",
-        help="Maximum number of Bellman iteration.",
-        type=int,
-        required=True,
-    )
+    addparse(parser, seed=True)
     args = parser.parse_args(argvs)
     print(f"{args.experiment_name}:")
     print(f"Training LSPI on LQR with {args.max_bellman_iterations} Bellman iterationsand seed {args.seed}...")
     p = json.load(open(f"experiments/lqr/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.lqr.utils import define_environment
-    from pbo.sample_collection.replay_buffer import ReplayBuffer
-    from pbo.sample_collection.dataloader import SampleDataLoader
-    from pbo.networks.learnable_q import LQRQ
+    from experiments.lqr.utils import define_environment, define_q, define_data_loader_samples
     from pbo.utils.params import save_params
 
     key = jax.random.PRNGKey(args.seed)
@@ -49,16 +28,10 @@ def run_cli(argvs=sys.argv[1:]):
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["max_discrete_state"])
 
-    replay_buffer = ReplayBuffer(p["n_discrete_states"] * p["n_discrete_actions"])
-    replay_buffer.load(f"experiments/lqr/figures/{args.experiment_name}/replay_buffer.npz")
-    data_loader_samples = SampleDataLoader(replay_buffer, 1, None)
-
-    q = LQRQ(
-        n_actions_on_max=p["n_actions_on_max"],
-        max_action_on_max=p["max_action_on_max"],
-        network_key=jax.random.PRNGKey(0),
-        zero_initializer=True,
+    data_loader_samples = define_data_loader_samples(
+        p["n_discrete_states"] * p["n_discrete_actions"], args.experiment_name, 1, None
     )
+    q = define_q(p["n_actions_on_max"], p["max_action_on_max"], jax.random.PRNGKey(0))
 
     iterated_params = {}
     iterated_params["0"] = q.params

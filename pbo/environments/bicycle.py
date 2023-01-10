@@ -17,7 +17,7 @@ class BicycleEnv:
     Jette Randlov and Preben Alstrom. 1998.
     """
 
-    def __init__(self, env_key: int, gamma: float) -> None:
+    def __init__(self, env_key: jax.random.PRNGKeyArray, gamma: float) -> None:
         """
         state = [omega, omega_dot, theta, theta_dot]
         position = [x_b, y_b, x_f, y_f, psi]

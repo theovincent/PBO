@@ -1,35 +1,20 @@
-import os
-import shutil
-from functools import partial
 from tqdm import tqdm
 import jax
 import jax.numpy as jnp
 import haiku as hk
 
 from pbo.environments.lunar_lander import LunarLanderEnv
+from pbo.sample_collection.exploration import EpsilonGreedySchedule
 from pbo.sample_collection.replay_buffer import ReplayBuffer
-from pbo.networks.base_pbo import BasePBO
 from pbo.networks.base_q import BaseQ
+from pbo.networks.learnable_q import FullyConnectedQ
+from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
 
 
 def define_environment(env_key: jax.random.PRNGKeyArray, gamma: float) -> LunarLanderEnv:
     env = LunarLanderEnv(env_key, gamma)
 
     return env
-
-
-def create_experiment_folders(experiment_name):
-    if not os.path.exists(f"experiments/lunar_lander/figures/{experiment_name}"):
-        os.makedirs(f"experiments/lunar_lander/figures/{experiment_name}/")
-        shutil.copyfile(
-            "experiments/lunar_lander/parameters.json",
-            f"experiments/lunar_lander/figures/{experiment_name}/parameters.json",
-        )
-
-        os.mkdir(f"experiments/lunar_lander/figures/{experiment_name}/DQN/")
-        os.mkdir(f"experiments/lunar_lander/figures/{experiment_name}/PBO_linear/")
-        os.mkdir(f"experiments/lunar_lander/figures/{experiment_name}/PBO_deep/")
-        os.mkdir(f"experiments/lunar_lander/figures/{experiment_name}/IDQN/")
 
 
 def collect_random_samples(
@@ -57,16 +42,15 @@ def collect_samples(
     q_params: hk.Params,
     n_steps: int,
     horizon: int,
-    epsilon: float,
+    exploration_schedule: EpsilonGreedySchedule,
 ) -> None:
     for _ in range(n_steps):
         state = env.state
 
-        env.sample_key, key = jax.random.split(env.sample_key)
-        if jax.random.uniform(key) > epsilon:
-            action = env.jitted_best_action(q, q_params, state)
+        if exploration_schedule.explore():
+            action = jax.random.choice(exploration_schedule.exploration_key, env.actions_on_max)
         else:
-            action = jax.random.choice(key, env.actions_on_max)
+            action = env.jitted_best_action(q, q_params, state)
 
         next_state, reward, absorbing, _ = env.step(action)
 
@@ -83,16 +67,15 @@ def collect_samples_multi_head(
     q_params: hk.Params,
     n_steps: int,
     horizon: int,
-    epsilon: float,
+    exploration_schedule: EpsilonGreedySchedule,
 ) -> None:
     for _ in range(n_steps):
         state = env.state
 
-        env.sample_key, key = jax.random.split(env.sample_key)
-        if jax.random.uniform(key) > epsilon:
-            action = env.jitted_best_action_multi_head(q, q_params, state)
+        if exploration_schedule.explore():
+            action = jax.random.choice(exploration_schedule.exploration_key, env.actions_on_max)
         else:
-            action = jax.random.choice(key, env.actions_on_max)
+            action = env.jitted_best_action_multi_head(q, q_params, state)
 
         next_state, reward, absorbing, _ = env.step(action)
 
@@ -102,11 +85,41 @@ def collect_samples_multi_head(
             env.reset()
 
 
-@partial(jax.jit, static_argnames=("pbo", "n_iterations"))
-def iterated_q(pbo: BasePBO, pbo_params: hk.Params, q_weights: jnp.ndarray, n_iterations: int) -> jnp.ndarray:
-    iterated_q_weights = q_weights
+def define_q(
+    actions_on_max: jnp.ndarray,
+    gamma: float,
+    key: jax.random.PRNGKeyArray,
+    layers_dimension: dict,
+    learning_rate: dict = None,
+) -> FullyConnectedQ:
+    return FullyConnectedQ(
+        state_dim=8,
+        action_dim=1,
+        actions_on_max=actions_on_max,
+        gamma=gamma,
+        network_key=key,
+        layers_dimension=layers_dimension,
+        zero_initializer=True,
+        learning_rate=learning_rate,
+    )
 
-    for _ in range(n_iterations):
-        iterated_q_weights = pbo(pbo_params, iterated_q_weights.reshape((1, -1)))[0]
 
-    return iterated_q_weights
+def define_q_multi_head(
+    n_heads: int,
+    actions_on_max: jnp.ndarray,
+    gamma: float,
+    key: jax.random.PRNGKeyArray,
+    layers_dimension: dict,
+    learning_rate: dict = None,
+) -> FullyConnectedMultiHeadQ:
+    return FullyConnectedMultiHeadQ(
+        n_heads=n_heads,
+        state_dim=8,
+        action_dim=1,
+        actions_on_max=actions_on_max,
+        gamma=gamma,
+        network_key=key,
+        layers_dimension=layers_dimension,
+        zero_initializer=True,
+        learning_rate=learning_rate,
+    )

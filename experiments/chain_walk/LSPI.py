@@ -5,6 +5,8 @@ import numpy as np
 import jax
 from tqdm import tqdm
 
+from experiments.base.parser import addparse
+
 
 def run_cli(argvs=sys.argv[1:]):
     import warnings
@@ -12,44 +14,20 @@ def run_cli(argvs=sys.argv[1:]):
     warnings.simplefilter(action="ignore", category=FutureWarning)
 
     parser = argparse.ArgumentParser("Train LSPI on Chain Walk.")
-    parser.add_argument(
-        "-e",
-        "--experiment_name",
-        help="Experiment name.",
-        type=str,
-        required=True,
-    )
-    parser.add_argument(
-        "-b",
-        "--max_bellman_iterations",
-        help="Maximum number of Bellman iteration.",
-        type=int,
-        required=True,
-    )
+    addparse(parser)
     args = parser.parse_args(argvs)
     print(f"{args.experiment_name}:")
     print(f"Training LSPI on Chain Walk with {args.max_bellman_iterations} Bellman iterations...")
     p = json.load(open(f"experiments/chain_walk/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.chain_walk.utils import define_environment
-    from pbo.sample_collection.replay_buffer import ReplayBuffer
-    from pbo.sample_collection.dataloader import SampleDataLoader
-    from pbo.networks.learnable_q import TableQ
+    from experiments.chain_walk.utils import define_environment, define_q, define_data_loader_samples
     from pbo.utils.params import save_params
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["n_states"], p["sucess_probability"], p["gamma"])
-
-    replay_buffer = ReplayBuffer(p["n_states"] * env.n_actions * p["n_repetitions"])
-    replay_buffer.load(f"experiments/chain_walk/figures/{args.experiment_name}/replay_buffer.npz")
-    data_loader_samples = SampleDataLoader(replay_buffer, 1, None)
-
-    q = TableQ(
-        n_states=p["n_states"],
-        n_actions=env.n_actions,
-        gamma=p["gamma"],
-        network_key=jax.random.PRNGKey(0),
-        zero_initializer=True,
+    data_loader_samples = define_data_loader_samples(
+        p["n_states"] * env.n_actions * p["n_repetitions"], args.experiment_name, 1, None
     )
+    q = define_q(p["n_states"], env.n_actions, p["gamma"], jax.random.PRNGKey(0), True)
 
     iterated_params = {}
     iterated_params["0"] = q.params

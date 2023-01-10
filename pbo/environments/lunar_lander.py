@@ -14,7 +14,7 @@ class LunarLanderEnv:
     def __init__(self, env_key: jax.random.PRNGKeyArray, gamma: float) -> None:
         self.n_actions = 4
         self.gamma = gamma
-        self.reset_key, self.sample_key = jax.random.split(env_key)
+        self.reset_key = env_key
         self.actions_on_max = jnp.array([[0], [1], [2], [3]])
 
         self.env = gym.make("LunarLander-v2", render_mode="rgb_array")
