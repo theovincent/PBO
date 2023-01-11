@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from experiments.base.parser import addparse
+from experiments.base.print import print_info
 
 
 def run_cli(argvs=sys.argv[1:]):
@@ -18,10 +19,7 @@ def run_cli(argvs=sys.argv[1:]):
         parser = argparse.ArgumentParser("Evaluate a IFQI on Bicycle.")
         addparse(parser, seed=True)
         args = parser.parse_args(argvs)
-        print(f"{args.experiment_name}:")
-        print(
-            f"Evaluating IFQI on Bicycle with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}..."
-        )
+        print_info(args.experiment_name, "IFQI", "Bicycle", args.max_bellman_iterations, args.seed, train=False)
         p = json.load(open(f"experiments/bicycle/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
         from experiments.bicycle.utils import define_environment, define_q_multi_head

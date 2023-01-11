@@ -6,6 +6,7 @@ import jax
 import numpy as np
 
 from experiments.base.parser import addparse
+from experiments.base.print import print_info
 
 
 def run_cli(argvs=sys.argv[1:]):
@@ -17,9 +18,13 @@ def run_cli(argvs=sys.argv[1:]):
         parser = argparse.ArgumentParser("Evaluate a PBO on Bicycle.")
         addparse(parser, seed=True, architecture=True, validation_bellman_iterations=True)
         args = parser.parse_args(argvs)
-        print(f"{args.experiment_name}:")
-        print(
-            f"Evaluating a {args.architecture} PBO on Bicycle with {args.max_bellman_iterations} + {args.validation_bellman_iterations} Bellman iterations and seed {args.seed} ..."
+        print_info(
+            args.experiment_name,
+            f"a {args.architecture} PBO",
+            "Bicycle",
+            args.max_bellman_iterations,
+            args.seed,
+            train=False,
         )
         if args.conv:
             print("PBO with convolutionnal layers.")

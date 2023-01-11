@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 
 from experiments.base.parser import addparse
+from experiments.base.print import print_info
 
 
 def run_cli(argvs=sys.argv[1:]):
@@ -17,10 +18,7 @@ def run_cli(argvs=sys.argv[1:]):
         parser = argparse.ArgumentParser("Compute PBO optimal on LQR.")
         addparse(parser, validation_bellman_iterations=True)
         args = parser.parse_args(argvs)
-        print(f"{args.experiment_name}:")
-        print(
-            f"Compute PBO optimal on LQR with {args.max_bellman_iterations} + {args.validation_bellman_iterations} Bellman iterations..."
-        )
+        print_info(args.experiment_name, "an optimal PBO", "LQR", args.max_bellman_iterations, args.seed, train=False)
         p = json.load(open(f"experiments/lqr/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
         from experiments.lqr.utils import define_environment, define_q

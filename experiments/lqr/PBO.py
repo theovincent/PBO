@@ -1,9 +1,9 @@
 import sys
 import argparse
 import json
-import jax
 
 from experiments.base.parser import addparse
+from experiments.base.print import print_info
 
 
 def run_cli(argvs=sys.argv[1:]):
@@ -14,10 +14,7 @@ def run_cli(argvs=sys.argv[1:]):
     parser = argparse.ArgumentParser("Train a PBO on LQR.")
     addparse(parser, seed=True, architecture=True, validation_bellman_iterations=True)
     args = parser.parse_args(argvs)
-    print(f"{args.experiment_name}:")
-    print(
-        f"Training a {args.architecture} PBO on LQR with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}..."
-    )
+    print_info(args.experiment_name, f"a {args.architecture} PBO", "LQR", args.max_bellman_iterations, args.seed)
     p = json.load(open(f"experiments/lqr/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
     from experiments.lqr.utils import define_q, define_data_loader_samples, generate_keys
