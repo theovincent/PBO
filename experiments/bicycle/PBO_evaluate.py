@@ -32,7 +32,6 @@ def run_cli(argvs=sys.argv[1:]):
         from pbo.networks.learnable_pbo import LinearPBO, DeepPBO
         from pbo.utils.params import load_params
 
-        key = jax.random.PRNGKey(args.seed)
         _, q_key, _ = generate_keys(args.seed)
 
         env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
