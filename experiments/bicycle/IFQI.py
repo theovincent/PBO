@@ -18,13 +18,15 @@ def run_cli(argvs=sys.argv[1:]):
     print(f"Training IFQI on Bicycle with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}...")
     p = json.load(open(f"experiments/bicycle/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.bicycle.utils import define_environment, define_q_multi_head, define_data_loader_samples
+    from experiments.bicycle.utils import (
+        define_environment,
+        define_q_multi_head,
+        define_data_loader_samples,
+        generate_keys,
+    )
     from experiments.base.IFQI import train
 
-    key = jax.random.PRNGKey(args.seed)
-    shuffle_key, q_network_key, _ = jax.random.split(
-        key, 3
-    )  # 3 keys are generated to be coherent with the other trainings
+    shuffle_key, q_key, _ = generate_keys(args.seed)
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
     data_loader_samples = define_data_loader_samples(
@@ -34,7 +36,7 @@ def run_cli(argvs=sys.argv[1:]):
         args.max_bellman_iterations + 1,
         env.actions_on_max,
         p["gamma"],
-        q_network_key,
+        q_key,
         p["layers_dimension"],
         learning_rate={
             "first": p["starting_lr_ifqi"],

@@ -22,22 +22,27 @@ def run_cli(argvs=sys.argv[1:]):
         print("PBO with convolutionnal layers.")
     p = json.load(open(f"experiments/lunar_lander/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.lunar_lander.utils import define_environment, define_q, collect_random_samples, collect_samples
+    from experiments.lunar_lander.utils import (
+        define_environment,
+        define_q,
+        collect_random_samples,
+        collect_samples,
+        generate_keys,
+    )
     from pbo.sample_collection.replay_buffer import ReplayBuffer
     from pbo.weights_collection.weights_buffer import WeightsBuffer
     from pbo.weights_collection.dataloader import WeightsDataLoader
     from experiments.base.PBO_online import train
 
-    key = jax.random.PRNGKey(args.seed)
-    shuffle_key, q_network_key, pbo_network_key = jax.random.split(key, 3)
-    sample_key = shuffle_key
+    sample_key, exploration_key, q_key, pbo_key = generate_keys(args.seed)
+    shuffle_key = sample_key
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
 
     replay_buffer = ReplayBuffer(p["max_size"])
     collect_random_samples(env, replay_buffer, p["n_initial_samples"], p["horizon"])
 
-    q = define_q(env.actions_on_max, p["gamma"], q_network_key, p["layers_dimension"])
+    q = define_q(env.actions_on_max, p["gamma"], q_key, p["layers_dimension"])
 
     weights_buffer = WeightsBuffer()
     weights_buffer.add(q.to_weights(q.params))
@@ -55,10 +60,11 @@ def run_cli(argvs=sys.argv[1:]):
         args,
         q,
         p,
-        pbo_network_key,
+        pbo_key,
+        exploration_key,
+        sample_key,
         replay_buffer,
         data_loader_weights,
         collect_samples,
-        sample_key,
         env,
     )

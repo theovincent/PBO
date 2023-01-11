@@ -20,11 +20,10 @@ def run_cli(argvs=sys.argv[1:]):
     print(f"Training LSPI on LQR with {args.max_bellman_iterations} Bellman iterationsand seed {args.seed}...")
     p = json.load(open(f"experiments/lqr/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.lqr.utils import define_environment, define_q, define_data_loader_samples
+    from experiments.lqr.utils import define_environment, define_q, define_data_loader_samples, generate_keys
     from pbo.utils.params import save_params
 
-    key = jax.random.PRNGKey(args.seed)
-    initial_policy_key, _, _ = jax.random.split(key, 3)  # 3 keys are generated to be coherent with the other trainings
+    initial_policy_key, _, _ = generate_keys(args.seed)
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["max_discrete_state"])
 

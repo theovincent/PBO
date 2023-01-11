@@ -25,14 +25,12 @@ def run_cli(argvs=sys.argv[1:]):
         define_q_multi_head,
         collect_random_samples,
         collect_samples_multi_head,
+        generate_keys,
     )
     from pbo.sample_collection.replay_buffer import ReplayBuffer
     from experiments.base.IDQN import train
 
-    key = jax.random.PRNGKey(args.seed)
-    sample_key, q_network_key, _ = jax.random.split(
-        key, 3
-    )  # 3 keys are generated to be coherent with the other trainings
+    sample_key, exploration_key, q_key, _ = generate_keys(args.seed)
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
 
@@ -43,7 +41,7 @@ def run_cli(argvs=sys.argv[1:]):
         args.max_bellman_iterations + 1,
         env.actions_on_max,
         p["gamma"],
-        q_network_key,
+        q_key,
         p["layers_dimension"],
         learning_rate={
             "first": p["starting_lr_idqn"],
@@ -52,4 +50,4 @@ def run_cli(argvs=sys.argv[1:]):
         },
     )
 
-    train("lunar_lander", args, q, p, replay_buffer, collect_samples_multi_head, sample_key, env)
+    train("lunar_lander", args, q, p, exploration_key, sample_key, replay_buffer, collect_samples_multi_head, env)

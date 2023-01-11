@@ -18,11 +18,10 @@ def run_cli(argvs=sys.argv[1:]):
     print(f"Training FQI on Chain Walk with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}...")
     p = json.load(open(f"experiments/chain_walk/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.chain_walk.utils import define_environment, define_q, define_data_loader_samples
+    from experiments.chain_walk.utils import define_environment, define_q, define_data_loader_samples, generate_keys
     from experiments.base.FQI import train
 
-    key = jax.random.PRNGKey(args.seed)
-    shuffle_key, _ = jax.random.split(key, 2)  # 2 keys are generated to be coherent with the other trainings
+    shuffle_key, _, _ = generate_keys(args.seed)
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["n_states"], p["sucess_probability"], p["gamma"])
     data_loader_samples = define_data_loader_samples(

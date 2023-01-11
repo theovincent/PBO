@@ -18,14 +18,17 @@ def run_cli(argvs=sys.argv[1:]):
     print(f"Training DQN on Lunar Lander with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}...")
     p = json.load(open(f"experiments/lunar_lander/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.lunar_lander.utils import define_environment, define_q, collect_random_samples, collect_samples
+    from experiments.lunar_lander.utils import (
+        define_environment,
+        define_q,
+        collect_random_samples,
+        collect_samples,
+        generate_keys,
+    )
     from pbo.sample_collection.replay_buffer import ReplayBuffer
     from experiments.base.DQN import train
 
-    key = jax.random.PRNGKey(args.seed)
-    sample_key, q_network_key, _ = jax.random.split(
-        key, 3
-    )  # 3 keys are generated to be coherent with the other trainings
+    sample_key, exploration_key, q_key, _ = generate_keys(args.seed)
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
 
@@ -35,7 +38,7 @@ def run_cli(argvs=sys.argv[1:]):
     q = define_q(
         env.actions_on_max,
         p["gamma"],
-        q_network_key,
+        q_key,
         p["layers_dimension"],
         learning_rate={
             "first": p["starting_lr_dqn"],
@@ -44,4 +47,4 @@ def run_cli(argvs=sys.argv[1:]):
         },
     )
 
-    train("lunar_lander", args, q, p, replay_buffer, collect_samples, sample_key, env)
+    train("lunar_lander", args, q, p, exploration_key, sample_key, replay_buffer, collect_samples, env)

@@ -28,13 +28,14 @@ def run_cli(argvs=sys.argv[1:]):
         from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
         from pbo.utils.params import load_params
 
-        key = jax.random.PRNGKey(args.seed)
-        _, q_network_key, _ = jax.random.split(key, 3)
-
         env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
 
         q = define_q_multi_head(
-            args.max_bellman_iterations + 1, env.actions_on_max, p["gamma"], q_network_key, p["layers_dimension"]
+            args.max_bellman_iterations + 1,
+            env.actions_on_max,
+            p["gamma"],
+            jax.random.PRNGKey(0),
+            p["layers_dimension"],
         )
         q.params = load_params(
             f"experiments/bicycle/figures/{args.experiment_name}/IFQI/{args.max_bellman_iterations}_P_{args.seed}"

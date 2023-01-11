@@ -30,12 +30,9 @@ def run_cli(argvs=sys.argv[1:]):
         from pbo.networks.learnable_q import FullyConnectedQ
         from pbo.utils.params import load_params
 
-        key = jax.random.PRNGKey(args.seed)
-        _, q_network_key, _ = jax.random.split(key, 3)
-
         env, states_x, _, states_v, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
 
-        q = define_q(env.actions_on_max, p["gamma"], q_network_key, p["layers_dimension"])
+        q = define_q(env.actions_on_max, p["gamma"], jax.random.PRNGKey(0), p["layers_dimension"])
 
         iterated_params = load_params(
             f"experiments/car_on_hill/figures/{args.experiment_name}/FQI/{args.max_bellman_iterations}_P_{args.seed}"

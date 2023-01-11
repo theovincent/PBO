@@ -18,11 +18,10 @@ def run_cli(argvs=sys.argv[1:]):
     print(f"Training FQI on LQR with {args.max_bellman_iterations} Bellman iterations and seed {args.seed}...")
     p = json.load(open(f"experiments/lqr/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.lqr.utils import define_q, define_data_loader_samples
+    from experiments.lqr.utils import define_q, define_data_loader_samples, generate_keys
     from experiments.base.FQI import train
 
-    key = jax.random.PRNGKey(args.seed)
-    shuffle_key, _, _ = jax.random.split(key, 3)  # 3 keys are generated to be coherent with the other trainings
+    shuffle_key, _, _ = generate_keys(args.seed)
 
     data_loader_samples = define_data_loader_samples(
         p["n_discrete_states"] * p["n_discrete_actions"], args.experiment_name, p["batch_size_samples"], shuffle_key

@@ -10,6 +10,7 @@
     "batch_size_samples": 121,
     "---- FQI ---": "-",
     "fitting_steps_fqi": 800,
+    "patience": 7,
     "starting_lr_fqi": 0.01,
     "ending_lr_fqi": 1e-05,
     "---- PBOs ---": "-",

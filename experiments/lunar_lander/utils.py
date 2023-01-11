@@ -1,3 +1,4 @@
+from jax.random import KeyArray
 from tqdm import tqdm
 import jax
 import jax.numpy as jnp
@@ -123,3 +124,7 @@ def define_q_multi_head(
         zero_initializer=True,
         learning_rate=learning_rate,
     )
+
+
+def generate_keys(seed: int) -> KeyArray:
+    return jax.random.split(jax.random.PRNGKey(seed), 4)

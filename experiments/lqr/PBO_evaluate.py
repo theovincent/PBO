@@ -32,17 +32,15 @@ def run_cli(argvs=sys.argv[1:]):
         q = define_q(p["n_actions_on_max"], p["max_action_on_max"], jax.random.PRNGKey(0))
 
         if args.architecture == "linear":
-            add_infinity = True
             pbo = LinearPBO(
                 q=q,
                 max_bellman_iterations=args.max_bellman_iterations,
-                add_infinity=add_infinity,
+                add_infinity=True,
                 network_key=jax.random.PRNGKey(0),
                 learning_rate={"first": 0, "last": 0, "duration": 0},
                 initial_weight_std=0.1,
             )
         elif args.architecture == "custom_linear":
-            add_infinity = False
             pbo = CustomLinearPBO(
                 q=q,
                 max_bellman_iterations=args.max_bellman_iterations,
@@ -51,7 +49,6 @@ def run_cli(argvs=sys.argv[1:]):
                 initial_weight_std=0.1,
             )
         else:
-            add_infinity = False
             pbo = DeepPBO(
                 q=q,
                 max_bellman_iterations=args.max_bellman_iterations,
@@ -67,7 +64,7 @@ def run_cli(argvs=sys.argv[1:]):
 
         weights = np.zeros(
             (
-                args.max_bellman_iterations + args.validation_bellman_iterations + int(add_infinity) + 1,
+                args.max_bellman_iterations + args.validation_bellman_iterations + int(pbo.add_infinity) + 1,
                 q.weights_dimension,
             )
         )
@@ -78,7 +75,7 @@ def run_cli(argvs=sys.argv[1:]):
             weights[iteration] = q_weights
             q_weights = pbo(pbo.params, q_weights.reshape((1, -1)))[0]
 
-        if add_infinity:
+        if pbo.add_infinity:
             weights[-1] = pbo.fixed_point(pbo.params)
 
         np.save(

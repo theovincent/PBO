@@ -28,35 +28,32 @@ def run_cli(argvs=sys.argv[1:]):
             open(f"experiments/car_on_hill/figures/{args.experiment_name}/parameters.json")
         )  # p for parameters
 
-        from experiments.car_on_hill.utils import define_environment, define_q
+        from experiments.car_on_hill.utils import define_environment, define_q, generate_keys
         from pbo.networks.learnable_q import FullyConnectedQ
         import haiku as hk
         from pbo.networks.learnable_pbo import LinearPBO, DeepPBO
         from pbo.utils.params import load_params
 
-        key = jax.random.PRNGKey(args.seed)
-        _, q_network_key, pbo_network_key = jax.random.split(key, 3)
+        _, q_key, _ = generate_keys(args.seed)
 
         env, states_x, _, states_v, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
 
-        q = define_q(env.actions_on_max, p["gamma"], q_network_key, p["layers_dimension"])
+        q = define_q(env.actions_on_max, p["gamma"], q_key, p["layers_dimension"])
 
         if args.architecture == "linear":
-            add_infinity = True
             pbo = LinearPBO(
                 q=q,
                 max_bellman_iterations=args.max_bellman_iterations,
-                add_infinity=add_infinity,
-                network_key=pbo_network_key,
+                add_infinity=True,
+                network_key=jax.random.PRNGKey(0),
                 learning_rate={"first": 0, "last": 0, "duration": 0},
                 initial_weight_std=0.1,
             )
         else:
-            add_infinity = False
             pbo = DeepPBO(
                 q=q,
                 max_bellman_iterations=args.max_bellman_iterations,
-                network_key=pbo_network_key,
+                network_key=jax.random.PRNGKey(0),
                 layers_dimension=p["pbo_layers_dimension"],
                 learning_rate={"first": 0, "last": 0, "duration": 0},
                 initial_weight_std=0.1,
@@ -84,7 +81,7 @@ def run_cli(argvs=sys.argv[1:]):
             list(
                 np.zeros(
                     (
-                        args.max_bellman_iterations + args.validation_bellman_iterations + 1 + int(add_infinity),
+                        args.max_bellman_iterations + args.validation_bellman_iterations + 1 + int(pbo.add_infinity),
                         p["n_states_x"],
                         p["n_states_v"],
                     )
@@ -95,7 +92,7 @@ def run_cli(argvs=sys.argv[1:]):
             list(
                 np.zeros(
                     (
-                        args.max_bellman_iterations + args.validation_bellman_iterations + 1 + int(add_infinity),
+                        args.max_bellman_iterations + args.validation_bellman_iterations + 1 + int(pbo.add_infinity),
                         p["n_states_x"],
                         p["n_states_v"],
                         2,
@@ -125,7 +122,7 @@ def run_cli(argvs=sys.argv[1:]):
             )
             q_weights = pbo(pbo.params, q_weights.reshape((1, -1)))[0]
 
-        if add_infinity:
+        if pbo.add_infinity:
             q_weights = pbo.fixed_point(pbo.params)
             processes.append(
                 multiprocessing.Process(

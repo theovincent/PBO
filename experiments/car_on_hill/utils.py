@@ -1,4 +1,5 @@
 from typing import Tuple
+from jax.random import KeyArray
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -69,3 +70,7 @@ def define_data_loader_samples(n_samples, experiment_name: str, batch_size_sampl
     replay_buffer = ReplayBuffer(n_samples)
     replay_buffer.load(f"experiments/car_on_hill/figures/{experiment_name}/replay_buffer.npz")
     return SampleDataLoader(replay_buffer, batch_size_samples, key)
+
+
+def generate_keys(seed: int) -> KeyArray:
+    return jax.random.split(jax.random.PRNGKey(seed), 3)

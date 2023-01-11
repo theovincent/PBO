@@ -20,7 +20,7 @@ def train(
     args: Namespace,
     q: BaseQ,
     p: dict,
-    pbo_network_key: jax.random.PRNGKeyArray,
+    pbo_key: jax.random.PRNGKeyArray,
     exploration_key: jax.random.PRNGKeyArray,
     sample_key: jax.random.PRNGKeyArray,
     replay_buffer: ReplayBuffer,
@@ -44,7 +44,7 @@ def train(
             q=q,
             max_bellman_iterations=args.max_bellman_iterations,
             add_infinity=True,
-            network_key=pbo_network_key,
+            network_key=pbo_key,
             learning_rate=learning_rate,
             initial_weight_std=p["initial_weight_std"],
         )
@@ -52,7 +52,7 @@ def train(
         pbo = DeepPBO(
             q=q,
             max_bellman_iterations=args.max_bellman_iterations,
-            network_key=pbo_network_key,
+            network_key=pbo_key,
             layers_dimension=p["pbo_layers_dimension"],
             learning_rate=learning_rate,
             initial_weight_std=p["initial_weight_std"],

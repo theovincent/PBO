@@ -34,17 +34,15 @@ def run_cli(argvs=sys.argv[1:]):
         q = define_q(p["n_states"], env.n_actions, p["gamma"], jax.random.PRNGKey(0))
 
         if args.architecture == "linear":
-            add_infinity = True
             pbo = LinearPBO(
                 q=q,
                 max_bellman_iterations=args.max_bellman_iterations,
-                add_infinity=add_infinity,
+                add_infinity=True,
                 network_key=jax.random.PRNGKey(0),
                 learning_rate={"first": 0, "last": 0, "duration": 0},
                 initial_weight_std=0.1,
             )
         elif args.architecture == "max_linear":
-            add_infinity = False
             pbo = MaxLinearPBO(
                 q=q,
                 max_bellman_iterations=args.max_bellman_iterations,
@@ -54,7 +52,6 @@ def run_cli(argvs=sys.argv[1:]):
                 initial_weight_std=0.1,
             )
         else:
-            add_infinity = False
             pbo = DeepPBO(
                 q=q,
                 max_bellman_iterations=args.max_bellman_iterations,
@@ -70,13 +67,13 @@ def run_cli(argvs=sys.argv[1:]):
 
         iterated_q_estimate = np.zeros(
             (
-                args.max_bellman_iterations + args.validation_bellman_iterations + int(add_infinity) + 1,
+                args.max_bellman_iterations + args.validation_bellman_iterations + int(pbo.add_infinity) + 1,
                 env.n_states,
                 env.n_actions,
             )
         )
         iterated_v = np.zeros(
-            (args.max_bellman_iterations + args.validation_bellman_iterations + int(add_infinity) + 1, env.n_states)
+            (args.max_bellman_iterations + args.validation_bellman_iterations + int(pbo.add_infinity) + 1, env.n_states)
         )
         q_weights = q.to_weights(q.params)
 
@@ -87,7 +84,7 @@ def run_cli(argvs=sys.argv[1:]):
 
             q_weights = pbo(pbo.params, q_weights.reshape((1, -1)))[0]
 
-        if add_infinity:
+        if pbo.add_infinity:
             q_weights = pbo.fixed_point(pbo.params)
 
             iterated_q_estimate[-1] = env.discretize(q, q.to_params(q_weights))

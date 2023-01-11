@@ -21,7 +21,7 @@ def run_cli(argvs=sys.argv[1:]):
     from experiments.bicycle.utils import define_environment, define_q, define_data_loader_samples, generate_keys
     from experiments.base.FQI import train
 
-    shuffle_key, q_network_key, _ = generate_keys(args.seed)
+    shuffle_key, q_key, _ = generate_keys(args.seed)
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
     data_loader_samples = define_data_loader_samples(
@@ -30,7 +30,7 @@ def run_cli(argvs=sys.argv[1:]):
     q = define_q(
         env.actions_on_max,
         p["gamma"],
-        q_network_key,
+        q_key,
         p["layers_dimension"],
         learning_rate={
             "first": p["starting_lr_fqi"],
