@@ -18,7 +18,7 @@ def run_cli(argvs=sys.argv[1:]):
         parser = argparse.ArgumentParser("Compute PBO optimal on LQR.")
         addparse(parser, validation_bellman_iterations=True)
         args = parser.parse_args(argvs)
-        print_info(args.experiment_name, "an optimal PBO", "LQR", args.max_bellman_iterations, args.seed, train=False)
+        print_info(args.experiment_name, "an optimal PBO", "LQR", args.max_bellman_iterations, train=False)
         p = json.load(open(f"experiments/lqr/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
         from experiments.lqr.utils import define_environment, define_q

@@ -8,18 +8,16 @@
     "batch_size_samples": 20,
     "---- FQI ---": "-",
     "fitting_steps_fqi": 400,
-    "patience": 7,
+    "patience": 100,
     "starting_lr_fqi": 0.01,
     "ending_lr_fqi": 1e-05,
     "---- PBOs ---": "-",
-    "pbo_layers_dimension": [
-        2
-    ],
+    "pbo_layers_dimension": [],
     "n_weights": 100,
     "batch_size_weights": 100,
-    "training_steps_pbo": 400,
-    "fitting_steps_pbo": 4,
-    "starting_lr_pbo": 0.005,
-    "ending_lr_pbo": 1e-05,
-    "initial_weight_std": 0.0005
+    "training_steps_pbo": 1000,
+    "fitting_steps_pbo": 5,
+    "starting_lr_pbo": 0.01,
+    "ending_lr_pbo": 1e-07,
+    "initial_weight_std": 0.000005
 }

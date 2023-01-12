@@ -11,7 +11,8 @@
         ]
     ],
     "layers_dimension": [
-        30
+        10,
+        10
     ],
     "n_states_x": 17,
     "n_states_v": 17,
@@ -33,8 +34,8 @@
         2,
         2
     ],
-    "n_weights": 100,
-    "batch_size_weights": 25,
+    "n_weights": 30,
+    "batch_size_weights": 30,
     "training_steps_pbo": 1000,
     "fitting_steps_pbo": 10,
     "starting_lr_pbo": 0.001,

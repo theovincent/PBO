@@ -10,18 +10,18 @@
     "batch_size_samples": 121,
     "---- FQI ---": "-",
     "fitting_steps_fqi": 800,
-    "patience": 7,
+    "patience": 100,
     "starting_lr_fqi": 0.01,
     "ending_lr_fqi": 1e-05,
     "---- PBOs ---": "-",
     "pbo_layers_dimension": [
-        2
+        4
     ],
     "n_weights": 1,
     "batch_size_weights": 1,
-    "training_steps_pbo": 3200,
+    "training_steps_pbo": 5000,
     "fitting_steps_pbo": 1,
     "starting_lr_pbo": 0.01,
     "ending_lr_pbo": 1e-05,
-    "initial_weight_std": 0.0005
+    "initial_weight_std": 0.000005
 }
