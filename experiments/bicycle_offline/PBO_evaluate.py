@@ -29,9 +29,11 @@ def run_cli(argvs=sys.argv[1:]):
         if args.conv:
             print("PBO with convolutionnal layers.")
 
-        p = json.load(open(f"experiments/bicycle/figures/{args.experiment_name}/parameters.json"))  # p for parameters
+        p = json.load(
+            open(f"experiments/bicycle_offline/figures/{args.experiment_name}/parameters.json")
+        )  # p for parameters
 
-        from experiments.bicycle.utils import define_environment, define_q, generate_keys
+        from experiments.bicycle_offline.utils import define_environment, define_q, generate_keys
         from pbo.networks.learnable_q import FullyConnectedQ
         import haiku as hk
         from pbo.networks.learnable_pbo import LinearPBO, DeepPBO
@@ -63,7 +65,7 @@ def run_cli(argvs=sys.argv[1:]):
                 conv=args.conv,
             )
         pbo.params = load_params(
-            f"experiments/bicycle/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_P_{args.seed}"
+            f"experiments/bicycle_offline/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_P_{args.seed}"
         )
 
         def evaluate(iteration: int, metrics_list: list, q: FullyConnectedQ, q_params: hk.Params, horizon: int):
@@ -110,6 +112,6 @@ def run_cli(argvs=sys.argv[1:]):
             process.join()
 
         np.save(
-            f"experiments/bicycle/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_M_{args.seed}.npy",
+            f"experiments/bicycle_offline/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_M_{args.seed}.npy",
             iterated_metrics,
         )

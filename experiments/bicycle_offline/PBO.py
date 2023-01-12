@@ -16,9 +16,16 @@ def run_cli(argvs=sys.argv[1:]):
     addparse(parser, seed=True, architecture=True)
     args = parser.parse_args(argvs)
     print_info(args.experiment_name, f"a {args.architecture} PBO", "Bicycle", args.max_bellman_iterations, args.seed)
-    p = json.load(open(f"experiments/bicycle/figures/{args.experiment_name}/parameters.json"))  # p for parameters
+    p = json.load(
+        open(f"experiments/bicycle_offline/figures/{args.experiment_name}/parameters.json")
+    )  # p for parameters
 
-    from experiments.bicycle.utils import define_environment, define_q, define_data_loader_samples, generate_keys
+    from experiments.bicycle_offline.utils import (
+        define_environment,
+        define_q,
+        define_data_loader_samples,
+        generate_keys,
+    )
     from pbo.weights_collection.weights_buffer import WeightsBuffer
     from pbo.weights_collection.dataloader import WeightsDataLoader
     from experiments.base.PBO_offline import train
@@ -42,4 +49,4 @@ def run_cli(argvs=sys.argv[1:]):
     weights_buffer.cast_to_jax_array()
     data_loader_weights = WeightsDataLoader(weights_buffer, p["batch_size_weights"], shuffle_key)
 
-    train("bicycle", args, q, p, pbo_key, data_loader_samples, data_loader_weights)
+    train("bicycle_offline", args, q, p, pbo_key, data_loader_samples, data_loader_weights)

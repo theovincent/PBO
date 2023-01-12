@@ -148,7 +148,8 @@ dmypy.json
 experiments/lqr/figures
 experiments/chain_walk/figures
 experiments/car_on_hill/figures
-experiments/bicycle/figures
+experiments/bicycle_offline/figures
+experiments/bicycle_online/figures
 experiments/lunar_lander/figures
 experiments/lunar_lander/transfer_from_ias_cluster.sh
 **/*.out

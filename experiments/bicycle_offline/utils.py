@@ -57,7 +57,7 @@ def define_q_multi_head(
 
 def define_data_loader_samples(n_samples, experiment_name: str, batch_size_samples, key) -> SampleDataLoader:
     replay_buffer = ReplayBuffer(n_samples)
-    replay_buffer.load(f"experiments/bicycle/figures/{experiment_name}/replay_buffer.npz")
+    replay_buffer.load(f"experiments/bicycle_offline/figures/{experiment_name}/replay_buffer.npz")
     return SampleDataLoader(replay_buffer, batch_size_samples, key)
 
 

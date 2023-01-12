@@ -22,10 +22,12 @@ def run_cli(argvs=sys.argv[1:]):
         )
         args = parser.parse_args(argvs)
         print(f"{args.experiment_name}:")
-        p = json.load(open(f"experiments/bicycle/figures/{args.experiment_name}/parameters.json"))  # p for parameters
+        p = json.load(
+            open(f"experiments/bicycle_offline/figures/{args.experiment_name}/parameters.json")
+        )  # p for parameters
         print(f"Collecting {p['n_samples']} samples on Bicycle...")
 
-        from experiments.bicycle.utils import define_environment
+        from experiments.bicycle_offline.utils import define_environment
         from pbo.sample_collection.replay_buffer import ReplayBuffer
 
         sample_key = jax.random.PRNGKey(p["env_seed"])
@@ -64,4 +66,4 @@ def run_cli(argvs=sys.argv[1:]):
 
         print(f"Number of episodes: {n_episodes}")
 
-        replay_buffer.save(f"experiments/bicycle/figures/{args.experiment_name}/replay_buffer.npz")
+        replay_buffer.save(f"experiments/bicycle_offline/figures/{args.experiment_name}/replay_buffer.npz")

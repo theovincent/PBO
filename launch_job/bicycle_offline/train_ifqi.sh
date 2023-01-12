@@ -10,4 +10,4 @@ else
     source env_cpu/bin/activate
 fi 
 
-bicycle_pbo -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID -b $MAX_BELLMAN_ITERATION -a deep $CONV
+bicycle_offline_ifqi -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID -b $MAX_BELLMAN_ITERATION
