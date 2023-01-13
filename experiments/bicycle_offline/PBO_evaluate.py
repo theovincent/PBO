@@ -26,8 +26,6 @@ def run_cli(argvs=sys.argv[1:]):
             args.seed,
             train=False,
         )
-        if args.conv:
-            print("PBO with convolutionnal layers.")
 
         p = json.load(
             open(f"experiments/bicycle_offline/figures/{args.experiment_name}/parameters.json")

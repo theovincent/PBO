@@ -36,7 +36,7 @@ def collect_random_samples(
 
         replay_buffer.add(state, action, reward, next_state, absorbing)
 
-        if absorbing or env.n_steps > horizon:
+        if absorbing[0] or env.n_steps >= horizon:
             env.reset()
 
 
@@ -61,7 +61,7 @@ def collect_samples(
 
         replay_buffer.add(state, action, reward, next_state, absorbing)
 
-        if absorbing or env.n_steps >= horizon:
+        if absorbing[0] or env.n_steps >= horizon:
             env.reset()
 
 
@@ -86,7 +86,7 @@ def collect_samples_multi_head(
 
         replay_buffer.add(state, action, reward, next_state, absorbing)
 
-        if absorbing or env.n_steps >= horizon:
+        if absorbing[0] or env.n_steps >= horizon:
             env.reset()
 
 

@@ -18,22 +18,22 @@ def train(
     exploration_key: jax.random.PRNGKeyArray,
     sample_key: jax.random.PRNGKeyArray,
     replay_buffer: ReplayBuffer,
-    collect_samples_multi_head: function,
+    collect_samples_multi_head,
     env,
 ) -> None:
     epsilon_schedule = EpsilonGreedySchedule(
         p["starting_eps_idqn"],
         p["ending_eps_idqn"],
-        p["training_steps_idqn"] * p["fitting_updates_idqn"] * p["steps_per_update"],
+        p["training_steps_idqn"] * p["fitting_steps_idqn"] * p["steps_per_update"],
         exploration_key,
     )
 
-    l2_losses = np.ones((p["training_steps_idqn"], p["fitting_updates_idqn"])) * np.nan
+    l2_losses = np.ones((p["training_steps_idqn"], p["fitting_steps_idqn"])) * np.nan
 
     for training_step in tqdm(range(p["training_steps_idqn"])):
         params_target = q.params
 
-        for fitting_step in tqdm(range(p["fitting_updates_idqn"]), leave=False):
+        for fitting_step in tqdm(range(p["fitting_steps_idqn"]), leave=False):
             collect_samples_multi_head(
                 env, replay_buffer, q, q.params, p["steps_per_update"], p["horizon"], epsilon_schedule
             )

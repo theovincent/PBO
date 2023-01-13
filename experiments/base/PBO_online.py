@@ -25,7 +25,7 @@ def train(
     sample_key: jax.random.PRNGKeyArray,
     replay_buffer: ReplayBuffer,
     data_loader_weights: WeightsDataLoader,
-    collect_samples: function,
+    collect_samples,
     env,
 ) -> None:
     epsilon_schedule = EpsilonGreedySchedule(
@@ -68,7 +68,7 @@ def train(
         for fitting_step in tqdm(range(p["fitting_steps_pbo"]), leave=False):
             cumulative_l2_loss = 0
             q_weights_exploration = iterated_q(
-                pbo, pbo.params, data_loader_weights.weights_buffer.weights[0], args.max_bellman_iterations
+                pbo, pbo.params, data_loader_weights.weights[0], args.max_bellman_iterations
             )
             collect_samples(
                 env,

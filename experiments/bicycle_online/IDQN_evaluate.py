@@ -16,15 +16,15 @@ def run_cli(argvs=sys.argv[1:]):
 
         warnings.simplefilter(action="ignore", category=FutureWarning)
 
-        parser = argparse.ArgumentParser("Evaluate a IFQI on Bicycle.")
+        parser = argparse.ArgumentParser("Evaluate a IDQN on Bicycle.")
         addparse(parser, seed=True)
         args = parser.parse_args(argvs)
-        print_info(args.experiment_name, "IFQI", "Bicycle", args.max_bellman_iterations, args.seed, train=False)
+        print_info(args.experiment_name, "IDQN", "Bicycle", args.max_bellman_iterations, args.seed, train=False)
         p = json.load(
-            open(f"experiments/bicycle_offline/figures/{args.experiment_name}/parameters.json")
+            open(f"experiments/bicycle_online/figures/{args.experiment_name}/parameters.json")
         )  # p for parameters
 
-        from experiments.bicycle_offline.utils import define_environment, define_q_multi_head
+        from experiments.bicycle_online.utils import define_environment, define_q_multi_head
         from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
         from pbo.utils.params import load_params
 
@@ -38,7 +38,7 @@ def run_cli(argvs=sys.argv[1:]):
             p["layers_dimension"],
         )
         q.params = load_params(
-            f"experiments/bicycle_offline/figures/{args.experiment_name}/IFQI/{args.max_bellman_iterations}_P_{args.seed}"
+            f"experiments/bicycle_online/figures/{args.experiment_name}/IDQN/{args.max_bellman_iterations}_P_{args.seed}"
         )
 
         def evaluate(
@@ -66,6 +66,6 @@ def run_cli(argvs=sys.argv[1:]):
             process.join()
 
         np.save(
-            f"experiments/bicycle_offline/figures/{args.experiment_name}/IFQI/{args.max_bellman_iterations}_M_{args.seed}.npy",
+            f"experiments/bicycle_online/figures/{args.experiment_name}/IDQN/{args.max_bellman_iterations}_M_{args.seed}.npy",
             iterated_metrics,
         )

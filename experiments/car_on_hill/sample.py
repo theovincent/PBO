@@ -53,7 +53,7 @@ def run_cli(argvs=sys.argv[1:]):
 
         replay_buffer.add(state, action, reward, next_state, absorbing)
 
-        if absorbing or n_steps > p["horizon"]:
+        if absorbing[0] or n_steps >= p["horizon"]:
             env.reset()
             n_episodes += 1
             n_steps = 0
@@ -71,7 +71,7 @@ def run_cli(argvs=sys.argv[1:]):
 
         replay_buffer.add(state, action, reward, next_state, absorbing)
 
-        if absorbing or n_steps > p["horizon"]:
+        if absorbing[0] or n_steps >= p["horizon"]:
             sample_key, key = jax.random.split(sample_key)
             alpha = jax.random.uniform(key)
             env.reset(alpha * jnp.array(p["oriented_states"])[0] + (1 - alpha) * jnp.array(p["oriented_states"])[1])

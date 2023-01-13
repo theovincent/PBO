@@ -6,7 +6,7 @@ from pbo.weights_collection.weights_buffer import WeightsBuffer
 
 class WeightsDataLoader:
     def __init__(self, weights_buffer: WeightsBuffer, batch_size: int, shuffle_key: jax.random.PRNGKeyArray) -> None:
-        self.weights_buffer = weights_buffer.weights
+        self.weights = weights_buffer.weights
         self.n_weights = len(weights_buffer)
         self.batch_size = batch_size
         self.shuffle_key = shuffle_key
@@ -19,7 +19,7 @@ class WeightsDataLoader:
         return jnp.ceil(self.n_weights / self.batch_size).astype(int)
 
     def getitem(self, idxs) -> dict:
-        return self.weights_buffer[idxs]
+        return self.weights[idxs]
 
     def __getitem__(self, idx: int) -> dict:
         assert 0 <= idx and idx <= len(self), f"The queried index {idx} is out of scope [0, {len(self)}]."

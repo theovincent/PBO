@@ -17,7 +17,7 @@ def train(
     exploration_key: jax.random.PRNGKeyArray,
     sample_key: jax.random.PRNGKeyArray,
     replay_buffer: ReplayBuffer,
-    collect_samples: function,
+    collect_samples,
     env,
 ) -> None:
     epsilon_schedule = EpsilonGreedySchedule(

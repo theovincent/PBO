@@ -38,7 +38,6 @@ def run_cli(argvs=sys.argv[1:]):
 
         env.reset()
         n_episodes = 0
-        n_steps = 0
 
         for _ in tqdm(range(p["n_samples"])):
             state = env.state
@@ -47,11 +46,10 @@ def run_cli(argvs=sys.argv[1:]):
             action = jax.random.choice(key, env.actions_on_max)
 
             next_state, reward, absorbing, _ = env.step(action)
-            n_steps += 1
 
             replay_buffer.add(state, action, reward, next_state, absorbing)
 
-            if absorbing[0] or n_steps >= 20:
+            if absorbing[0] or env.n_steps >= 20:
                 sample_key, key = jax.random.split(sample_key)
                 env.reset(
                     jax.random.multivariate_normal(
@@ -62,7 +60,6 @@ def run_cli(argvs=sys.argv[1:]):
                     / 10
                 )
                 n_episodes += 1
-                n_steps = 0
 
         print(f"Number of episodes: {n_episodes}")
 
