@@ -31,10 +31,8 @@ def run_cli(argvs=sys.argv[1:]):
     sample_key, exploration_key, q_key, _ = generate_keys(args.seed)
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
-
     replay_buffer = ReplayBuffer(p["max_size"])
     collect_random_samples(env, replay_buffer, p["n_initial_samples"], p["horizon"])
-
     q = define_q(
         env.actions_on_max,
         p["gamma"],
@@ -43,7 +41,7 @@ def run_cli(argvs=sys.argv[1:]):
         learning_rate={
             "first": p["starting_lr_dqn"],
             "last": p["ending_lr_dqn"],
-            "duration": args.max_bellman_iterations * p["fitting_updates_dqn"],
+            "duration": args.max_bellman_iterations * p["fitting_steps_dqn"],
         },
     )
 

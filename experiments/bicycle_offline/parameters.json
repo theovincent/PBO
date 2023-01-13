@@ -3,12 +3,12 @@
     "layers_dimension": [
         30
     ],
-    "n_simulations": 10,
     "---- Shared parameters ---": "-",
     "horizon": 50000,
     "gamma": 0.99,
     "n_samples": 70000,
     "batch_size_samples": 1000,
+    "n_simulations": 10,
     "---- FQI ---": "-",
     "fitting_steps_fqi": 1200,
     "patience": 7,

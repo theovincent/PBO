@@ -1,25 +1,66 @@
-from jax.random import KeyArray
-from tqdm import tqdm
 import jax
+from jax.random import KeyArray
 import jax.numpy as jnp
+from tqdm import tqdm
 import haiku as hk
 
-from pbo.environments.lunar_lander import LunarLanderEnv
+
+from pbo.environments.bicycle import BicycleEnv
 from pbo.sample_collection.exploration import EpsilonGreedySchedule
-from pbo.sample_collection.replay_buffer import ReplayBuffer
 from pbo.networks.base_q import BaseQ
 from pbo.networks.learnable_q import FullyConnectedQ
 from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
+from pbo.sample_collection.replay_buffer import ReplayBuffer
 
 
-def define_environment(env_key: jax.random.PRNGKeyArray, gamma: float) -> LunarLanderEnv:
-    env = LunarLanderEnv(env_key, gamma)
+def define_environment(env_key: jax.random.PRNGKeyArray, gamma: float) -> BicycleEnv:
+    env = BicycleEnv(env_key, gamma)
 
     return env
 
 
+def define_q(
+    actions_on_max: jnp.ndarray,
+    gamma: float,
+    key: jax.random.PRNGKeyArray,
+    layers_dimension: dict,
+    learning_rate: dict = None,
+) -> FullyConnectedQ:
+    return FullyConnectedQ(
+        state_dim=4,
+        action_dim=2,
+        actions_on_max=actions_on_max,
+        gamma=gamma,
+        network_key=key,
+        layers_dimension=layers_dimension,
+        zero_initializer=True,
+        learning_rate=learning_rate,
+    )
+
+
+def define_q_multi_head(
+    n_heads: int,
+    actions_on_max: jnp.ndarray,
+    gamma: float,
+    key: jax.random.PRNGKeyArray,
+    layers_dimension: dict,
+    learning_rate: dict = None,
+) -> FullyConnectedMultiHeadQ:
+    return FullyConnectedMultiHeadQ(
+        n_heads=n_heads,
+        state_dim=4,
+        action_dim=2,
+        actions_on_max=actions_on_max,
+        gamma=gamma,
+        network_key=key,
+        layers_dimension=layers_dimension,
+        zero_initializer=True,
+        learning_rate=learning_rate,
+    )
+
+
 def collect_random_samples(
-    env: LunarLanderEnv,
+    env: BicycleEnv,
     sample_key: jax.random.PRNGKeyArray,
     replay_buffer: ReplayBuffer,
     n_initial_samples: int,
@@ -41,7 +82,7 @@ def collect_random_samples(
 
 
 def collect_samples(
-    env: LunarLanderEnv,
+    env: BicycleEnv,
     replay_buffer: ReplayBuffer,
     q: BaseQ,
     q_params: hk.Params,
@@ -66,7 +107,7 @@ def collect_samples(
 
 
 def collect_samples_multi_head(
-    env: LunarLanderEnv,
+    env: BicycleEnv,
     replay_buffer: ReplayBuffer,
     q: BaseQ,
     q_params: hk.Params,
@@ -88,46 +129,6 @@ def collect_samples_multi_head(
 
         if absorbing or env.n_steps >= horizon:
             env.reset()
-
-
-def define_q(
-    actions_on_max: jnp.ndarray,
-    gamma: float,
-    key: jax.random.PRNGKeyArray,
-    layers_dimension: dict,
-    learning_rate: dict = None,
-) -> FullyConnectedQ:
-    return FullyConnectedQ(
-        state_dim=8,
-        action_dim=1,
-        actions_on_max=actions_on_max,
-        gamma=gamma,
-        network_key=key,
-        layers_dimension=layers_dimension,
-        zero_initializer=True,
-        learning_rate=learning_rate,
-    )
-
-
-def define_q_multi_head(
-    n_heads: int,
-    actions_on_max: jnp.ndarray,
-    gamma: float,
-    key: jax.random.PRNGKeyArray,
-    layers_dimension: dict,
-    learning_rate: dict = None,
-) -> FullyConnectedMultiHeadQ:
-    return FullyConnectedMultiHeadQ(
-        n_heads=n_heads,
-        state_dim=8,
-        action_dim=1,
-        actions_on_max=actions_on_max,
-        gamma=gamma,
-        network_key=key,
-        layers_dimension=layers_dimension,
-        zero_initializer=True,
-        learning_rate=learning_rate,
-    )
 
 
 def generate_keys(seed: int) -> KeyArray:

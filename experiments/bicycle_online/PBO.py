@@ -12,15 +12,15 @@ def run_cli(argvs=sys.argv[1:]):
 
     warnings.simplefilter(action="ignore", category=FutureWarning)
 
-    parser = argparse.ArgumentParser("Train a PBO on Lunar Lander.")
+    parser = argparse.ArgumentParser("Train a PBO on Bicycle.")
     addparse(parser, seed=True, architecture=True)
     args = parser.parse_args(argvs)
-    print_info(
-        args.experiment_name, f"a {args.architecture} PBO", "Lunar Lander", args.max_bellman_iterations, args.seed
-    )
-    p = json.load(open(f"experiments/lunar_lander/figures/{args.experiment_name}/parameters.json"))  # p for parameters
+    print_info(args.experiment_name, f"a {args.architecture} PBO", "Bicycle", args.max_bellman_iterations, args.seed)
+    p = json.load(
+        open(f"experiments/bicycle_online/figures/{args.experiment_name}/parameters.json")
+    )  # p for parameters
 
-    from experiments.lunar_lander.utils import (
+    from experiments.bicycle_online.utils import (
         define_environment,
         define_q,
         collect_random_samples,
@@ -37,7 +37,7 @@ def run_cli(argvs=sys.argv[1:]):
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
     replay_buffer = ReplayBuffer(p["max_size"])
-    collect_random_samples(env, sample_key, replay_buffer, p["n_initial_samples"], p["horizon"])
+    collect_random_samples(env, sample_key, replay_buffer, p["n_initial_samples"], 20)
     q = define_q(env.actions_on_max, p["gamma"], q_key, p["layers_dimension"])
 
     weights_buffer = WeightsBuffer()
@@ -52,7 +52,7 @@ def run_cli(argvs=sys.argv[1:]):
     data_loader_weights = WeightsDataLoader(weights_buffer, p["batch_size_weights"], shuffle_key)
 
     train(
-        "lunar_lander",
+        "bicycle_online",
         args,
         q,
         p,

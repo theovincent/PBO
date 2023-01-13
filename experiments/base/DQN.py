@@ -23,18 +23,18 @@ def train(
     epsilon_schedule = EpsilonGreedySchedule(
         p["starting_eps_dqn"],
         p["ending_eps_dqn"],
-        args.max_bellman_iterations * p["fitting_updates_dqn"] * p["steps_per_update"],
+        args.max_bellman_iterations * p["fitting_steps_dqn"] * p["steps_per_update"],
         exploration_key,
     )
 
-    l2_losses = np.ones((args.max_bellman_iterations, p["fitting_updates_dqn"])) * np.nan
+    l2_losses = np.ones((args.max_bellman_iterations, p["fitting_steps_dqn"])) * np.nan
     iterated_params = {}
     iterated_params["0"] = q.params
 
     for bellman_iteration in tqdm(range(1, args.max_bellman_iterations + 1)):
         params_target = q.params
 
-        for update in tqdm(range(p["fitting_updates_dqn"]), leave=False):
+        for update in tqdm(range(p["fitting_steps_dqn"]), leave=False):
             collect_samples(env, replay_buffer, q, q.params, p["steps_per_update"], p["horizon"], epsilon_schedule)
 
             sample_key, key = jax.random.split(sample_key)

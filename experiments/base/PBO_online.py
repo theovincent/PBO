@@ -31,13 +31,13 @@ def train(
     epsilon_schedule = EpsilonGreedySchedule(
         p["starting_eps_pbo"],
         p["ending_eps_pbo"],
-        p["training_steps_pbo"] * p["fitting_updates_pbo"] * p["steps_per_update"],
+        p["training_steps_pbo"] * p["fitting_steps_pbo"] * p["steps_per_update"],
         exploration_key,
     )
     learning_rate = {
         "first": p["starting_lr_pbo"],
         "last": p["ending_lr_pbo"],
-        "duration": p["training_steps_pbo"] * p["fitting_updates_pbo"],
+        "duration": p["training_steps_pbo"] * p["fitting_steps_pbo"],
     }
     if args.architecture == "linear":
         pbo = LinearPBO(
@@ -60,12 +60,12 @@ def train(
         )
     importance_iteration = jnp.ones(args.max_bellman_iterations + 1)
 
-    l2_losses = np.ones((p["training_steps_pbo"], p["fitting_updates_pbo"])) * np.nan
+    l2_losses = np.ones((p["training_steps_pbo"], p["fitting_steps_pbo"])) * np.nan
 
     for training_step in tqdm(range(p["training_steps_pbo"])):
         params_target = pbo.params
 
-        for fitting_step in tqdm(range(p["fitting_updates_pbo"]), leave=False):
+        for fitting_step in tqdm(range(p["fitting_steps_pbo"]), leave=False):
             cumulative_l2_loss = 0
             q_weights_exploration = iterated_q(
                 pbo, pbo.params, data_loader_weights.weights_buffer.weights[0], args.max_bellman_iterations
