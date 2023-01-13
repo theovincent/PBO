@@ -11,10 +11,6 @@ parse_arguments $@
 [ -d experiments/bicycle_online/figures/$EXPERIMENT_NAME/IDQN ] || mkdir experiments/bicycle_online/figures/$EXPERIMENT_NAME/IDQN
 
 
-# Collect data
-echo "launch collect sample"
-bicycle_online_sample -e $EXPERIMENT_NAME
-
 for (( seed=$FIRST_SEED; seed<=$LAST_SEED; seed++ ))
 do
     if [[ $DQN = true ]]
