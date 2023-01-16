@@ -89,7 +89,7 @@ def run_cli(argvs=sys.argv[1:]):
             processes.append(
                 multiprocessing.Process(
                     target=evaluate,
-                    args=(iteration, iterated_metrics, q, q.to_params(q_weights), p["horizon"]),
+                    args=(iteration, iterated_metrics, q, q.to_params(q_weights), p["horizon_evaluation"]),
                 )
             )
             q_weights = pbo(pbo.params, q_weights.reshape((1, -1)))[0]
@@ -99,7 +99,7 @@ def run_cli(argvs=sys.argv[1:]):
             processes.append(
                 multiprocessing.Process(
                     target=evaluate,
-                    args=(-1, iterated_metrics, q, q.to_params(q_weights), p["horizon"]),
+                    args=(-1, iterated_metrics, q, q.to_params(q_weights), p["horizon_evaluation"]),
                 )
             )
 

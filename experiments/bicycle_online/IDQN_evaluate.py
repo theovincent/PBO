@@ -55,7 +55,8 @@ def run_cli(argvs=sys.argv[1:]):
         for iteration in range(args.max_bellman_iterations + 1):
             processes.append(
                 multiprocessing.Process(
-                    target=evaluate, args=(iteration, iterated_metrics, q, q.to_weights(q.params), p["horizon"])
+                    target=evaluate,
+                    args=(iteration, iterated_metrics, q, q.to_weights(q.params), p["horizon_evaluation"]),
                 )
             )
 

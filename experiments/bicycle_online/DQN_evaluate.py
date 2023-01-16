@@ -46,7 +46,13 @@ def run_cli(argvs=sys.argv[1:]):
             processes.append(
                 multiprocessing.Process(
                     target=evaluate,
-                    args=(iteration, iterated_metrics, q, q.to_weights(iterated_params[f"{iteration}"]), p["horizon"]),
+                    args=(
+                        iteration,
+                        iterated_metrics,
+                        q,
+                        q.to_weights(iterated_params[f"{iteration}"]),
+                        p["horizon_evaluation"],
+                    ),
                 )
             )
 

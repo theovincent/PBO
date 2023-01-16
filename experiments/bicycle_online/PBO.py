@@ -37,7 +37,7 @@ def run_cli(argvs=sys.argv[1:]):
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
     replay_buffer = ReplayBuffer(p["max_size"])
-    collect_random_samples(env, sample_key, replay_buffer, p["n_initial_samples"], 20)
+    collect_random_samples(env, sample_key, replay_buffer, p["n_initial_samples"], p["horizon"])
     q = define_q(env.actions_on_max, p["gamma"], q_key, p["layers_dimension"])
 
     weights_buffer = WeightsBuffer()
