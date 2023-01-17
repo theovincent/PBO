@@ -2,7 +2,7 @@ from jax.random import KeyArray
 import jax
 
 from pbo.environments.linear_quadratic import LinearQuadraticEnv
-from pbo.networks.learnable_q import LQRQ
+from pbo.networks.learnable_q import LQRQ, LQRQVectorField
 from pbo.sample_collection.replay_buffer import ReplayBuffer
 from pbo.sample_collection.dataloader import SampleDataLoader
 
@@ -23,6 +23,24 @@ def define_q(
     return LQRQ(
         n_actions_on_max=n_actions_on_max,
         max_action_on_max=max_action_on_max,
+        network_key=key,
+        zero_initializer=zero_initializer,
+        learning_rate=learning_rate,
+    )
+
+
+def define_q_vector_field(
+    n_actions_on_max: int,
+    max_action_on_max: float,
+    m: float,
+    key: jax.random.PRNGKeyArray,
+    zero_initializer: bool = True,
+    learning_rate: dict = None,
+) -> LQRQVectorField:
+    return LQRQVectorField(
+        n_actions_on_max=n_actions_on_max,
+        max_action_on_max=max_action_on_max,
+        m=m,
         network_key=key,
         zero_initializer=zero_initializer,
         learning_rate=learning_rate,
