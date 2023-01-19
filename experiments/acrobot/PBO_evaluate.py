@@ -38,7 +38,7 @@ def run_cli(argvs=sys.argv[1:]):
 
         _, _, q_key, _ = generate_keys(args.seed)
 
-        env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
+        env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma_evaluation"])
 
         q = define_q(env.actions_on_max, p["gamma"], q_key, p["layers_dimension"])
 

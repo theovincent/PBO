@@ -26,7 +26,7 @@ def run_cli(argvs=sys.argv[1:]):
         from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
         from pbo.utils.params import load_params
 
-        env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma"])
+        env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["gamma_evaluation"])
 
         q = define_q_multi_head(
             args.max_bellman_iterations + 1,
