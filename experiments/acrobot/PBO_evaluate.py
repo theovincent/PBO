@@ -82,7 +82,10 @@ def run_cli(argvs=sys.argv[1:]):
 
         manager = multiprocessing.Manager()
         iterated_j = manager.list(
-            list(np.zeros(args.max_bellman_iterations + args.validation_bellman_iterations + 1 + int(pbo.add_infinity)))
+            list(
+                np.nan
+                * np.zeros(args.max_bellman_iterations + args.validation_bellman_iterations + 1 + int(pbo.add_infinity))
+            )
         )
 
         q_weights = q.to_weights(q.params)
@@ -92,7 +95,7 @@ def run_cli(argvs=sys.argv[1:]):
             processes.append(
                 multiprocessing.Process(
                     target=evaluate,
-                    args=(iteration, iterated_j, q, q.to_params(q_weights), p["horizon"]),
+                    args=(iteration, iterated_j, q, q.to_params(q_weights), p["horizon_evaluation"]),
                 )
             )
             q_weights = pbo(pbo.params, q_weights.reshape((1, -1)))[0]
