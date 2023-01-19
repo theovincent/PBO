@@ -36,6 +36,9 @@ def collect_random_samples(
 
         replay_buffer.add(state, action, reward, next_state, absorbing)
 
+        if reward[0] == 0:
+            print("Terminal state has been reached at step number", env.n_steps)
+
         if absorbing[0] or env.n_steps >= horizon:
             env.reset()
 
@@ -58,6 +61,9 @@ def collect_samples(
             action = env.jitted_best_action(q, q_params, state)
 
         next_state, reward, absorbing, _ = env.step(action)
+
+        if reward[0] == 0:
+            print("Terminal state has been reached at step number", env.n_steps)
 
         replay_buffer.add(state, action, reward, next_state, absorbing)
 
