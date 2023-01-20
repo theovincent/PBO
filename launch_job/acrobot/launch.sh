@@ -18,7 +18,7 @@ if [[ $DQN = true ]]
 then
     # DQN
     echo "launch train dqn"
-    submission_train_dqn=$(sbatch -J A_train_dqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=0:30:00 --output=out/acrobot/$EXPERIMENT_NAME/train_dqn_%a.out --error=error/acrobot/$EXPERIMENT_NAME/train_dqn_%a.out -p amd,amd2 launch_job/acrobot/train_dqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+    submission_train_dqn=$(sbatch -J A_train_dqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=0:50:00 --output=out/acrobot/$EXPERIMENT_NAME/train_dqn_%a.out --error=error/acrobot/$EXPERIMENT_NAME/train_dqn_%a.out -p amd,amd2 launch_job/acrobot/train_dqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 
     IFS=" " read -ra split_submission_train_dqn <<< $submission_train_dqn
     submission_id_train_dqn=${split_submission_train_dqn[-1]}
