@@ -18,17 +18,19 @@ def run_cli(argvs=sys.argv[1:]):
     print_info(args.experiment_name, "FQI", "LQR", args.max_bellman_iterations, args.seed)
     p = json.load(open(f"experiments/lqr/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
-    from experiments.lqr.utils import define_q, define_data_loader_samples, generate_keys
+    from experiments.lqr.utils import define_environment, define_data_loader_samples, define_q, generate_keys
     from experiments.base.FQI import train
 
     shuffle_key, _, _ = generate_keys(args.seed)
 
+    env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["max_discrete_state"])
     data_loader_samples = define_data_loader_samples(
         p["n_discrete_states"] * p["n_discrete_actions"], args.experiment_name, p["batch_size_samples"], shuffle_key
     )
     q = define_q(
         p["n_actions_on_max"],
         p["max_action_on_max"],
+        env.optimal_weights[2] if p["q_dim"] == 2 else None,
         jax.random.PRNGKey(0),
         learning_rate={
             "first": p["starting_lr_fqi"],

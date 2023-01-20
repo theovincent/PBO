@@ -26,11 +26,15 @@ def run_cli(argvs=sys.argv[1:]):
     initial_policy_key, _, _ = generate_keys(args.seed)
 
     env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["max_discrete_state"])
-
     data_loader_samples = define_data_loader_samples(
         p["n_discrete_states"] * p["n_discrete_actions"], args.experiment_name, 1, None
     )
-    q = define_q(p["n_actions_on_max"], p["max_action_on_max"], jax.random.PRNGKey(0))
+    q = define_q(
+        p["n_actions_on_max"],
+        p["max_action_on_max"],
+        env.optimal_weights[2] if p["q_dim"] == 2 else None,
+        jax.random.PRNGKey(0),
+    )
 
     iterated_params = {}
     iterated_params["0"] = q.params

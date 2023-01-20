@@ -134,6 +134,8 @@ class LQRQVectorField(BaseQ):
         zero_initializer: bool,
         learning_rate: dict = None,
     ) -> None:
+        self.m = m
+
         def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
             return LQRQVectorFieldNet(m, zero_initializer)(state, action)
 

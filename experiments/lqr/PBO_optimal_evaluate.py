@@ -25,8 +25,12 @@ def run_cli(argvs=sys.argv[1:]):
         from pbo.networks.learnable_pbo import CustomLinearPBO
 
         env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["max_discrete_state"])
-
-        q = define_q(p["n_actions_on_max"], p["max_action_on_max"], jax.random.PRNGKey(0))
+        q = define_q(
+            p["n_actions_on_max"],
+            p["max_action_on_max"],
+            env.optimal_weights[2] if p["q_dim"] == 2 else None,
+            jax.random.PRNGKey(0),
+        )
         pbo = CustomLinearPBO(
             q=q,
             max_bellman_iterations=args.max_bellman_iterations,
@@ -34,8 +38,8 @@ def run_cli(argvs=sys.argv[1:]):
             learning_rate={"first": 0, "last": 0, "duration": 0},
             initial_weight_std=0.1,
         )
-        pbo.params["CustomLinearPBONet"]["slope"] = env.optimal_slope.reshape((1, 3))
-        pbo.params["CustomLinearPBONet"]["bias"] = env.optimal_bias.reshape((1, 3))
+        pbo.params["CustomLinearPBONet"]["slope"] = env.optimal_slope[: p["q_dim"]].reshape((1, p["q_dim"]))
+        pbo.params["CustomLinearPBONet"]["bias"] = env.optimal_bias[: p["q_dim"]].reshape((1, p["q_dim"]))
 
         weights = np.zeros(
             (

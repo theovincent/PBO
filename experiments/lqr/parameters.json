@@ -8,6 +8,7 @@
     "n_discrete_states": 11,
     "n_discrete_actions": 11,
     "batch_size_samples": 121,
+    "q_dim": 2,
     "---- FQI ---": "-",
     "fitting_steps_fqi": 800,
     "patience": 100,
@@ -17,8 +18,8 @@
     "pbo_layers_dimension": [
         4
     ],
-    "n_weights": 1,
-    "batch_size_weights": 1,
+    "n_weights": 5,
+    "batch_size_weights": 5,
     "training_steps_pbo": 5000,
     "fitting_steps_pbo": 1,
     "starting_lr_pbo": 0.01,

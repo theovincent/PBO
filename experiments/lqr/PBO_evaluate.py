@@ -33,8 +33,12 @@ def run_cli(argvs=sys.argv[1:]):
         from pbo.utils.params import load_params
 
         env = define_environment(jax.random.PRNGKey(p["env_seed"]), p["max_discrete_state"])
-
-        q = define_q(p["n_actions_on_max"], p["max_action_on_max"], jax.random.PRNGKey(0))
+        q = define_q(
+            p["n_actions_on_max"],
+            p["max_action_on_max"],
+            env.optimal_weights[2] if p["q_dim"] == 2 else None,
+            jax.random.PRNGKey(0),
+        )
 
         if args.architecture == "linear":
             pbo = LinearPBO(

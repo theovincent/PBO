@@ -16,35 +16,28 @@ def define_environment(env_key: jax.random.PRNGKeyArray, max_init_state: float) 
 def define_q(
     n_actions_on_max: int,
     max_action_on_max: float,
-    key: jax.random.PRNGKeyArray,
-    zero_initializer: bool = True,
-    learning_rate: dict = None,
-) -> LQRQ:
-    return LQRQ(
-        n_actions_on_max=n_actions_on_max,
-        max_action_on_max=max_action_on_max,
-        network_key=key,
-        zero_initializer=zero_initializer,
-        learning_rate=learning_rate,
-    )
-
-
-def define_q_vector_field(
-    n_actions_on_max: int,
-    max_action_on_max: float,
     m: float,
     key: jax.random.PRNGKeyArray,
     zero_initializer: bool = True,
     learning_rate: dict = None,
-) -> LQRQVectorField:
-    return LQRQVectorField(
-        n_actions_on_max=n_actions_on_max,
-        max_action_on_max=max_action_on_max,
-        m=m,
-        network_key=key,
-        zero_initializer=zero_initializer,
-        learning_rate=learning_rate,
-    )
+) -> LQRQ:
+    if m is None:
+        return LQRQ(
+            n_actions_on_max=n_actions_on_max,
+            max_action_on_max=max_action_on_max,
+            network_key=key,
+            zero_initializer=zero_initializer,
+            learning_rate=learning_rate,
+        )
+    else:
+        return LQRQVectorField(
+            n_actions_on_max=n_actions_on_max,
+            max_action_on_max=max_action_on_max,
+            m=m,
+            network_key=key,
+            zero_initializer=zero_initializer,
+            learning_rate=learning_rate,
+        )
 
 
 def define_data_loader_samples(n_samples, experiment_name: str, batch_size_samples, key) -> SampleDataLoader:

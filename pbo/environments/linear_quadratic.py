@@ -98,26 +98,6 @@ class LinearQuadraticEnv:
 
         return self.state, reward, jnp.array([absorbing]), {}
 
-    def optimal_action(self) -> jnp.ndarray:
-        return -self.K * self.state
-
-    def optimal_Q_value(self, state: float, action: float) -> float:
-        K = self.optimal_weights[0]
-        I = self.optimal_weights[1]
-        M = self.optimal_weights[2]
-
-        return state**2 * K + 2 * state * action * I + action**2 * M
-
     def greedy_V(self, weights: jnp.ndarray) -> jnp.ndarray:
         ratio = weights[..., 1] / (weights[..., 2] + 1e-32)
         return (self.Q - 2 * self.S * ratio + self.R * ratio**2) / (1 - (self.A - self.B * ratio) ** 2)
-
-    @partial(jax.jit, static_argnames="self")
-    def optimal_Q_values(self, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
-        return jax.vmap(lambda state, action: self.optimal_Q_value(state, action))(states, actions)
-
-    def optimal_Q_mesh(self, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
-        states_mesh, actions_mesh = jnp.meshgrid(states, actions, indexing="ij")
-
-        # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return self.optimal_Q_values(states_mesh, actions_mesh).reshape((states.shape[0], actions.shape[0]))
