@@ -98,6 +98,10 @@ class LinearQuadraticEnv:
 
         return self.state, reward, jnp.array([absorbing]), {}
 
-    def greedy_V(self, weights: jnp.ndarray) -> jnp.ndarray:
-        ratio = weights[..., 1] / (weights[..., 2] + 1e-32)
-        return (self.Q - 2 * self.S * ratio + self.R * ratio**2) / (1 - (self.A - self.B * ratio) ** 2)
+    def greedy_V(self, weights: jnp.ndarray, q_dimension: int) -> jnp.ndarray:
+        if q_dimension == 3:
+            ratio = weights[..., 1] / (weights[..., 2] + 1e-32)
+            return (self.Q - 2 * self.S * ratio + self.R * ratio**2) / (1 - (self.A - self.B * ratio) ** 2)
+        else:
+            ratio = weights[..., 1] / (self.optimal_weights[2] + 1e-32)
+            return (self.Q - 2 * self.S * ratio + self.R * ratio**2) / (1 - (self.A - self.B * ratio) ** 2)

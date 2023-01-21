@@ -46,5 +46,5 @@ def run_cli(argvs=sys.argv[1:]):
         )
         np.save(
             f"experiments/lqr/figures/{args.experiment_name}/FQI/{args.max_bellman_iterations}_V_{args.seed}.npy",
-            env.greedy_V(weights),
+            env.greedy_V(weights, p["q_dim"]),
         )

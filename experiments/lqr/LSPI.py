@@ -20,6 +20,9 @@ def run_cli(argvs=sys.argv[1:]):
     print_info(args.experiment_name, "LSPI", "LQR", args.max_bellman_iterations)
     p = json.load(open(f"experiments/lqr/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
+    if p["q_dim"] == 2:
+        raise ImportWarning("LSPI for LQR 2D is not implemented yet")
+
     from experiments.lqr.utils import define_environment, define_q, define_data_loader_samples, generate_keys
     from pbo.utils.params import save_params
 
@@ -85,5 +88,5 @@ def run_cli(argvs=sys.argv[1:]):
     )
     np.save(
         f"experiments/lqr/figures/{args.experiment_name}/LSPI/{args.max_bellman_iterations}_V_{args.seed}.npy",
-        env.greedy_V(weights),
+        env.greedy_V(weights, p["q_dim"]),
     )

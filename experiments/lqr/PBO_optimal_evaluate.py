@@ -60,5 +60,5 @@ def run_cli(argvs=sys.argv[1:]):
         )
         np.save(
             f"experiments/lqr/figures/{args.experiment_name}/PBO_optimal/{args.max_bellman_iterations}_V.npy",
-            env.greedy_V(weights),
+            env.greedy_V(weights, p["q_dim"]),
         )
