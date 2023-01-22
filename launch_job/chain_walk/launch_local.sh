@@ -28,7 +28,7 @@ if [[ $PBO_optimal = true ]]
 then
     # PBO optimal
     echo "launch evaluate pbo optimal"
-    chain_walk_pbo_optimal_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION
+    chain_walk_pbo_optimal_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -v 50
 fi 
 
 for (( seed=$FIRST_SEED; seed<=$LAST_SEED; seed++ ))
@@ -50,7 +50,7 @@ do
         chain_walk_pbo -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a linear
 
         echo "launch evaluate pbo linear"
-        chain_walk_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a linear
+        chain_walk_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a linear -v 50
     fi
 
     if [[ $PBO_max_linear = true ]]
@@ -60,7 +60,7 @@ do
         chain_walk_pbo -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a max_linear
 
         echo "launch evaluate pbo max linear"
-        chain_walk_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a max_linear
+        chain_walk_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a max_linear -v 50
     fi
 
     if [[ $PBO_deep = true ]]
@@ -70,6 +70,6 @@ do
         chain_walk_pbo -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a deep
 
         echo "launch evaluate pbo deep"
-        chain_walk_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a deep
+        chain_walk_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a deep -v 50
     fi
 done
