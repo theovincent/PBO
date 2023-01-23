@@ -18,7 +18,7 @@ if [[ $DQN = true ]]
 then
     # DQN
     echo "launch train dqn"
-    submission_train_dqn=$(sbatch -J A_train_dqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=2 --mem-per-cpu=750Mc --time=3:30:00 --output=out/acrobot/$EXPERIMENT_NAME/train_dqn_%a.out --error=error/acrobot/$EXPERIMENT_NAME/train_dqn_%a.out --gres=gpu:1 -p amd,amd2,rtx,rtx2 launch_job/acrobot/train_dqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -g)
+    submission_train_dqn=$(sbatch -J A_train_dqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=3:30:00 --output=out/acrobot/$EXPERIMENT_NAME/train_dqn_%a.out --error=error/acrobot/$EXPERIMENT_NAME/train_dqn_%a.out --gres=gpu:1 -p amd,amd2,rtx,rtx2 launch_job/acrobot/train_dqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -g)
 
     IFS=" " read -ra split_submission_train_dqn <<< $submission_train_dqn
     submission_id_train_dqn=${split_submission_train_dqn[-1]}
@@ -32,7 +32,7 @@ if [[ $PBO_linear = true ]]
 then
     # PBO linear
     echo "launch train pbo linear"
-    submission_train_pbo_linear=$(sbatch -J A_train_pbo_linear --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=2 --mem-per-cpu=750Mc --time=3:30:00 --output=out/acrobot/$EXPERIMENT_NAME/train_pbo_linear_%a.out --error=error/acrobot/$EXPERIMENT_NAME/train_pbo_linear_%a.out --gres=gpu:1 -p amd,amd2,rtx,rtx2 launch_job/acrobot/train_pbo_linear.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a linear -g)
+    submission_train_pbo_linear=$(sbatch -J A_train_pbo_linear --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=3:30:00 --output=out/acrobot/$EXPERIMENT_NAME/train_pbo_linear_%a.out --error=error/acrobot/$EXPERIMENT_NAME/train_pbo_linear_%a.out --gres=gpu:1 -p amd,amd2,rtx,rtx2 launch_job/acrobot/train_pbo_linear.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a linear -g)
 
     IFS=" " read -ra split_submission_train_pbo_linear <<< $submission_train_pbo_linear
     submission_id_train_pbo_linear=${split_submission_train_pbo_linear[-1]}
@@ -46,7 +46,7 @@ if [[ $PBO_deep = true ]]
 then
     # PBO deep
     echo "launch train pbo deep"
-    submission_train_pbo_deep=$(sbatch -J A_train_pbo_deep --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=2 --mem-per-cpu=1200Mc --time=5:30:00 --output=out/acrobot/$EXPERIMENT_NAME/train_pbo_deep_%a.out --error=error/acrobot/$EXPERIMENT_NAME/train_pbo_deep_%a.out --gres=gpu:1 -p amd,amd2,rtx,rtx2 launch_job/acrobot/train_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV -g)
+    submission_train_pbo_deep=$(sbatch -J A_train_pbo_deep --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=5 --mem-per-cpu=6000Mc --time=5:30:00 --output=out/acrobot/$EXPERIMENT_NAME/train_pbo_deep_%a.out --error=error/acrobot/$EXPERIMENT_NAME/train_pbo_deep_%a.out --gres=gpu:1 -p amd,amd2,rtx,rtx2 launch_job/acrobot/train_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV -g)
 
     IFS=" " read -ra split_submission_train_pbo_deep <<< $submission_train_pbo_deep
     submission_id_train_pbo_deep=${split_submission_train_pbo_deep[-1]}
@@ -60,7 +60,7 @@ if [[ $IDQN = true ]]
 then
     # IDQN
     echo "launch train idqn"
-    submission_train_idqn=$(sbatch -J A_train_idqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=2 --mem-per-cpu=750Mc --time=5:30:00 --output=out/acrobot/$EXPERIMENT_NAME/train_idqn_%a.out --error=error/acrobot/$EXPERIMENT_NAME/train_idqn_%a.out --gres=gpu:1 -p amd,amd2,rtx,rtx2 launch_job/acrobot/train_idqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -g)
+    submission_train_idqn=$(sbatch -J A_train_idqn --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=5:30:00 --output=out/acrobot/$EXPERIMENT_NAME/train_idqn_%a.out --error=error/acrobot/$EXPERIMENT_NAME/train_idqn_%a.out --gres=gpu:1 -p amd,amd2,rtx,rtx2 launch_job/acrobot/train_idqn.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -g)
 
     IFS=" " read -ra split_submission_train_idqn <<< $submission_train_idqn
     submission_id_train_idqn=${split_submission_train_idqn[-1]}
