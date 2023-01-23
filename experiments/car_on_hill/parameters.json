@@ -11,8 +11,7 @@
         ]
     ],
     "layers_dimension": [
-        10,
-        10
+        30
     ],
     "n_states_x": 17,
     "n_states_v": 17,

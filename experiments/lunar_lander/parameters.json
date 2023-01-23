@@ -11,7 +11,7 @@
     "max_size": 20000,
     "batch_size_samples": 500,
     "steps_per_update": 2,
-    "n_simulations": 10,
+    "n_simulations": 100,
     "---- DQN ---": "-",
     "fitting_steps_dqn": 6000,
     "starting_lr_dqn": 3e-03,
@@ -26,7 +26,7 @@
         2
     ],
     "n_weights": 30,
-    "batch_size_weights": 5,
+    "batch_size_weights": 15,
     "training_steps_pbo": 3000,
     "fitting_steps_pbo": 25,
     "starting_lr_pbo": 0.00001,
