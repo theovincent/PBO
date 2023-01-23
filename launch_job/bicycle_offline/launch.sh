@@ -32,7 +32,7 @@ then
     submission_id_train_fqi=${split_submission_train_fqi[-1]}
 
     echo "launch evaluate fqi"
-    submission_evaluate_fqi=$(sbatch -J Boff_evaluate_fqi --dependency=afterok:$submission_id_train_fqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=100Mc --time=10:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/evaluate_fqi_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/evaluate_fqi_%a.out -p amd,amd2 launch_job/bicycle_offline/evaluate_fqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+    submission_evaluate_fqi=$(sbatch -J Boff_evaluate_fqi --dependency=afterok:$submission_id_train_fqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=100Mc --time=20:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/evaluate_fqi_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/evaluate_fqi_%a.out -p amd,amd2 launch_job/bicycle_offline/evaluate_fqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 fi 
 
 
@@ -46,7 +46,7 @@ then
     submission_id_train_pbo_linear=${split_submission_train_pbo_linear[-1]}
 
     echo "launch evaluate pbo linear"
-    submission_evaluate_pbo_linear=$(sbatch -J Boff_evaluate_pbo_linear --dependency=afterok:$submission_id_train_pbo_linear,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=300Mc --time=10:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/evaluate_pbo_linear_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/evaluate_pbo_linear_%a.out -p amd,amd2 launch_job/bicycle_offline/evaluate_pbo_linear.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a linear)
+    submission_evaluate_pbo_linear=$(sbatch -J Boff_evaluate_pbo_linear --dependency=afterok:$submission_id_train_pbo_linear,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=300Mc --time=20:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/evaluate_pbo_linear_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/evaluate_pbo_linear_%a.out -p amd,amd2 launch_job/bicycle_offline/evaluate_pbo_linear.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a linear)
 fi
 
 
@@ -54,13 +54,13 @@ if [[ $PBO_deep = true ]]
 then
     # PBO deep
     echo "launch train pbo deep"
-    submission_train_pbo_deep=$(sbatch -J Boff_train_pbo_deep --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=7:30:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/train_pbo_deep_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/train_pbo_deep_%a.out -p amd,amd2 launch_job/bicycle_offline/train_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
+    submission_train_pbo_deep=$(sbatch -J Boff_train_pbo_deep --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=19:30:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/train_pbo_deep_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/train_pbo_deep_%a.out -p amd,amd2 launch_job/bicycle_offline/train_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
 
     IFS=" " read -ra split_submission_train_pbo_deep <<< $submission_train_pbo_deep
     submission_id_train_pbo_deep=${split_submission_train_pbo_deep[-1]}
 
     echo "launch evaluate pbo deep"
-    submission_evaluate_pbo_deep=$(sbatch -J Boff_evaluate_pbo_deep --dependency=afterok:$submission_id_train_pbo_deep,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=600Mc --time=10:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out -p amd,amd2 launch_job/bicycle_offline/evaluate_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
+    submission_evaluate_pbo_deep=$(sbatch -J Boff_evaluate_pbo_deep --dependency=afterok:$submission_id_train_pbo_deep,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=600Mc --time=20:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out -p amd,amd2 launch_job/bicycle_offline/evaluate_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
 fi
 
 
@@ -74,5 +74,5 @@ then
     submission_id_train_ifqi=${split_submission_train_ifqi[-1]}
 
     echo "launch evaluate ifqi"
-    submission_evaluate_ifqi=$(sbatch -J Boff_evaluate_ifqi --dependency=afterok:$submission_id_train_ifqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=150Mc --time=10:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/evaluate_ifqi_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/evaluate_ifqi_%a.out -p amd,amd2 launch_job/bicycle_offline/evaluate_ifqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
+    submission_evaluate_ifqi=$(sbatch -J Boff_evaluate_ifqi --dependency=afterok:$submission_id_train_ifqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=150Mc --time=20:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/evaluate_ifqi_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/evaluate_ifqi_%a.out -p amd,amd2 launch_job/bicycle_offline/evaluate_ifqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 fi
