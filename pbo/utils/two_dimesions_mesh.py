@@ -39,7 +39,9 @@ class TwoDimesionsMesh:
     ) -> None:
         if clear:
             clear_output(wait=True)
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(5.7, 5))
+        plt.rc("font", size=18)
+        plt.rc("lines", linewidth=3)
 
         if self.zero_centered:
             abs_max = np.max(np.abs(self.values))
@@ -66,8 +68,8 @@ class TwoDimesionsMesh:
         if title != "":
             ax.set_title(title)
 
-        fig.colorbar(colors, ax=ax)
-        fig.tight_layout()
+        # fig.colorbar(colors, ax=ax)
+        # fig.tight_layout()
         fig.canvas.draw()
         if plot:
             plt.show()

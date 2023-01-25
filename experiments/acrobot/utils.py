@@ -41,6 +41,7 @@ def collect_random_samples(
 
         if absorbing[0] or env.n_steps >= horizon:
             env.reset()
+    print("Finish random collection")
 
 
 def collect_samples(

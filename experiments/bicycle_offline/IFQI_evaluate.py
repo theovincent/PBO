@@ -49,7 +49,9 @@ def run_cli(argvs=sys.argv[1:]):
             metrics_list[iteration] = env.evaluate(q_inference, q.to_params(q_weights), horizon, p["n_simulations"])
 
         manager = multiprocessing.Manager()
-        iterated_metrics = manager.list(list(np.zeros((args.max_bellman_iterations + 1, p["n_simulations"], 2))))
+        iterated_metrics = manager.list(
+            list(np.nan * np.zeros((args.max_bellman_iterations + 1, p["n_simulations"], 2)))
+        )
 
         processes = []
         for iteration in range(args.max_bellman_iterations + 1):

@@ -16,7 +16,7 @@
     "ending_lr_fqi": 1e-05,
     "---- PBOs ---": "-",
     "pbo_layers_dimension": [
-        0
+        8
     ],
     "n_weights": 5,
     "batch_size_weights": 5,
