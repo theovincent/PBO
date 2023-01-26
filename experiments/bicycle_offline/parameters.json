@@ -16,14 +16,14 @@
     "ending_lr_fqi": 0.0001,
     "---- PBOs ---": "-",
     "pbo_layers_dimension": [
-        10,
-        10,
-        10,
-        10
+        2,
+        2,
+        2,
+        2
     ],
-    "n_weights": 30,
-    "batch_size_weights": 30,
-    "training_steps_pbo": 700,
+    "n_weights": 50,
+    "batch_size_weights": 25,
+    "training_steps_pbo": 500,
     "fitting_steps_pbo": 20,
     "starting_lr_pbo": 0.0001,
     "ending_lr_pbo": 1e-07,
