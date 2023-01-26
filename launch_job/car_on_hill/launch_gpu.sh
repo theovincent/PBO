@@ -16,7 +16,7 @@ parse_arguments $@
 
 # Collect data
 echo "launch collect sample"
-submission_collect_sample=$(sbatch -J C_collect_sample --cpus-per-task=3 --mem-per-cpu=500Mc --time=50:00 --output=out/car_on_hill/$EXPERIMENT_NAME/collect_sample.out --error=error/car_on_hill/$EXPERIMENT_NAME/collect_sample.out -p amd,amd2 launch_job/car_on_hill/collect_sample.sh -e $EXPERIMENT_NAME -b 0 $COUNT_SAMPLES)
+submission_collect_sample=$(sbatch -J C_collect_sample --cpus-per-task=3 --mem-per-cpu=500Mc --time=50:00 --output=out/car_on_hill/$EXPERIMENT_NAME/collect_sample.out --error=error/car_on_hill/$EXPERIMENT_NAME/collect_sample.out -p amd,amd2 launch_job/car_on_hill/collect_sample.sh -e $EXPERIMENT_NAME -b 0)
 
 IFS=" " read -ra split_submission_collect_sample <<< $submission_collect_sample
 submission_id_collect_sample=${split_submission_collect_sample[-1]}

@@ -13,12 +13,7 @@ parse_arguments $@
 
 # Collect data
 echo "launch collect sample"
-if [[ $COUNT_SAMPLES = true ]]
-then
-    car_on_hill_sample -e $EXPERIMENT_NAME -c
-else
-    car_on_hill_sample -e $EXPERIMENT_NAME
-fi
+car_on_hill_sample -e $EXPERIMENT_NAME -c
 
 for (( seed=$FIRST_SEED; seed<=$LAST_SEED; seed++ ))
 do

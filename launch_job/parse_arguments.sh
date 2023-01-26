@@ -63,10 +63,6 @@ function parse_arguments() {
                 IDQN=false
                 shift
                 ;;
-            -sc | --skip_count_samples)
-                SKIP_COUNT_SAMPLES=true
-                shift
-                ;;
             -c | --conv)
                 CONV="-c"
                 shift
@@ -139,10 +135,6 @@ function parse_arguments() {
     if [[ $IDQN == "" ]]
     then
         IDQN=true
-    fi
-    if [[ $SKIP_COUNT_SAMPLES == "" ]]
-    then
-        COUNT_SAMPLES="-c"
     fi
     if [[ $GPU == "" ]]
     then
