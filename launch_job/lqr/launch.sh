@@ -9,7 +9,6 @@ parse_arguments $@
 [ -d experiments/lqr/figures/$EXPERIMENT_NAME ] || mkdir -p experiments/lqr/figures/$EXPERIMENT_NAME
 [ -f experiments/lqr/figures/$EXPERIMENT_NAME/parameters.json ] || cp experiments/lqr/parameters.json experiments/lqr/figures/$EXPERIMENT_NAME/parameters.json
 [ -d experiments/lqr/figures/$EXPERIMENT_NAME/FQI ] || mkdir experiments/lqr/figures/$EXPERIMENT_NAME/FQI
-[ -d experiments/lqr/figures/$EXPERIMENT_NAME/LSPI ] || mkdir experiments/lqr/figures/$EXPERIMENT_NAME/LSPI
 [ -d experiments/lqr/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/lqr/figures/$EXPERIMENT_NAME/PBO_linear
 [ -d experiments/lqr/figures/$EXPERIMENT_NAME/PBO_custom_linear ] || mkdir experiments/lqr/figures/$EXPERIMENT_NAME/PBO_custom_linear
 [ -d experiments/lqr/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/lqr/figures/$EXPERIMENT_NAME/PBO_deep
@@ -36,13 +35,6 @@ then
     echo "launch evaluate fqi"
     submission_evaluate_fqi=$(sbatch -J l_evaluate_fqi --dependency=afterok:$submission_id_train_fqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=2 --mem-per-cpu=200Mc --time=20:00 --output=out/lqr/$EXPERIMENT_NAME/evaluate_fqi_%a.out --error=error/lqr/$EXPERIMENT_NAME/evaluate_fqi_%a.out -p amd,amd2 launch_job/lqr/evaluate_fqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 fi 
-
-if [[ $LSPI = true ]]
-then
-    # LSPI
-    echo "launch train lspi"
-    submission_train_lspi=$(sbatch -J l_train_lspi --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=2 --mem-per-cpu=200Mc --time=20:00 --output=out/lqr/$EXPERIMENT_NAME/train_lspi.out --error=error/lqr/$EXPERIMENT_NAME/train_lspi.out -p amd,amd2 launch_job/lqr/train_lspi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
-fi
 
 
 if [[ $PBO_linear = true ]]

@@ -6,7 +6,6 @@ parse_arguments $@
 [ -d experiments/lqr/figures/$EXPERIMENT_NAME ] || mkdir -p experiments/lqr/figures/$EXPERIMENT_NAME
 [ -f experiments/lqr/figures/$EXPERIMENT_NAME/parameters.json ] || cp experiments/lqr/parameters.json experiments/lqr/figures/$EXPERIMENT_NAME/parameters.json
 [ -d experiments/lqr/figures/$EXPERIMENT_NAME/FQI ] || mkdir experiments/lqr/figures/$EXPERIMENT_NAME/FQI
-[ -d experiments/lqr/figures/$EXPERIMENT_NAME/LSPI ] || mkdir experiments/lqr/figures/$EXPERIMENT_NAME/LSPI
 [ -d experiments/lqr/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/lqr/figures/$EXPERIMENT_NAME/PBO_linear
 [ -d experiments/lqr/figures/$EXPERIMENT_NAME/PBO_custom_linear ] || mkdir experiments/lqr/figures/$EXPERIMENT_NAME/PBO_custom_linear
 [ -d experiments/lqr/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/lqr/figures/$EXPERIMENT_NAME/PBO_deep
@@ -34,13 +33,6 @@ do
         lqr_fqi -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
 
         lqr_fqi_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
-    fi 
-
-    if [[ $LSPI = true ]]
-    then
-        # LSPI
-        echo "launch train and evaluate lspi"
-        lqr_lspi -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
     fi 
 
     if [[ $PBO_linear = true ]]

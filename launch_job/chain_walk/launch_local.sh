@@ -6,7 +6,6 @@ parse_arguments $@
 [ -d experiments/chain_walk/figures/$EXPERIMENT_NAME ] || mkdir -p experiments/chain_walk/figures/$EXPERIMENT_NAME
 [ -f experiments/chain_walk/figures/$EXPERIMENT_NAME/parameters.json ] || cp experiments/chain_walk/parameters.json experiments/chain_walk/figures/$EXPERIMENT_NAME/parameters.json
 [ -d experiments/chain_walk/figures/$EXPERIMENT_NAME/FQI ] || mkdir experiments/chain_walk/figures/$EXPERIMENT_NAME/FQI
-[ -d experiments/chain_walk/figures/$EXPERIMENT_NAME/LSPI ] || mkdir experiments/chain_walk/figures/$EXPERIMENT_NAME/LSPI
 [ -d experiments/chain_walk/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/chain_walk/figures/$EXPERIMENT_NAME/PBO_linear
 [ -d experiments/chain_walk/figures/$EXPERIMENT_NAME/PBO_max_linear ] || mkdir experiments/chain_walk/figures/$EXPERIMENT_NAME/PBO_max_linear
 [ -d experiments/chain_walk/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/chain_walk/figures/$EXPERIMENT_NAME/PBO_deep
@@ -16,13 +15,6 @@ parse_arguments $@
 # Collect data
 echo "launch collect sample"
 chain_walk_sample -e $EXPERIMENT_NAME
-
-if [[ $LSPI = true ]]
-then
-    # LSPI
-    echo "launch train and evaluate lspi"
-    chain_walk_lspi -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION
-fi 
 
 if [[ $PBO_optimal = true ]]
 then
