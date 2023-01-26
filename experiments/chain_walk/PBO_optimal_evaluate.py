@@ -40,14 +40,16 @@ def run_cli(argvs=sys.argv[1:]):
         pbo.params["MaxLinearPBONet/linear"]["w"] = p["gamma"] * env.transition_proba.T
         pbo.params["MaxLinearPBONet/linear"]["b"] = env.R.T
 
-        iterated_q_estimate = np.zeros(
+        iterated_q_estimate = np.nan * np.zeros(
             (
                 args.max_bellman_iterations + args.validation_bellman_iterations + 1,
                 env.n_states,
                 env.n_actions,
             )
         )
-        iterated_v = np.zeros((args.max_bellman_iterations + args.validation_bellman_iterations + 1, env.n_states))
+        iterated_v = np.nan * np.zeros(
+            (args.max_bellman_iterations + args.validation_bellman_iterations + 1, env.n_states)
+        )
         batch_iterated_weights = q.to_weights(q.params).reshape((1, -1))
 
         for iteration in tqdm(range(args.max_bellman_iterations + args.validation_bellman_iterations + 1)):

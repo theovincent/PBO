@@ -24,7 +24,7 @@ def train(
     epsilon_schedule = EpsilonGreedySchedule(
         p["starting_eps_idqn"],
         p["ending_eps_idqn"],
-        p["training_steps_idqn"] * p["fitting_steps_idqn"] * p["steps_per_update"],
+        p["training_steps_idqn"] * p["fitting_steps_idqn"] * p["steps_per_update_idqn"],
         exploration_key,
     )
 
@@ -34,9 +34,17 @@ def train(
         params_target = q.params
 
         for fitting_step in tqdm(range(p["fitting_steps_idqn"]), leave=False):
-            collect_samples_multi_head(
-                env, replay_buffer, q, q.params, p["steps_per_update"], p["horizon"], epsilon_schedule
-            )
+            sample_key, key = jax.random.split(sample_key)
+            if jax.random.uniform(key) <= p["steps_per_update_idqn"]:
+                collect_samples_multi_head(
+                    env,
+                    replay_buffer,
+                    q,
+                    q.params,
+                    1 if p["steps_per_update_idqn"] < 1 else p["steps_per_update_idqn"],
+                    p["horizon"],
+                    epsilon_schedule,
+                )
 
             sample_key, key = jax.random.split(sample_key)
             batch_samples = replay_buffer.sample_random_batch(key, p["batch_size_samples"])

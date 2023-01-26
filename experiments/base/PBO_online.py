@@ -31,7 +31,7 @@ def train(
     epsilon_schedule = EpsilonGreedySchedule(
         p["starting_eps_pbo"],
         p["ending_eps_pbo"],
-        p["training_steps_pbo"] * p["fitting_steps_pbo"] * p["steps_per_update"],
+        p["training_steps_pbo"] * p["fitting_steps_pbo"] * p["steps_per_update_pbo"],
         exploration_key,
     )
     learning_rate = {
@@ -70,17 +70,18 @@ def train(
             q_weights_exploration = iterated_q(
                 pbo, pbo.params, data_loader_weights.weights[0], args.max_bellman_iterations
             )
-            collect_samples(
-                env,
-                replay_buffer,
-                q,
-                q.to_params(q_weights_exploration),
-                p["steps_per_update"],
-                p["horizon"],
-                epsilon_schedule,
-            )
-
             sample_key, key = jax.random.split(sample_key)
+            if jax.random.uniform(key) <= p["steps_per_update_pbo"]:
+                collect_samples(
+                    env,
+                    replay_buffer,
+                    q,
+                    q.to_params(q_weights_exploration),
+                    1 if p["steps_per_update_pbo"] < 1 else p["steps_per_update_pbo"],
+                    p["horizon"],
+                    epsilon_schedule,
+                )
+
             batch_samples = replay_buffer.sample_random_batch(key, p["batch_size_samples"])
 
             data_loader_weights.shuffle()

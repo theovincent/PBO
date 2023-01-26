@@ -82,7 +82,8 @@ def run_cli(argvs=sys.argv[1:]):
         manager = multiprocessing.Manager()
         iterated_v = manager.list(
             list(
-                np.zeros(
+                np.nan
+                * np.zeros(
                     (
                         args.max_bellman_iterations + args.validation_bellman_iterations + 1 + int(pbo.add_infinity),
                         p["n_states_x"],
@@ -93,7 +94,8 @@ def run_cli(argvs=sys.argv[1:]):
         )
         iterated_q_estimate = manager.list(
             list(
-                np.zeros(
+                np.nan
+                * np.zeros(
                     (
                         args.max_bellman_iterations + args.validation_bellman_iterations + 1 + int(pbo.add_infinity),
                         p["n_states_x"],

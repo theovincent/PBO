@@ -45,7 +45,7 @@ def run_cli(argvs=sys.argv[1:]):
             )
 
         manager = multiprocessing.Manager()
-        iterated_j = manager.list(list(np.zeros(args.max_bellman_iterations + 1)))
+        iterated_j = manager.list(list(np.nan * np.zeros(args.max_bellman_iterations + 1)))
 
         processes = []
         for iteration in range(args.max_bellman_iterations + 1):

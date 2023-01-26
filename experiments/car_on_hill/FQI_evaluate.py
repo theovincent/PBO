@@ -50,9 +50,11 @@ def run_cli(argvs=sys.argv[1:]):
             q_estimate[iteration] = np.array(env.q_estimate_mesh(q, q.to_params(q_weights), states_x, states_v))
 
         manager = multiprocessing.Manager()
-        iterated_v = manager.list(list(np.zeros((args.max_bellman_iterations + 1, p["n_states_x"], p["n_states_v"]))))
+        iterated_v = manager.list(
+            list(np.nan * np.zeros((args.max_bellman_iterations + 1, p["n_states_x"], p["n_states_v"])))
+        )
         iterated_q_estimate = manager.list(
-            list(np.zeros((args.max_bellman_iterations + 1, p["n_states_x"], p["n_states_v"], 2)))
+            list(np.nan * np.zeros((args.max_bellman_iterations + 1, p["n_states_x"], p["n_states_v"], 2)))
         )
 
         processes = []

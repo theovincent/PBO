@@ -71,7 +71,7 @@ def run_cli(argvs=sys.argv[1:]):
             f"experiments/lqr/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_P_{args.seed}"
         )
 
-        weights = np.zeros(
+        weights = np.nan * np.zeros(
             (
                 args.max_bellman_iterations + args.validation_bellman_iterations + int(pbo.add_infinity) + 1,
                 q.weights_dimension,

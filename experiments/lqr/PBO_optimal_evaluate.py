@@ -41,7 +41,7 @@ def run_cli(argvs=sys.argv[1:]):
         pbo.params["CustomLinearPBONet"]["slope"] = env.optimal_slope[: p["q_dim"]].reshape((1, p["q_dim"]))
         pbo.params["CustomLinearPBONet"]["bias"] = env.optimal_bias[: p["q_dim"]].reshape((1, p["q_dim"]))
 
-        weights = np.zeros(
+        weights = np.nan * np.zeros(
             (
                 args.max_bellman_iterations + args.validation_bellman_iterations + 1,
                 q.weights_dimension,

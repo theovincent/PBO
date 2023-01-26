@@ -33,8 +33,8 @@ def run_cli(argvs=sys.argv[1:]):
             f"experiments/chain_walk/figures/{args.experiment_name}/FQI/{args.max_bellman_iterations}_P_{args.seed}"
         )
 
-        q_functions = np.zeros((args.max_bellman_iterations + 1, env.n_states, env.n_actions))
-        v_functions = np.zeros((args.max_bellman_iterations + 1, env.n_states))
+        q_functions = np.nan * np.zeros((args.max_bellman_iterations + 1, env.n_states, env.n_actions))
+        v_functions = np.nan * np.zeros((args.max_bellman_iterations + 1, env.n_states))
 
         for iteration in tqdm(range(args.max_bellman_iterations + 1)):
             q_functions[iteration] = env.discretize(q, iterated_params[f"{iteration}"])

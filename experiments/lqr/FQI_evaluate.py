@@ -35,7 +35,7 @@ def run_cli(argvs=sys.argv[1:]):
             f"experiments/lqr/figures/{args.experiment_name}/FQI/{args.max_bellman_iterations}_P_{args.seed}"
         )
 
-        weights = np.zeros((args.max_bellman_iterations + 1, q.weights_dimension))
+        weights = np.nan * np.zeros((args.max_bellman_iterations + 1, q.weights_dimension))
 
         for iteration in tqdm(range(args.max_bellman_iterations + 1)):
             weights[iteration] = q.to_weights(iterated_params[f"{iteration}"])

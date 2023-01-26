@@ -70,14 +70,14 @@ def run_cli(argvs=sys.argv[1:]):
             f"experiments/chain_walk/figures/{args.experiment_name}/PBO_{args.architecture}/{args.max_bellman_iterations}_P_{args.seed}"
         )
 
-        iterated_q_estimate = np.zeros(
+        iterated_q_estimate = np.nan * np.zeros(
             (
                 args.max_bellman_iterations + args.validation_bellman_iterations + int(pbo.add_infinity) + 1,
                 env.n_states,
                 env.n_actions,
             )
         )
-        iterated_v = np.zeros(
+        iterated_v = np.nan * np.zeros(
             (args.max_bellman_iterations + args.validation_bellman_iterations + int(pbo.add_infinity) + 1, env.n_states)
         )
         q_weights = q.to_weights(q.params)

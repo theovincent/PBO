@@ -23,7 +23,7 @@ def train(
     epsilon_schedule = EpsilonGreedySchedule(
         p["starting_eps_dqn"],
         p["ending_eps_dqn"],
-        args.max_bellman_iterations * p["fitting_steps_dqn"] * p["steps_per_update"],
+        args.max_bellman_iterations * p["fitting_steps_dqn"] * p["steps_per_update_dqn"],
         exploration_key,
     )
 
@@ -35,9 +35,18 @@ def train(
         params_target = q.params
 
         for update in tqdm(range(p["fitting_steps_dqn"]), leave=False):
-            collect_samples(env, replay_buffer, q, q.params, p["steps_per_update"], p["horizon"], epsilon_schedule)
-
             sample_key, key = jax.random.split(sample_key)
+            if jax.random.uniform(key) <= p["steps_per_update_dqn"]:
+                collect_samples(
+                    env,
+                    replay_buffer,
+                    q,
+                    q.params,
+                    1 if p["steps_per_update_dqn"] < 1 else p["steps_per_update_dqn"],
+                    p["horizon"],
+                    epsilon_schedule,
+                )
+
             batch_samples = replay_buffer.sample_random_batch(key, p["batch_size_samples"])
 
             q.params, q.optimizer_state, l2_loss = q.learn_on_batch(

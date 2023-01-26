@@ -84,7 +84,10 @@ def run_cli(argvs=sys.argv[1:]):
 
         manager = multiprocessing.Manager()
         iterated_j = manager.list(
-            list(np.zeros(args.max_bellman_iterations + args.validation_bellman_iterations + 1 + int(pbo.add_infinity)))
+            list(
+                np.nan
+                * np.zeros(args.max_bellman_iterations + args.validation_bellman_iterations + 1 + int(pbo.add_infinity))
+            )
         )
 
         q_weights = q.to_weights(q.params)
