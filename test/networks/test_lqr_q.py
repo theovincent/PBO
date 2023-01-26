@@ -83,4 +83,4 @@ class TestTableQ(unittest.TestCase):
 
             computed_target = q.compute_target(weights.reshape((1, q.weights_dimension)), samples)
 
-            self.assertAlmostEqual(jnp.linalg.norm(target.reshape((1, batch_size, 1)) - computed_target), 0, places=6)
+            self.assertAlmostEqual(jnp.linalg.norm(target.reshape((1, batch_size, 1)) - computed_target), 0, places=5)

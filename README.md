@@ -2,10 +2,11 @@
 
 ## User installation
 ### Without Docker, with Python 3.8 or 3.9 installed
-In the folder where the code is, create a Python virtual environment, activate it and install the package and its dependencies in editable mode:
+In the folder where the code is, create a Python virtual environment, activate it, update pip and install the package and its dependencies in editable mode:
 ```bash
 python3 -m venv env
 source env/bin/activate
+pip install --upgrade pip
 pip install -e .
 ```
 
@@ -28,7 +29,7 @@ Run all tests with
 ```Bash
 pytest
 ```
-The code should take around 1 minutes to run.
+The code should take around 1 minute to run.
 
 
 ## Using a GPU

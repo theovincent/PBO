@@ -15,7 +15,7 @@ class TestLinearQuadraticEnv(unittest.TestCase):
     def test_reset(self) -> None:
         env = LinearQuadraticEnv(self.env_key, self.max_init_state)
 
-        state = env.reset()
+        state = env.reset(jnp.array([1]))
         self.assertAlmostEqual(state, env.state)
         self.assertEqual(state.shape, (1,))
         self.assertGreaterEqual(state[0], -self.max_init_state)
@@ -23,7 +23,7 @@ class TestLinearQuadraticEnv(unittest.TestCase):
 
     def test_step(self) -> None:
         env = LinearQuadraticEnv(self.env_key, self.max_init_state)
-        state = env.reset()
+        state = env.reset(jnp.array([1]))
 
         for _ in range(20):
             action = jnp.array([np.random.random() * 10])

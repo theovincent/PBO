@@ -17,7 +17,7 @@ class TestChainWalkEnv(unittest.TestCase):
     def test_reset(self) -> None:
         env = ChainWalkEnv(self.env_key, self.n_states, self.sucess_probability, self.gamma)
 
-        state = env.reset()
+        state = env.reset(jnp.array([1]))
         self.assertAlmostEqual(state, env.state)
         self.assertEqual(state.shape, (1,))
         self.assertGreaterEqual(state[0], 0)
@@ -25,7 +25,7 @@ class TestChainWalkEnv(unittest.TestCase):
 
     def test_step(self) -> None:
         env = ChainWalkEnv(self.env_key, self.n_states, self.sucess_probability, self.gamma)
-        state = env.reset()
+        state = env.reset(jnp.array([1]))
 
         for _ in range(10):
             next_state, reward, absorbing, _ = env.step(jnp.array([0]))

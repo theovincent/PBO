@@ -152,7 +152,6 @@ experiments/bicycle_offline/figures
 experiments/bicycle_online/figures
 experiments/acrobot/figures
 experiments/lunar_lander/figures
-experiments/lunar_lander/transfer_from_ias_cluster.sh
 **/*.out
 
 # Save optimal values
