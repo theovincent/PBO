@@ -6,6 +6,9 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from experiments.base.parser import addparse
+from experiments.base.print import print_info
+
 
 def run_cli(argvs=sys.argv[1:]):
     with jax.default_device(jax.devices("cpu")[0]):
@@ -13,55 +16,26 @@ def run_cli(argvs=sys.argv[1:]):
 
         warnings.simplefilter(action="ignore", category=FutureWarning)
 
-        parser = argparse.ArgumentParser("Evaluate a IFQI on Car-On-Hill.")
-        parser.add_argument(
-            "-e",
-            "--experiment_name",
-            help="Experiment name.",
-            type=str,
-            required=True,
-        )
-        parser.add_argument(
-            "-s",
-            "--seed",
-            help="Seed of the training.",
-            type=int,
-            required=True,
-        )
-        parser.add_argument(
-            "-b",
-            "--max_bellman_iterations",
-            help="Maximum number of Bellman iteration.",
-            type=int,
-            required=True,
-        )
+        parser = argparse.ArgumentParser("Evaluate IFQI on Car-On-Hill.")
+        addparse(parser, seed=True)
         args = parser.parse_args(argvs)
-        print(f"{args.experiment_name}:")
-        print(
-            f"Evaluating IFQI on Car-On-Hill with {args.max_bellman_iterations} Bellman iterations and seed {args.seed} ..."
-        )
+        print_info(args.experiment_name, "IFQI", "Car-On-Hill", args.max_bellman_iterations, args.seed, train=False)
         p = json.load(
             open(f"experiments/car_on_hill/figures/{args.experiment_name}/parameters.json")
         )  # p for parameters
 
-        from experiments.car_on_hill.utils import define_environment
+        from experiments.car_on_hill.utils import define_environment, define_q_multi_head
         from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
         from pbo.utils.params import load_params
 
-        key = jax.random.PRNGKey(args.seed)
-        _, q_network_key, _ = jax.random.split(key, 3)
-
         env, states_x, _, states_v, _ = define_environment(p["gamma"], p["n_states_x"], p["n_states_v"])
 
-        q = FullyConnectedMultiHeadQ(
-            n_heads=args.max_bellman_iterations + 1,
-            state_dim=2,
-            action_dim=1,
-            actions_on_max=env.actions_on_max,
-            gamma=p["gamma"],
-            network_key=q_network_key,
-            layers_dimension=p["layers_dimension"],
-            zero_initializer=True,
+        q = define_q_multi_head(
+            args.max_bellman_iterations + 1,
+            env.actions_on_max,
+            p["gamma"],
+            jax.random.PRNGKey(0),
+            p["layers_dimension"],
         )
         q.params = load_params(
             f"experiments/car_on_hill/figures/{args.experiment_name}/IFQI/{args.max_bellman_iterations}_P_{args.seed}"
@@ -79,7 +53,9 @@ def run_cli(argvs=sys.argv[1:]):
             v_list[iteration] = env.multi_head_v_mesh(iteration, q, q.to_params(q_weights), horizon, states_x, states_v)
 
         manager = multiprocessing.Manager()
-        iterated_v = manager.list(list(np.zeros((args.max_bellman_iterations + 1, p["n_states_x"], p["n_states_v"]))))
+        iterated_v = manager.list(
+            list(np.nan * np.zeros((args.max_bellman_iterations + 1, p["n_states_x"], p["n_states_v"])))
+        )
 
         processes = []
         for iteration in range(args.max_bellman_iterations + 1):

@@ -102,6 +102,56 @@ class LQRQ(BaseQ):
         )
 
 
+class LQRQVectorFieldNet(hk.Module):
+    def __init__(self, m: float, zero_initializer: bool) -> None:
+        super().__init__(name="LQRQVectorFieldNet")
+
+        self.m = m
+
+        if zero_initializer:
+            self.initializer = hk.initializers.Constant(0)
+        else:
+            self.initializer = hk.initializers.TruncatedNormal()
+
+    def __call__(
+        self,
+        state: jnp.ndarray,
+        action: jnp.ndarray,
+    ) -> jnp.ndarray:
+        k = hk.get_parameter("k", (), state.dtype, init=self.initializer)
+        i = hk.get_parameter("i", (), state.dtype, init=self.initializer)
+
+        return state**2 * k + 2 * state * action * i + action**2 * self.m
+
+
+class LQRQVectorField(BaseQ):
+    def __init__(
+        self,
+        n_actions_on_max: int,
+        max_action_on_max: float,
+        m: float,
+        network_key: int,
+        zero_initializer: bool,
+        learning_rate: dict = None,
+    ) -> None:
+        self.m = m
+
+        def network(state: jnp.ndarray, action: jnp.ndarray) -> jnp.ndarray:
+            return LQRQVectorFieldNet(m, zero_initializer)(state, action)
+
+        super().__init__(
+            state_dim=1,
+            action_dim=1,
+            actions_on_max=jnp.linspace(-max_action_on_max, max_action_on_max, n_actions_on_max).reshape(
+                (n_actions_on_max, 1)
+            ),
+            gamma=1,
+            network=network,
+            network_key=network_key,
+            learning_rate=learning_rate,
+        )
+
+
 class TableQNet(hk.Module):
     def __init__(
         self,

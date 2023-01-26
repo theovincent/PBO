@@ -145,12 +145,19 @@ dmypy.json
 **/*.pdf
 
 # Avoid pushing experiments output
-experiments/bicycle/figures
+experiments/lqr/figures
+experiments/chain_walk/figures
 experiments/car_on_hill/figures
+experiments/bicycle_offline/figures
+experiments/bicycle_online/figures
+experiments/acrobot/figures
 experiments/lunar_lander/figures
-experiments/lunar_lander/transfer_from_ias_cluster.sh
 **/*.out
 
-# Save optimal value functions of car on hill
+# Save optimal values
+!experiments/chain_walk/figures/data/optimal/Q.npy
+!experiments/chain_walk/figures/data/optimal/V.npy
+!experiments/lqr/figures/data/optimal/W.npy
+!experiments/lqr/figures/data/optimal/V.npy
 !experiments/car_on_hill/figures/data/optimal/Q.npy
 !experiments/car_on_hill/figures/data/optimal/V.npy

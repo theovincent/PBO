@@ -17,7 +17,7 @@ class BicycleEnv:
     Jette Randlov and Preben Alstrom. 1998.
     """
 
-    def __init__(self, env_key: int, gamma: float) -> None:
+    def __init__(self, env_key: jax.random.PRNGKeyArray, gamma: float) -> None:
         """
         state = [omega, omega_dot, theta, theta_dot]
         position = [x_b, y_b, x_f, y_f, psi]
@@ -73,6 +73,8 @@ class BicycleEnv:
         self.position = self.position.at[3].set(self._l * jnp.sin(self.state[4]))
         self.positions = [self.position]
         self.max_distance = self._l
+
+        self.n_steps = 0
 
         return self.state
 
@@ -134,12 +136,21 @@ class BicycleEnv:
         self.noise_key, key = jax.random.split(self.noise_key)
         self.state, self.position, reward, absorbing = self.jitted_step(action, key, self.state, self.position)
 
+        self.n_steps += 1
+
         return self.state, reward, absorbing, {}
 
     @partial(jax.jit, static_argnames=("self", "q"))
-    def jitted_best_action(self, q: BaseQ, q_params: hk.Params, state: jnp.array) -> jnp.ndarray:
+    def jitted_best_action(self, q: BaseQ, q_params: hk.Params, state: jnp.ndarray) -> jnp.ndarray:
         state_repeat = jnp.repeat(state.reshape((1, 4)), self.actions_on_max.shape[0], axis=0)
+
         return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]
+
+    @partial(jax.jit, static_argnames=("self", "q"))
+    def jitted_best_action_multi_head(self, q: BaseQ, q_params: hk.Params, state: jnp.ndarray) -> jnp.ndarray:
+        state_repeat = jnp.repeat(state.reshape((1, 4)), self.actions_on_max.shape[0], axis=0)
+
+        return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max)[:, -1].argmax()]
 
     def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int, n_simulations: int) -> np.ndarray:
         rewards = np.zeros((n_simulations, 2))
@@ -147,32 +158,28 @@ class BicycleEnv:
         for idx_simulation in range(n_simulations):
             self.reset()
             absorbing = False
-            n_steps = 0
             cumulative_reward = 0
             discount = 1
 
-            while not absorbing and n_steps < horizon:
+            while not absorbing and self.n_steps < horizon:
                 best_action = self.jitted_best_action(q, q_params, self.state)
                 _, reward, absorbing, _ = self.step(best_action)
 
-                n_steps += 1
                 cumulative_reward += discount * reward
                 discount *= self.gamma
 
-            rewards[idx_simulation] = np.array([n_steps, cumulative_reward[0]])
+            rewards[idx_simulation] = np.array([self.n_steps, cumulative_reward[0]])
 
         return rewards.mean(axis=0)
 
     def collect_positions(self, q: BaseQ, q_params: hk.Params, horizon: int) -> jnp.ndarray:
         self.reset()
         absorbing = False
-        step = 0
 
-        while not absorbing and step < horizon:
+        while not absorbing and self.n_steps < horizon:
             best_action = self.jitted_best_action(q, q_params, self.state)
             _, _, absorbing, _ = self.step(best_action)
 
-            step += 1
             self.positions.append(self.position)
 
         return jnp.array(self.positions)[:, :2]

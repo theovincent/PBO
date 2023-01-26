@@ -29,7 +29,7 @@ class LinearQuadraticEnv:
 
     """
 
-    def __init__(self, env_key: int, max_init_state: float = None) -> None:
+    def __init__(self, env_key: jax.random.PRNGKeyArray, max_init_state: float = None) -> None:
         """
         Constructor.
 
@@ -39,21 +39,19 @@ class LinearQuadraticEnv:
                 within -max_init_state, max_init_state.
 
         """
-        self.parameters_key, self.reset_key = jax.random.split(env_key)
-
         # Generate a controllable environmnent
         controllable = False
 
         while not controllable:
-            self.parameters_key, key = jax.random.split(self.parameters_key)
+            env_key, key = jax.random.split(env_key)
             self.A = jax.random.uniform(key, minval=-1, maxval=1)
-            self.parameters_key, key = jax.random.split(self.parameters_key)
+            env_key, key = jax.random.split(env_key)
             self.B = jax.random.uniform(key, minval=-1, maxval=1)
-            self.parameters_key, key = jax.random.split(self.parameters_key)
+            env_key, key = jax.random.split(env_key)
             self.Q = jax.random.uniform(key, minval=-1, maxval=0)
-            self.parameters_key, key = jax.random.split(self.parameters_key)
+            env_key, key = jax.random.split(env_key)
             self.R = jax.random.uniform(key, minval=-1, maxval=1)
-            self.parameters_key, key = jax.random.split(self.parameters_key)
+            env_key, key = jax.random.split(env_key)
             self.S = jax.random.uniform(key, minval=-1, maxval=1)
 
             self.P = sc_linalg.solve_discrete_are(self.A, self.B, self.Q, self.R, s=self.S)[0, 0]
@@ -87,13 +85,8 @@ class LinearQuadraticEnv:
     def check_riccati_equation(P: float, A: float, B: float, Q: float, R: float, S: float) -> bool:
         return abs(Q + A**2 * P - (S + A * P * B) ** 2 / (R + B**2 * P) - P) < 1e-8
 
-    def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
-        if state is None:
-            self.state = jax.random.uniform(
-                self.reset_key, (1,), minval=-self.max_init_state, maxval=self.max_init_state
-            )
-        else:
-            self.state = state
+    def reset(self, state: jnp.ndarray) -> jnp.ndarray:
+        self.state = state
 
         return self.state
 
@@ -105,26 +98,10 @@ class LinearQuadraticEnv:
 
         return self.state, reward, jnp.array([absorbing]), {}
 
-    def optimal_action(self) -> jnp.ndarray:
-        return -self.K * self.state
-
-    def optimal_Q_value(self, state: float, action: float) -> float:
-        K = self.optimal_weights[0]
-        I = self.optimal_weights[1]
-        M = self.optimal_weights[2]
-
-        return state**2 * K + 2 * state * action * I + action**2 * M
-
-    def greedy_V(self, weights: jnp.ndarray) -> jnp.ndarray:
-        ratio = weights[..., 1] / (weights[..., 2] + 1e-32)
-        return (self.Q - 2 * self.S * ratio + self.R * ratio**2) / (1 - (self.A - self.B * ratio) ** 2)
-
-    @partial(jax.jit, static_argnames="self")
-    def optimal_Q_values(self, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
-        return jax.vmap(lambda state, action: self.optimal_Q_value(state, action))(states, actions)
-
-    def optimal_Q_mesh(self, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
-        states_mesh, actions_mesh = jnp.meshgrid(states, actions, indexing="ij")
-
-        # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return self.optimal_Q_values(states_mesh, actions_mesh).reshape((states.shape[0], actions.shape[0]))
+    def greedy_V(self, weights: jnp.ndarray, q_dimension: int) -> jnp.ndarray:
+        if q_dimension == 3:
+            ratio = weights[..., 1] / (weights[..., 2] + 1e-32)
+            return (self.Q - 2 * self.S * ratio + self.R * ratio**2) / (1 - (self.A - self.B * ratio) ** 2)
+        else:
+            ratio = weights[..., 1] / (self.optimal_weights[2] + 1e-32)
+            return (self.Q - 2 * self.S * ratio + self.R * ratio**2) / (1 - (self.A - self.B * ratio) ** 2)

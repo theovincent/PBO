@@ -95,21 +95,34 @@ class MaxLinearPBO(BasePBO):
 
 
 class CustomLinearPBONet(hk.Module):
-    def __init__(self, initial_weight_std: float) -> None:
+    def __init__(self, initial_weight_std: float, m: float) -> None:
         super().__init__(name="CustomLinearPBONet")
         self.initial_weight_std = initial_weight_std
+        self.m = m
 
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
-        customs = weights[:, 0] - weights[:, 1] ** 2 / (weights[:, 2] + 1e-32)
+        if self.m is None:
+            customs = weights[:, 0] - weights[:, 1] ** 2 / (weights[:, 2] + 1e-32)
 
-        slope = hk.get_parameter(
-            "slope", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std)
-        )
-        bias = hk.get_parameter(
-            "bias", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std)
-        )
+            slope = hk.get_parameter(
+                "slope", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std)
+            )
+            bias = hk.get_parameter(
+                "bias", (1, 3), weights.dtype, init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std)
+            )
 
-        return customs.reshape((-1, 1)) @ slope + bias
+            return customs.reshape((-1, 1)) @ slope + bias
+        else:
+            customs = weights[:, 0] - weights[:, 1] ** 2 / (self.m + 1e-32)
+
+            slope = hk.get_parameter(
+                "slope", (1, 2), weights.dtype, init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std)
+            )
+            bias = hk.get_parameter(
+                "bias", (1, 2), weights.dtype, init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std)
+            )
+
+            return customs.reshape((-1, 1)) @ slope + bias
 
 
 class CustomLinearPBO(BasePBO):
@@ -121,64 +134,13 @@ class CustomLinearPBO(BasePBO):
         learning_rate: dict,
         initial_weight_std: float,
     ) -> None:
+        if q.weights_dimension == 2:
+            m = q.m
+        else:
+            m = None
+
         def network(weights: jnp.ndarray) -> jnp.ndarray:
-            return CustomLinearPBONet(initial_weight_std)(weights)
-
-        super().__init__(
-            q=q,
-            max_bellman_iterations=max_bellman_iterations,
-            add_infinity=False,
-            network=network,
-            network_key=network_key,
-            learning_rate=learning_rate,
-        )
-
-
-class LinearMaxLinearPBONet(hk.Module):
-    def __init__(self, layer_dimension: int, initial_weight_std: float) -> None:
-        super().__init__(name="LinearMaxLinearPBONet")
-        self.layer_dimension = layer_dimension
-        self.initial_weight_std = initial_weight_std
-
-    def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
-        x = hk.Linear(
-            4 * self.layer_dimension,
-            name="linear1",
-            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
-        )(weights)
-        x = jax.nn.relu(x)
-        x = hk.Linear(
-            2 * self.layer_dimension,
-            name="linear2",
-            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
-        )(x)
-        x = hk.MaxPool(window_shape=2, strides=2, padding="VALID", channel_axis=0)(x)
-        x = hk.Linear(
-            self.layer_dimension,
-            name="linear3",
-            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
-        )(x)
-        x = jax.nn.relu(x)
-        x = hk.Linear(
-            self.layer_dimension,
-            name="linear4",
-            w_init=hk.initializers.TruncatedNormal(stddev=self.initial_weight_std),
-        )(x)
-
-        return x
-
-
-class LinearMaxLinearPBO(BasePBO):
-    def __init__(
-        self,
-        q: BaseQ,
-        max_bellman_iterations: int,
-        network_key: jax.random.PRNGKeyArray,
-        learning_rate: dict,
-        initial_weight_std: float,
-    ) -> None:
-        def network(weights: jnp.ndarray) -> jnp.ndarray:
-            return LinearMaxLinearPBONet(q.weights_dimension, initial_weight_std)(weights)
+            return CustomLinearPBONet(initial_weight_std, m)(weights)
 
         super().__init__(
             q=q,
