@@ -38,11 +38,5 @@
     "training_steps_pbo": 1000,
     "fitting_steps_pbo": 10,
     "starting_lr_pbo": 0.001,
-    "ending_lr_pbo": 5e-07,
-    "initial_weight_std": 0.0000005,
-    "---- IFQIs ---": "-",
-    "training_steps_ifqi": 1000,
-    "fitting_steps_ifqi": 40,
-    "starting_lr_ifqi": 0.001,
-    "ending_lr_ifqi": 5e-07
+    "ending_lr_pbo": 5e-07
 }

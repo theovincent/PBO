@@ -20,7 +20,6 @@ experiments/chain_walk/figures
 experiments/car_on_hill/figures
 experiments/bicycle_offline/figures
 experiments/bicycle_online/figures
-experiments/acrobot/figures
 experiments/lunar_lander/figures
 **/*.out
 

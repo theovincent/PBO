@@ -34,13 +34,5 @@
     "ending_lr_pbo": 1e-07,
     "starting_eps_pbo": 1,
     "ending_eps_pbo": 0.01,
-    "initial_weight_std": 0.0000005,
-    "---- IDQNs ---": "-",
-    "steps_per_update_idqn": 2,
-    "training_steps_idqn": 5000,
-    "fitting_updates_idqn": 80,
-    "starting_lr_idqn": 0.001,
-    "ending_lr_idqn": 1e-05,
-    "starting_eps_idqn": 1,
-    "ending_eps_idqn": 0.01
+    "initial_weight_std": 0.0000005
 }

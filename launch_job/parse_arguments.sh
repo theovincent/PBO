@@ -55,14 +55,6 @@ function parse_arguments() {
                 PBO_optimal=false
                 shift
                 ;;
-            -sifqi | --skip_ifqi)
-                IFQI=false
-                shift
-                ;;
-            -sidqn | --skip_idqn)
-                IDQN=false
-                shift
-                ;;
             -c | --conv)
                 CONV="-c"
                 shift
@@ -127,14 +119,6 @@ function parse_arguments() {
     if [[ $PBO_optimal == "" ]]
     then
         PBO_optimal=true
-    fi
-    if [[ $IFQI == "" ]]
-    then
-        IFQI=true
-    fi
-    if [[ $IDQN == "" ]]
-    then
-        IDQN=true
     fi
     if [[ $GPU == "" ]]
     then

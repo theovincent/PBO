@@ -11,7 +11,6 @@ parse_arguments $@
 [ -d experiments/bicycle_offline/figures/$EXPERIMENT_NAME/FQI ] || mkdir experiments/bicycle_offline/figures/$EXPERIMENT_NAME/FQI
 [ -d experiments/bicycle_offline/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/bicycle_offline/figures/$EXPERIMENT_NAME/PBO_linear
 [ -d experiments/bicycle_offline/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/bicycle_offline/figures/$EXPERIMENT_NAME/PBO_deep
-[ -d experiments/bicycle_offline/figures/$EXPERIMENT_NAME/IFQI ] || mkdir experiments/bicycle_offline/figures/$EXPERIMENT_NAME/IFQI
 
 
 # Collect data
@@ -61,18 +60,4 @@ then
 
     echo "launch evaluate pbo deep"
     submission_evaluate_pbo_deep=$(sbatch -J Boff_evaluate_pbo_deep --dependency=afterok:$submission_id_train_pbo_deep,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=5 --mem-per-cpu=700Mc --time=30:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out -p amd,amd2 launch_job/bicycle_offline/evaluate_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
-fi
-
-
-if [[ $IFQI = true ]]
-then
-    # IFQI
-    echo "launch train ifqi"
-    submission_train_ifqi=$(sbatch -J Boff_train_ifqi --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=3:30:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/train_ifqi_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/train_ifqi_%a.out -p amd,amd2 launch_job/bicycle_offline/train_ifqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
-
-    IFS=" " read -ra split_submission_train_ifqi <<< $submission_train_ifqi
-    submission_id_train_ifqi=${split_submission_train_ifqi[-1]}
-
-    echo "launch evaluate ifqi"
-    submission_evaluate_ifqi=$(sbatch -J Boff_evaluate_ifqi --dependency=afterok:$submission_id_train_ifqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=5 --mem-per-cpu=700Mc --time=30:00 --output=out/bicycle_offline/$EXPERIMENT_NAME/evaluate_ifqi_%a.out --error=error/bicycle_offline/$EXPERIMENT_NAME/evaluate_ifqi_%a.out -p amd,amd2 launch_job/bicycle_offline/evaluate_ifqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 fi

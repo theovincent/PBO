@@ -197,26 +197,6 @@ class CarOnHillEnv:
             (states_x.shape[0], states_v.shape[0], self.actions_on_max.shape[0])
         )
 
-    @partial(jax.jit, static_argnames=("self", "q"))
-    def q_multi_head_estimate_mesh(
-        self, q: BaseMultiHeadQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray
-    ) -> jnp.ndarray:
-        n_boxes = states_x.shape[0] * states_v.shape[0]
-        states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
-
-        states = jnp.hstack((states_x_mesh.reshape((n_boxes, 1)), states_v_mesh.reshape((n_boxes, 1))))
-
-        idx_states_mesh, idx_actions_mesh = jnp.meshgrid(
-            jnp.arange(states.shape[0]), jnp.arange(self.actions_on_max.shape[0]), indexing="ij"
-        )
-        states_ = states[idx_states_mesh.flatten()]
-        actions_ = self.actions_on_max[idx_actions_mesh.flatten()]
-
-        # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return q(q_params, states_, actions_).reshape(
-            (states_x.shape[0], states_v.shape[0], self.actions_on_max.shape[0], q.n_heads)
-        )
-
     def simulate(self, q: BaseQ, horizon: int, initial_state: jnp.ndarray) -> bool:
         self.reset(initial_state)
         absorbing = False
@@ -264,43 +244,5 @@ class CarOnHillEnv:
         for idx_state_x, state_x in enumerate(states_x):
             for idx_state_v, state_v in enumerate(states_v):
                 v_mesh_[idx_state_x, idx_state_v] = self.evaluate(q, q_params, horizon, jnp.array([state_x, state_v]))
-
-        return v_mesh_
-
-    def multi_head_evaluate(
-        self, head_idx: int, q: BaseQ, q_params: hk.Params, horizon: int, initial_state: jnp.ndarray
-    ) -> float:
-        performance = 0
-        discount = 1
-        self.reset(initial_state)
-        absorbing = False
-        step = 0
-
-        while not absorbing and step < horizon:
-            if (
-                q(q_params, self.state, self.actions_on_max[1])[0, head_idx]
-                > q(q_params, self.state, self.actions_on_max[0])[0, head_idx]
-            ):
-                action = self.actions_on_max[1]
-            else:
-                action = self.actions_on_max[0]
-            _, reward, absorbing, _ = self.step(action)
-
-            performance += discount * reward[0]
-            discount *= self.gamma
-            step += 1
-
-        return performance
-
-    def multi_head_v_mesh(
-        self, head_idx: int, q: BaseQ, q_params: hk.Params, horizon: int, states_x: jnp.ndarray, states_v: jnp.ndarray
-    ) -> np.ndarray:
-        v_mesh_ = np.zeros((len(states_x), len(states_v)))
-
-        for idx_state_x, state_x in enumerate(states_x):
-            for idx_state_v, state_v in enumerate(states_v):
-                v_mesh_[idx_state_x, idx_state_v] = self.multi_head_evaluate(
-                    head_idx, q, q_params, horizon, jnp.array([state_x, state_v])
-                )
 
         return v_mesh_

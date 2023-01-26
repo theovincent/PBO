@@ -11,7 +11,6 @@ parse_arguments $@
 [ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/FQI ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/FQI
 [ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_linear
 [ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_deep
-[ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/IFQI ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/IFQI
 
 
 # Collect data
@@ -61,18 +60,4 @@ then
 
     echo "launch evaluate pbo deep"
     submission_evaluate_pbo_deep=$(sbatch -J C_evaluate_pbo_deep --dependency=afterok:$submission_id_train_pbo_deep,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=600Mc --time=10:00 --output=out/car_on_hill/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out --error=error/car_on_hill/$EXPERIMENT_NAME/evaluate_pbo_deep_%a.out -p amd,amd2 launch_job/car_on_hill/evaluate_pbo_deep.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -a deep $CONV)
-fi
-
-
-if [[ $IFQI = true ]]
-then
-    # IFQI
-    echo "launch train ifqi"
-    submission_train_ifqi=$(sbatch -J C_train_ifqi --dependency=afterok:$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=3 --mem-per-cpu=750Mc --time=3:30:00 --output=out/car_on_hill/$EXPERIMENT_NAME/train_ifqi_%a.out --error=error/car_on_hill/$EXPERIMENT_NAME/train_ifqi_%a.out -p amd,amd2,rtx,rtx2 launch_job/car_on_hill/train_ifqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -g)
-
-    IFS=" " read -ra split_submission_train_ifqi <<< $submission_train_ifqi
-    submission_id_train_ifqi=${split_submission_train_ifqi[-1]}
-
-    echo "launch evaluate ifqi"
-    submission_evaluate_ifqi=$(sbatch -J C_evaluate_ifqi --dependency=afterok:$submission_id_train_ifqi,$submission_id_collect_sample --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=9 --mem-per-cpu=150Mc --time=10:00 --output=out/car_on_hill/$EXPERIMENT_NAME/evaluate_ifqi_%a.out --error=error/car_on_hill/$EXPERIMENT_NAME/evaluate_ifqi_%a.out -p amd,amd2 launch_job/car_on_hill/evaluate_ifqi.sh -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION)
 fi

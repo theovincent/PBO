@@ -146,12 +146,6 @@ class BicycleEnv:
 
         return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max).argmax()]
 
-    @partial(jax.jit, static_argnames=("self", "q"))
-    def jitted_best_action_multi_head(self, q: BaseQ, q_params: hk.Params, state: jnp.ndarray) -> jnp.ndarray:
-        state_repeat = jnp.repeat(state.reshape((1, 4)), self.actions_on_max.shape[0], axis=0)
-
-        return self.actions_on_max[q(q_params, state_repeat, self.actions_on_max)[:, -1].argmax()]
-
     def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int, n_simulations: int) -> np.ndarray:
         rewards = np.zeros((n_simulations, 2))
 

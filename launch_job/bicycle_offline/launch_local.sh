@@ -8,7 +8,6 @@ parse_arguments $@
 [ -d experiments/bicycle_offline/figures/$EXPERIMENT_NAME/FQI ] || mkdir experiments/bicycle_offline/figures/$EXPERIMENT_NAME/FQI
 [ -d experiments/bicycle_offline/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/bicycle_offline/figures/$EXPERIMENT_NAME/PBO_linear
 [ -d experiments/bicycle_offline/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/bicycle_offline/figures/$EXPERIMENT_NAME/PBO_deep
-[ -d experiments/bicycle_offline/figures/$EXPERIMENT_NAME/IFQI ] || mkdir experiments/bicycle_offline/figures/$EXPERIMENT_NAME/IFQI
 
 
 # Collect data
@@ -46,16 +45,5 @@ do
 
         echo "launch evaluate pbo deep"
         bicycle_offline_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a deep
-    fi
-
-
-    if [[ $IFQI = true ]]
-    then
-        # IFQI
-        echo "launch train ifqi"
-        bicycle_offline_ifqi -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
-
-        echo "launch evaluate ifqi"
-        bicycle_offline_ifqi_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
     fi
 done

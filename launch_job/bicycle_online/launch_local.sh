@@ -8,7 +8,6 @@ parse_arguments $@
 [ -d experiments/bicycle_online/figures/$EXPERIMENT_NAME/DQN ] || mkdir experiments/bicycle_online/figures/$EXPERIMENT_NAME/DQN
 [ -d experiments/bicycle_online/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/bicycle_online/figures/$EXPERIMENT_NAME/PBO_linear
 [ -d experiments/bicycle_online/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/bicycle_online/figures/$EXPERIMENT_NAME/PBO_deep
-[ -d experiments/bicycle_online/figures/$EXPERIMENT_NAME/IDQN ] || mkdir experiments/bicycle_online/figures/$EXPERIMENT_NAME/IDQN
 
 
 for (( seed=$FIRST_SEED; seed<=$LAST_SEED; seed++ ))
@@ -42,16 +41,5 @@ do
 
         echo "launch evaluate pbo deep"
         bicycle_online_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a deep
-    fi
-
-
-    if [[ $IDQN = true ]]
-    then
-        # IDQN
-        echo "launch train idqn"
-        bicycle_online_idqn -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
-
-        echo "launch evaluate idqn"
-        bicycle_online_idqn_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
     fi
 done

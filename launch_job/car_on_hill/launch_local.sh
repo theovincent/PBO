@@ -8,7 +8,6 @@ parse_arguments $@
 [ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/FQI ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/FQI
 [ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_linear ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_linear
 [ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_deep ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/PBO_deep
-[ -d experiments/car_on_hill/figures/$EXPERIMENT_NAME/IFQI ] || mkdir experiments/car_on_hill/figures/$EXPERIMENT_NAME/IFQI
 
 
 # Collect data
@@ -46,16 +45,5 @@ do
 
         echo "launch evaluate pbo deep"
         car_on_hill_pbo_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed -a deep
-    fi
-
-
-    if [[ $IFQI = true ]]
-    then
-        # IFQI
-        echo "launch train ifqi"
-        car_on_hill_ifqi -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
-
-        echo "launch evaluate ifqi"
-        car_on_hill_ifqi_evaluate -e $EXPERIMENT_NAME -b $MAX_BELLMAN_ITERATION -s $seed
     fi
 done

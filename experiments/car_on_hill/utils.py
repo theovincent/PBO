@@ -6,7 +6,6 @@ import jax.numpy as jnp
 
 from pbo.environments.car_on_hill import CarOnHillEnv
 from pbo.networks.learnable_q import FullyConnectedQ
-from pbo.networks.learnable_multi_head_q import FullyConnectedMultiHeadQ
 from pbo.sample_collection.replay_buffer import ReplayBuffer
 from pbo.sample_collection.dataloader import SampleDataLoader
 
@@ -34,27 +33,6 @@ def define_q(
     learning_rate: dict = None,
 ) -> FullyConnectedQ:
     return FullyConnectedQ(
-        state_dim=2,
-        action_dim=1,
-        actions_on_max=actions_on_max,
-        gamma=gamma,
-        network_key=key,
-        layers_dimension=layers_dimension,
-        zero_initializer=True,
-        learning_rate=learning_rate,
-    )
-
-
-def define_q_multi_head(
-    n_heads: int,
-    actions_on_max: jnp.ndarray,
-    gamma: float,
-    key: jax.random.PRNGKeyArray,
-    layers_dimension: dict,
-    learning_rate: dict = None,
-) -> FullyConnectedMultiHeadQ:
-    return FullyConnectedMultiHeadQ(
-        n_heads=n_heads,
         state_dim=2,
         action_dim=1,
         actions_on_max=actions_on_max,
