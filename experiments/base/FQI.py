@@ -25,11 +25,11 @@ def train(
     iterated_params[0] = q.params
 
     for bellman_iteration in tqdm(range(p["n_bellman_iterations"])):
-        q.update_target_params()
+        q.update_target_params(0)
 
         for step in range(p["fitting_steps"]):
             sample_key, key = jax.random.split(sample_key)
-            losses[bellman_iteration, step] = q.update_online_params(replay_buffer, key)
+            losses[bellman_iteration, step] = q.update_online_params(0, replay_buffer, key)
 
         iterated_params[bellman_iteration] = q.params
 

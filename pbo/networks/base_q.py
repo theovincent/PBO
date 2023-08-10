@@ -1,191 +1,116 @@
+from typing import Tuple
 from functools import partial
-
-import numpy as np
-import haiku as hk
+from flax.core import FrozenDict
+import flax.linen as nn
 import optax
 import jax
 import jax.numpy as jnp
+
+from pbo.sample_collection.replay_buffer import ReplayBuffer
+from pbo.utils.params import ParameterConverter, save_pickled_data
 
 
 class BaseQ:
     def __init__(
         self,
-        state_dim: int,
-        action_dim: int,
-        actions_on_max: jnp.ndarray,
+        q_inputs: dict,
+        n_actions: int,
         gamma: float,
-        network: hk.Module,
-        network_key: int,
-        learning_rate: dict,
+        network: nn.Module,
+        network_key: jax.random.PRNGKeyArray,
+        learning_rate: float,
+        n_training_steps_per_online_update: int,
+        n_training_steps_per_target_update: int,
     ) -> None:
-        self.state_dim = state_dim
-        self.action_dim = action_dim
-        self.actions_on_max = actions_on_max
-        self.index_actions_on_max = jnp.arange(actions_on_max.shape[0])
+        self.n_actions = n_actions
         self.gamma = gamma
-        self.network = hk.without_apply_rng(hk.transform(network))
+        self.network = network
         self.network_key = network_key
-        self.params = self.network.init(
-            rng=self.network_key, state=jnp.zeros((self.state_dim)), action=jnp.zeros((self.action_dim))
-        )
-
-        self.weights_information = {}
-        self.weights_dimension = 0
-
-        for key_layer, layer in self.params.items():
-            self.weights_information[key_layer] = dict()
-            for key_weight_layer, weight_layer in layer.items():
-                # int because weight_layer.shape = () can happen
-                weight_layer_dimensions = int(np.prod(weight_layer.shape))
-
-                self.weights_information[key_layer][key_weight_layer] = {
-                    "begin_idx": self.weights_dimension,
-                    "end_idx": self.weights_dimension + weight_layer_dimensions,
-                    "shape": weight_layer.shape,
-                }
-                self.weights_dimension += weight_layer_dimensions
+        self.q_inputs = q_inputs
+        self.params = self.network.init(self.network_key, **q_inputs)
+        self.convert_params = ParameterConverter(self.q.params)
+        self.target_params = self.params
+        self.n_training_steps_per_online_update = n_training_steps_per_online_update
+        self.n_training_steps_per_target_update = n_training_steps_per_target_update
 
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
         if learning_rate is not None:
-            self.learning_rate_schedule = optax.linear_schedule(
-                learning_rate["first"], learning_rate["last"], learning_rate["duration"]
-            )
-            self.optimizer = optax.adam(self.learning_rate_schedule)
+            self.optimizer = optax.adam(learning_rate)
             self.optimizer_state = self.optimizer.init(self.params)
 
-    def random_init_weights(self) -> jnp.ndarray:
-        self.network_key, key = jax.random.split(self.network_key)
+    @partial(jax.jit, static_argnames="self")
+    def apply(self, params: FrozenDict, states: jnp.ndarray) -> jnp.ndarray:
+        return self.network.apply(params, states)
 
-        return self.to_weights(
-            self.network.init(rng=key, state=jnp.zeros(self.state_dim), action=jnp.zeros(self.action_dim))
+    @partial(jax.jit, static_argnames="self")
+    def compute_target(self, params: FrozenDict, samples: FrozenDict) -> jnp.ndarray:
+        return samples["reward"] + (1 - samples["absorbing"]) * self.gamma * self.apply(
+            params, samples["next_state"]
+        ).max(axis=1)
+
+    @partial(jax.jit, static_argnames="self")
+    def loss(self, params: FrozenDict, params_target: FrozenDict, samples: FrozenDict) -> jnp.float32:
+        targets = self.compute_target(params_target, samples)
+        q_states_actions = self.apply(params, samples["state"])
+
+        # mapping over the states
+        predictions = jax.vmap(lambda q_state_actions, action: q_state_actions[action])(
+            q_states_actions, samples["action"]
         )
 
-    @partial(jax.jit, static_argnames="self")
-    def to_params(self, weights: jnp.ndarray) -> hk.Params:
-        params = dict()
+        return self.metric(predictions - targets, ord="2")
 
-        for key_layer, layer_info in self.weights_information.items():
-            params[key_layer] = dict()
-            for key_weight_layer, weight_layer_info in layer_info.items():
-                begin_idx = weight_layer_info["begin_idx"]
-                end_idx = weight_layer_info["end_idx"]
-                shape = weight_layer_info["shape"]
-
-                params[key_layer][key_weight_layer] = weights[begin_idx:end_idx].reshape(shape)
-
-        return params
-
-    @partial(jax.jit, static_argnames="self")
-    def to_weights(self, params: hk.Params) -> jnp.ndarray:
-        weights = jnp.zeros(self.weights_dimension)
-
-        for key_layer, layer in params.items():
-            for key_weight_layer, weight_layer in layer.items():
-                begin_idx = self.weights_information[key_layer][key_weight_layer]["begin_idx"]
-                end_idx = self.weights_information[key_layer][key_weight_layer]["end_idx"]
-
-                weights = weights.at[begin_idx:end_idx].set(weight_layer.flatten())
-
-        return jnp.array(weights)
-
-    @partial(jax.jit, static_argnames="self")
-    def __call__(self, params: hk.Params, states: jnp.ndarray, actions: jnp.ndarray) -> jnp.ndarray:
-        return self.network.apply(params, states, actions)
-
-    @partial(jax.jit, static_argnames="self")
-    def compute_target(self, weights: jnp.ndarray, samples: dict) -> jnp.ndarray:
-        return jax.vmap(
-            lambda weight: samples["reward"]
-            + (1 - samples["absorbing"]) * self.gamma * self.max_value(self.to_params(weight), samples["next_state"])
-        )(weights)
-
-    @partial(jax.jit, static_argnames="self")
-    def max_value(self, q_params: hk.Params, states: jnp.ndarray) -> jnp.ndarray:
-        index_states = jnp.arange(states.shape[0])
-
-        indexes_states_mesh, indexes_actions_mesh = jnp.meshgrid(index_states, self.index_actions_on_max, indexing="ij")
-        states_ = states[indexes_states_mesh.flatten()]
-        actions_ = self.actions_on_max[indexes_actions_mesh.flatten()]
-
-        # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        max_values = self(q_params, states_, actions_).reshape((states.shape[0], self.actions_on_max.shape[0]))
-
-        return max_values.max(axis=1).reshape((states.shape[0], 1))
-
-    @partial(jax.jit, static_argnames=("self", "ord"))
-    def loss(self, q_params: hk.Params, q_params_target, samples: dict, ord: int = 2) -> jnp.ndarray:
-        target = self.compute_target(self.to_weights(q_params_target).reshape((1, self.weights_dimension)), samples)[0]
-
-        if ord == 1:
-            return jnp.abs(self(q_params, samples["state"], samples["action"]) - target).mean()
-        else:
-            return jnp.square(self(q_params, samples["state"], samples["action"]) - target).mean()
+    @staticmethod
+    def metric(error: jnp.ndarray, ord: str) -> jnp.float32:
+        if ord == "huber":
+            return optax.huber_loss(error, 0).mean()
+        elif ord == "1":
+            return jnp.abs(error).mean()
+        elif ord == "2":
+            return jnp.square(error).mean()
+        elif ord == "sum":
+            return jnp.square(error).sum()
 
     @partial(jax.jit, static_argnames="self")
     def learn_on_batch(
-        self, params: hk.Params, params_target: hk.Params, optimizer_state: tuple, batch_samples: jnp.ndarray
-    ) -> tuple:
+        self, params: FrozenDict, params_target: FrozenDict, optimizer_state: Tuple, batch_samples: jnp.ndarray
+    ) -> Tuple[FrozenDict, FrozenDict, jnp.float32]:
         loss, grad_loss = self.loss_and_grad(params, params_target, batch_samples)
         updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
         params = optax.apply_updates(params, updates)
 
         return params, optimizer_state, loss
 
-    def reset_optimizer(self) -> None:
-        self.optimizer = optax.adam(self.learning_rate_schedule)
-        self.optimizer_state = self.optimizer.init(self.params)
+    def update_online_params(self, step: int, replay_buffer: ReplayBuffer, key: jax.random.PRNGKeyArray) -> jnp.float32:
+        if step % self.n_training_steps_per_online_update == 0:
+            batch_samples = replay_buffer.sample_random_batch(key)
 
+            self.params, self.optimizer_state, loss = self.learn_on_batch(
+                self.params, self.target_params, self.optimizer_state, batch_samples
+            )
 
-class BaseMultiHeadQ(BaseQ):
-    def __init__(
-        self,
-        n_heads: int,
-        state_dim: int,
-        action_dim: int,
-        actions_on_max: jnp.ndarray,
-        gamma: float,
-        network: hk.Module,
-        network_key: int,
-        learning_rate: dict,
-    ) -> None:
-        self.n_heads = n_heads
-        super().__init__(
-            state_dim=state_dim,
-            action_dim=action_dim,
-            actions_on_max=actions_on_max,
-            gamma=gamma,
-            network=network,
-            network_key=network_key,
-            learning_rate=learning_rate,
-        )
-
-    @partial(jax.jit, static_argnames="self")
-    def compute_target(self, q_params: hk.Params, samples: dict) -> jnp.ndarray:
-        return jnp.repeat(samples["reward"], self.n_heads, axis=1) + jnp.repeat(
-            1 - samples["absorbing"], self.n_heads, axis=1
-        ) * self.gamma * self.max_value(q_params, samples["next_state"])
-
-    @partial(jax.jit, static_argnames="self")
-    def max_value(self, q_params: hk.Params, states: jnp.ndarray) -> jnp.ndarray:
-        index_states = jnp.arange(states.shape[0])
-
-        indexes_states_mesh, indexes_actions_mesh = jnp.meshgrid(index_states, self.index_actions_on_max, indexing="ij")
-        states_ = states[indexes_states_mesh.flatten()]
-        actions_ = self.actions_on_max[indexes_actions_mesh.flatten()]
-
-        # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        max_values = self(q_params, states_, actions_).reshape(
-            (states.shape[0], self.actions_on_max.shape[0], self.n_heads)
-        )
-
-        return max_values.max(axis=1)
-
-    @partial(jax.jit, static_argnames=("self", "ord"))
-    def loss(self, q_params: hk.Params, q_params_target: hk.Params, samples: dict, ord: int = 2) -> jnp.ndarray:
-        target = self.compute_target(q_params_target, samples)
-
-        if ord == 1:
-            return jnp.abs(self(q_params, samples["state"], samples["action"])[:, 1:] - target[:, :-1]).mean()
+            return loss
         else:
-            return jnp.square(self(q_params, samples["state"], samples["action"])[:, 1:] - target[:, :-1]).mean()
+            return jnp.nan
+
+    def update_target_params(self, step: int) -> None:
+        if step % self.n_training_steps_per_target_update == 0:
+            self.target_params = self.params
+
+    @partial(jax.jit, static_argnames="self")
+    def random_action(self, key: jax.random.PRNGKeyArray) -> jnp.int8:
+        return jax.random.choice(key, jnp.arange(self.n_actions)).astype(jnp.int8)
+
+    @partial(jax.jit, static_argnames="self")
+    def best_action(self, params: FrozenDict, state: jnp.ndarray, key: jax.random.PRNGKey) -> jnp.int8:
+        # key is not used here
+        return jnp.argmax(self.apply(params, jnp.array(state, dtype=jnp.float32))[0]).astype(jnp.int8)
+
+    def random_params(self) -> FrozenDict:
+        self.network_key, key = jax.random.split(self.network_key)
+
+        return self.network.init(key, **self.q_inputs)
+
+    def save(self, path: str) -> None:
+        save_pickled_data(path + "_online_params", self.params)

@@ -1,11 +1,12 @@
 from functools import partial
-
-import haiku as hk
+from flax.core import FrozenDict
+import flax.linen as nn
 import optax
 import jax.numpy as jnp
 import jax
 
 from pbo.networks.base_q import BaseQ
+from pbo.sample_collection.replay_buffer import ReplayBuffer
 
 
 class BasePBO:
@@ -13,95 +14,72 @@ class BasePBO:
         self,
         q: BaseQ,
         max_bellman_iterations: int,
-        add_infinity: bool,
-        network: hk.Module,
-        network_key: int,
-        learning_rate: dict,
+        network: nn.Module,
+        network_key: jax.random.PRNGKeyArray,
+        learning_rate: float,
+        n_training_steps_per_online_update: int,
+        n_training_steps_per_target_update: int,
+        n_training_steps_per_current_weight_update: int,
     ) -> None:
         self.q = q
+        self.current_weights = self.q.convert_params.to_weights(self.q.params)
         self.max_bellman_iterations = max_bellman_iterations
-        self.add_infinity = add_infinity
-        self.network = hk.without_apply_rng(hk.transform(network))
-        self.params = self.network.init(rng=network_key, weights=jnp.zeros((1, q.weights_dimension)))
-
-        self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss), static_argnames="ord")
-
-        self.learning_rate_schedule = optax.linear_schedule(
-            learning_rate["first"], learning_rate["last"], learning_rate["duration"]
+        self.network = network
+        self.params = self.network.init(
+            rng=network_key, weights=jnp.zeros((1, self.q.convert_params.weights_dimension))
         )
-        self.optimizer = optax.adam(self.learning_rate_schedule)
-        self.optimizer_state = self.optimizer.init(self.params)
+        self.target_params = self.params
+        self.n_training_steps_per_online_update = n_training_steps_per_online_update
+        self.n_training_steps_per_target_update = n_training_steps_per_target_update
+        self.n_training_steps_per_current_weight_update = n_training_steps_per_current_weight_update
+
+        self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
+
+        if learning_rate is not None:
+            self.optimizer = optax.adam(learning_rate)
+            self.optimizer_state = self.optimizer.init(self.params)
 
     @partial(jax.jit, static_argnames="self")
-    def __call__(self, params: hk.Params, weights: jnp.ndarray) -> jnp.ndarray:
+    def apply(self, params: FrozenDict, weights: jnp.ndarray) -> jnp.ndarray:
         return self.network.apply(params, weights)
 
-    @partial(jax.jit, static_argnames=("self", "ord"))
-    def loss_term(
-        self,
-        iterated_weights: jnp.ndarray,
-        iterated_weights_target: jnp.ndarray,
-        samples: dict,
-        importance: float,
-        ord: int = 2,
-    ) -> float:
-        predicted_values = jax.vmap(
-            lambda weights: self.q(self.q.to_params(weights), samples["state"], samples["action"])
-        )(iterated_weights)
+    @partial(jax.jit, static_argnames="self")
+    def td_error(self, weights: jnp.ndarray, weights_target: jnp.ndarray, samples: dict) -> float:
+        return jax.vmap(
+            lambda weights_, weights_target_: self.q.loss(
+                self.q.convert_params.to_params(weights_),
+                self.q.convert_params.to_params(weights_target_),
+                samples,
+            )
+        )(weights, weights_target)
 
-        targets_values = self.q.compute_target(iterated_weights_target, samples)
+    @partial(jax.jit, static_argnames="self")
+    def loss(self, pbo_params: FrozenDict, pbo_params_target: FrozenDict, weights: jnp.ndarray, samples: dict) -> float:
+        iterated_weights_target = weights
+        iterated_weights = self.apply(pbo_params, weights)
 
-        if ord == 1:
-            return importance * jnp.abs(predicted_values - targets_values).mean()
-        else:
-            return importance * jnp.square(predicted_values - targets_values).mean()
+        loss = self.td_error(iterated_weights, iterated_weights_target, samples)
 
-    @partial(jax.jit, static_argnames=("self", "ord"))
-    def loss(
-        self,
-        pbo_params: hk.Params,
-        pbo_params_target: hk.Params,
-        batch_weights: jnp.ndarray,
-        samples: dict,
-        importance_iteration: jnp.ndarray,
-        ord: int,
-    ) -> float:
-        iterated_weights = self(pbo_params, batch_weights)
-        iterated_weights_target = batch_weights
+        for _ in jnp.arange(1, self.max_bellman_iterations):
+            iterated_weights_target = self.apply(pbo_params_target, iterated_weights_target)
 
-        loss = self.loss_term(iterated_weights, iterated_weights_target, samples, importance_iteration[0], ord)
-
-        for idx_iteration in jnp.arange(1, self.max_bellman_iterations):
             # Uncomment to limit the back propagation to one iteration
             # iterated_weights = jax.lax.stop_gradient(iterated_weights)
-            iterated_weights = self(pbo_params, iterated_weights)
-            # To backpropagate over the target
-            # iterated_weights_target = self(pbo_params, iterated_weights_target)
-            iterated_weights_target = self(pbo_params_target, iterated_weights_target)
+            iterated_weights = self.apply(pbo_params, iterated_weights)
 
-            loss += self.loss_term(
-                iterated_weights, iterated_weights_target, samples, importance_iteration[idx_iteration], ord
-            )
-
-        loss /= importance_iteration.sum()
-
-        if self.add_infinity:
-            fixed_point = self.fixed_point(pbo_params).reshape((1, -1))
-
-            loss += self.loss_term(fixed_point, fixed_point, samples, importance_iteration[-1], ord)
+            loss += self.td_error(iterated_weights, iterated_weights_target, samples)
 
         return loss
 
     @partial(jax.jit, static_argnames=("self", "ord"))
     def learn_on_batch(
         self,
-        params: hk.Params,
-        params_target: hk.Params,
+        params: FrozenDict,
+        params_target: FrozenDict,
         optimizer_state: tuple,
         batch_weights: jnp.ndarray,
         batch_samples: jnp.ndarray,
         importance_iteration: jnp.ndarray,
-        ord: int = 2,
     ) -> tuple:
         loss, grad_loss = self.loss_and_grad(
             params, params_target, batch_weights, batch_samples, importance_iteration, ord
@@ -111,12 +89,40 @@ class BasePBO:
 
         return params, optimizer_state, loss
 
-    def reset_optimizer(self) -> None:
-        self.optimizer = optax.adam(self.learning_rate_schedule)
-        self.optimizer_state = self.optimizer.init(self.params)
+    def update_current_weights(self, params: FrozenDict) -> None:
+        self.current_weights = self.apply(params, self.current_weights)
 
-    def fixed_point(self, params: hk.Params) -> jnp.ndarray:
-        raise NotImplementedError
+    def update_online_params(self, step: int, replay_buffer: ReplayBuffer, key: jax.random.PRNGKeyArray) -> jnp.float32:
+        if step % self.n_training_steps_per_current_weight_update == 0:
+            self.update_current_weights(self.params)
 
-    def contracting_factor(self) -> float:
-        raise NotImplementedError
+        if step % self.n_training_steps_per_online_update == 0:
+            batch_samples = replay_buffer.sample_random_batch(key)
+
+            self.params, self.optimizer_state, loss = self.learn_on_batch(
+                self.params, self.target_params, self.optimizer_state, batch_samples
+            )
+
+            return loss
+        else:
+            return jnp.nan
+
+    def update_target_params(self, step: int) -> None:
+        if (step % self.n_training_steps_per_target_update == 0) or (
+            step % self.n_training_steps_per_current_weight_update == 0
+        ):
+            self.target_params = self.params
+
+    @partial(jax.jit, static_argnames="self")
+    def random_action(self, key: jax.random.PRNGKeyArray) -> jnp.int8:
+        return self.q.random_action(key)
+
+    @partial(jax.jit, static_argnames="self")
+    def best_action(self, params: FrozenDict, state: jnp.ndarray, key: jax.random.PRNGKey) -> jnp.int8:
+        n_iterations = jax.random.choice(key, jnp.arange(self.max_bellman_iterations))
+
+        iterated_weigths = self.current_weights
+        for _ in range(n_iterations):
+            iterated_weigths = self.apply(params, iterated_weigths)
+
+        return self.q.best_action(self.q.convert_params.to_params(iterated_weigths), state, key)
