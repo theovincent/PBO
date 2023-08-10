@@ -1,15 +1,19 @@
 import pickle
 import jax
-import haiku as hk
 
 
-def save_params(path: str, params: hk.Params) -> None:
-    params = jax.device_get(params)
-    with open(path, "wb") as fp:
-        pickle.dump(params, fp)
+def save_pickled_data(path: str, object):
+    object = jax.device_get(object)
+
+    with open(path, "wb") as handle:
+        pickle.dump(object, handle)
 
 
-def load_params(path: str) -> hk.Params:
-    with open(path, "rb") as fp:
-        params = pickle.load(fp)
-    return jax.device_put(params)
+def load_pickled_data(path: str, device_put: bool = False):
+    with open(path, "rb") as handle:
+        object = pickle.load(handle)
+
+    if device_put:
+        return jax.device_put(object)
+    else:
+        return object

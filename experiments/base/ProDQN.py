@@ -7,7 +7,7 @@ import jax
 from pbo.environments.base import BaseEnv
 from pbo.sample_collection.exploration import EpsilonGreedySchedule
 from pbo.sample_collection.replay_buffer import ReplayBuffer
-from pbo.networks.base_q import BaseQ
+from pbo.networks.base_pbo import BasePBO
 
 
 def train(
@@ -15,7 +15,7 @@ def train(
     experiment_path: str,
     args: Namespace,
     p: dict,
-    q: BaseQ,
+    pbo: BasePBO,
     env: BaseEnv,
     replay_buffer: ReplayBuffer,
 ) -> None:
@@ -38,15 +38,15 @@ def train(
 
         while idx_training_step < p["n_training_steps_per_epoch"] or not has_reset:
             sample_key, key = jax.random.split(sample_key)
-            reward, has_reset = env.collect_one_sample(q, q.params, p["horizon"], replay_buffer, epsilon_schedule)
+            reward, has_reset = env.collect_one_sample(pbo, pbo.params, p["horizon"], replay_buffer, epsilon_schedule)
 
             sum_reward += reward
             n_episodes += int(has_reset)
 
             losses[
                 idx_epoch, np.minimum(idx_training_step, p["n_training_steps_per_epoch"] - 1)
-            ] = q.update_online_params(n_training_steps, replay_buffer, key)
-            q.update_target_params(n_training_steps)
+            ] = pbo.update_online_params(n_training_steps, replay_buffer, key)
+            pbo.update_target_params(n_training_steps)
 
             idx_training_step += 1
             n_training_steps += 1
@@ -62,8 +62,8 @@ def train(
         )
         if js[idx_epoch] > max_j:
             if argmax_j is not None:
-                os.remove(f"{experiment_path}/Q_{args.seed}_{argmax_j}_best_online_params")
+                os.remove(f"{experiment_path}/PBO_{args.seed}_{argmax_j}_best_online_params")
 
             argmax_j = idx_epoch
             max_j = js[idx_epoch]
-            q.save(f"{experiment_path}/Q_{args.seed}_{argmax_j}_best")
+            pbo.save(f"{experiment_path}/PBO_{args.seed}_{argmax_j}_best")

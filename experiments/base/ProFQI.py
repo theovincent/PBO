@@ -5,8 +5,7 @@ import jax
 
 from pbo.environments.base import BaseEnv
 from pbo.sample_collection.replay_buffer import ReplayBuffer
-from pbo.networks.base_q import BaseQ
-from pbo.utils.params import save_pickled_data
+from pbo.networks.base_PBO import BasePBO
 
 
 def train(
@@ -14,24 +13,20 @@ def train(
     environment_path: str,
     args: Namespace,
     p: dict,
-    q: BaseQ,
+    pbo: BasePBO,
     env: BaseEnv,
     replay_buffer: ReplayBuffer,
 ) -> None:
     env.collect_random_samples(sample_key, replay_buffer, p["n_samples"], p["horizon"])
 
     losses = np.ones((p["n_bellman_iterations"], p["fitting_steps"])) * np.nan
-    iterated_params = {}
-    iterated_params[0] = q.params
 
     for bellman_iteration in tqdm(range(p["n_bellman_iterations"])):
-        q.update_target_params()
+        pbo.update_target_params()
 
         for step in range(p["fitting_steps"]):
             sample_key, key = jax.random.split(sample_key)
-            losses[bellman_iteration, step] = q.update_online_params(replay_buffer, key)
+            losses[bellman_iteration, step] = pbo.update_online_params(replay_buffer, key)
 
-        iterated_params[bellman_iteration] = q.params
-
-    save_pickled_data(f"{environment_path}/P_{args.seed}", iterated_params)
+    pbo.save(f"{environment_path}/P_{args.seed}.npy")
     np.save(f"{environment_path}/L_{args.seed}.npy", losses)
