@@ -107,10 +107,16 @@ class BaseQ:
         # key is not used here
         return jnp.argmax(self.apply(params, jnp.array(state, dtype=jnp.float32))[0]).astype(jnp.int8)
 
-    def random_params(self) -> FrozenDict:
-        self.network_key, key = jax.random.split(self.network_key)
+    def draw_current_batch_weights(self, n_weights: int) -> jnp.ndarray:
+        weights = jnp.zeros((n_weights, self.convert_params.weights_dimension))
+        ### The first set of weights is the one FQI would have i.e. generate with the same seed.
+        weights[0] = self.convert_params.to_weights(self.params)
 
-        return self.network.init(key, **self.q_inputs)
+        for i in range(1, n_weights):
+            self.network_key, key = jax.random.split(self.network_key)
+            weights[i] = self.convert_params.to_weights(self.network.init(key, **self.q_inputs))
+
+        return weights
 
     def save(self, path: str) -> None:
         save_pickled_data(path + "_online_params", self.params)

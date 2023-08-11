@@ -1,90 +1,66 @@
 from typing import Dict
+from functools import partial
 import numpy as np
-import jax.numpy as jnp
 import jax
+import jax.numpy as jnp
 
 
 class ReplayBuffer:
-    def __init__(self, max_size: int) -> None:
-        self.max_size: int = max_size
-        self.len: int = 0
-        self.idx: int = 0
+    def __init__(self, max_size: int, batch_size: int, state_shape: list, clipping) -> None:
+        self.max_size = max_size
+        self.batch_size = batch_size
+        self.state_shape = state_shape
+        self.action_dtype = np.int8
+        self.absorbing_dtype = np.bool_
+        self.clipping = clipping
 
-    def set_first(
-        self,
-        state: jnp.ndarray,
-        action: jnp.ndarray,
-        reward: jnp.ndarray,
-        next_state: jnp.ndarray,
-        absorbing: jnp.ndarray,
-    ) -> None:
-        self.states = jnp.zeros((self.max_size,) + state.shape, dtype=state.dtype)
-        self.actions = jnp.zeros((self.max_size,) + action.shape, dtype=action.dtype)
-        self.rewards = jnp.zeros((self.max_size,) + reward.shape, dtype=reward.dtype)
-        self.next_states = jnp.zeros((self.max_size,) + next_state.shape, dtype=next_state.dtype)
-        self.absorbings = jnp.zeros((self.max_size,) + absorbing.shape, dtype=absorbing.dtype)
+        self.states = np.zeros((self.max_size,) + self.state_shape)
+        self.actions = np.zeros(self.max_size, dtype=self.action_dtype)
+        self.rewards = np.zeros(self.max_size)
+        self.next_states = np.zeros((self.max_size,) + self.state_shape)
+        self.absorbings = np.zeros(self.max_size, dtype=self.absorbing_dtype)
 
-    def add_sample(
-        self,
-        state: jnp.ndarray,
-        action: jnp.ndarray,
-        reward: jnp.ndarray,
-        next_state: jnp.ndarray,
-        absorbing: jnp.ndarray,
-        idx: int,
-    ) -> None:
-        self.states = self.states.at[idx].set(state)
-        self.actions = self.actions.at[idx].set(action)
-        self.rewards = self.rewards.at[idx].set(reward)
-        self.next_states = self.next_states.at[idx].set(next_state)
-        self.absorbings = self.absorbings.at[idx].set(absorbing)
+        self.len = 0
+        self.idx = 0
 
     def add(
         self,
-        state: jnp.ndarray,
-        action: jnp.ndarray,
-        reward: jnp.ndarray,
-        next_state: jnp.ndarray,
-        absorbing: jnp.ndarray,
+        state: np.ndarray,
+        action: np.ndarray,
+        reward: np.ndarray,
+        next_state: np.ndarray,
+        absorbing: np.ndarray,
     ) -> None:
-        if self.idx >= self.max_size:
-            self.idx = 0
-
-        if self.len == 0:
-            self.set_first(state, action, reward, next_state, absorbing)
-        self.add_sample(state, action, reward, next_state, absorbing, self.idx)
+        self.states[self.idx] = state
+        self.actions[self.idx] = action
+        self.rewards[self.idx] = self.clipping(reward)
+        self.next_states[self.idx] = next_state
+        self.absorbings[self.idx] = absorbing
 
         self.idx += 1
         self.len = min(self.len + 1, self.max_size)
+        if self.idx >= self.max_size:
+            self.idx = 0
 
-    def save(self, path: str) -> None:
-        np.savez(
-            path,
-            states=self.states,
-            actions=self.actions,
-            rewards=self.rewards,
-            next_states=self.next_states,
-            absorbings=self.absorbings,
+    def sample_random_batch(self, sample_key: jax.random.PRNGKeyArray) -> Dict[str, jnp.ndarray]:
+        idxs = self.get_sample_indexes(sample_key, self.len)
+        return self.create_batch(
+            self.states[idxs], self.actions[idxs], self.rewards[idxs], self.next_states[idxs], self.absorbings[idxs]
         )
 
-    def load(self, path: str) -> None:
-        dataset = np.load(path)
+    @partial(jax.jit, static_argnames="self")
+    def get_sample_indexes(self, key: jax.random.PRNGKeyArray, maxval: int) -> jnp.ndarray:
+        return jax.random.randint(key, shape=(self.batch_size,), minval=0, maxval=maxval)
 
-        self.states = jnp.array(dataset["states"])
-        self.actions = jnp.array(dataset["actions"])
-        self.rewards = jnp.array(dataset["rewards"])
-        self.next_states = jnp.array(dataset["next_states"])
-        self.absorbings = jnp.array(dataset["absorbings"])
-
-        self.len = self.states.shape[0]
-
-    def sample_random_batch(self, sample_key: jax.random.PRNGKeyArray, n_samples: int) -> Dict[str, jnp.ndarray]:
-        idxs = jax.random.randint(sample_key, shape=(n_samples,), minval=0, maxval=self.len)
-
+    @staticmethod
+    @jax.jit
+    def create_batch(
+        states: np.ndarray, actions: np.ndarray, rewards: np.ndarray, next_states: np.ndarray, absorbings: np.ndarray
+    ) -> Dict[str, jnp.ndarray]:
         return {
-            "state": self.states[idxs],
-            "action": self.actions[idxs],
-            "reward": self.rewards[idxs],
-            "next_state": self.next_states[idxs],
-            "absorbing": self.absorbings[idxs],
+            "state": jnp.array(states, dtype=jnp.float32),
+            "action": jnp.array(actions, dtype=jnp.int8),
+            "reward": jnp.array(rewards, dtype=jnp.float32),
+            "next_state": jnp.array(next_states, dtype=jnp.float32),
+            "absorbing": jnp.array(absorbings, dtype=jnp.bool_),
         }

@@ -13,17 +13,17 @@ class BasePBO:
     def __init__(
         self,
         q: BaseQ,
-        max_bellman_iterations: int,
+        bellman_iterations_scope: int,
         network: nn.Module,
         network_key: jax.random.PRNGKeyArray,
         learning_rate: float,
         n_training_steps_per_online_update: int,
         n_training_steps_per_target_update: int,
+        n_current_weights: int,
         n_training_steps_per_current_weight_update: int,
     ) -> None:
         self.q = q
-        self.current_weights = self.q.convert_params.to_weights(self.q.params)
-        self.max_bellman_iterations = max_bellman_iterations
+        self.bellman_iterations_scope = bellman_iterations_scope
         self.network = network
         self.params = self.network.init(
             rng=network_key, weights=jnp.zeros((1, self.q.convert_params.weights_dimension))
@@ -31,6 +31,8 @@ class BasePBO:
         self.target_params = self.params
         self.n_training_steps_per_online_update = n_training_steps_per_online_update
         self.n_training_steps_per_target_update = n_training_steps_per_target_update
+        self.n_current_weights = n_current_weights
+        self.current_batch_weights = self.q.draw_current_batch_weights(self.n_current_weights)
         self.n_training_steps_per_current_weight_update = n_training_steps_per_current_weight_update
 
         self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
@@ -45,13 +47,15 @@ class BasePBO:
 
     @partial(jax.jit, static_argnames="self")
     def td_error(self, weights: jnp.ndarray, weights_target: jnp.ndarray, samples: dict) -> float:
-        return jax.vmap(
-            lambda weights_, weights_target_: self.q.loss(
-                self.q.convert_params.to_params(weights_),
-                self.q.convert_params.to_params(weights_target_),
-                samples,
-            )
-        )(weights, weights_target)
+        return jnp.mean(
+            jax.vmap(
+                lambda weights_, weights_target_: self.q.loss(
+                    self.q.convert_params.to_params(weights_),
+                    self.q.convert_params.to_params(weights_target_),
+                    samples,
+                )
+            )(weights, weights_target)
+        )
 
     @partial(jax.jit, static_argnames="self")
     def loss(self, pbo_params: FrozenDict, pbo_params_target: FrozenDict, weights: jnp.ndarray, samples: dict) -> float:
@@ -60,7 +64,7 @@ class BasePBO:
 
         loss = self.td_error(iterated_weights, iterated_weights_target, samples)
 
-        for _ in jnp.arange(1, self.max_bellman_iterations):
+        for _ in jnp.arange(1, self.bellman_iterations_scope):
             iterated_weights_target = self.apply(pbo_params_target, iterated_weights_target)
 
             # Uncomment to limit the back propagation to one iteration
@@ -100,7 +104,7 @@ class BasePBO:
             batch_samples = replay_buffer.sample_random_batch(key)
 
             self.params, self.optimizer_state, loss = self.learn_on_batch(
-                self.params, self.target_params, self.optimizer_state, batch_samples
+                self.params, self.target_params, self.optimizer_state, self.current_batch_weights, batch_samples
             )
 
             return loss
@@ -117,11 +121,19 @@ class BasePBO:
     def random_action(self, key: jax.random.PRNGKeyArray) -> jnp.int8:
         return self.q.random_action(key)
 
-    @partial(jax.jit, static_argnames="self")
     def best_action(self, params: FrozenDict, state: jnp.ndarray, key: jax.random.PRNGKey) -> jnp.int8:
-        n_iterations = jax.random.choice(key, jnp.arange(self.max_bellman_iterations))
+        key, weights_key = jax.random.split(key, 2)
+        idx_current_weights = jax.random.choice(weights_key, jnp.arange(self.n_current_weights))
 
-        iterated_weigths = self.current_weights
+        return self.best_action_from_weigths(params, self.current_batch_weights[idx_current_weights], state, key)
+
+    @partial(jax.jit, static_argnames="self")
+    def best_action_from_weigths(
+        self, params: FrozenDict, iterated_weigths: jnp.ndarray, state: jnp.ndarray, key: jax.random.PRNGKey
+    ):
+        key, iteration_key = jax.random.split(key)
+        n_iterations = jax.random.choice(iteration_key, jnp.arange(self.bellman_iterations_scope))
+
         for _ in range(n_iterations):
             iterated_weigths = self.apply(params, iterated_weigths)
 

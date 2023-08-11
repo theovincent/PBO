@@ -135,6 +135,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+.vscode
+
 # Avoid pushing htlm and npy files
 **/*.html
 **/*.npy
