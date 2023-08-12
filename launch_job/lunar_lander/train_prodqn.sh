@@ -3,6 +3,6 @@
 source launch_job/parse_arguments.sh
 parse_arguments $@
 
-source env_cpu/bin/activate
+source env/bin/activate
 
 lunar_lander_prodqn -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID -b $BELLMAN_ITERATIONS_SCOPE
