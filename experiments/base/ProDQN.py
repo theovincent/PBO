@@ -66,7 +66,7 @@ def train(
                     f"{experiment_path}/{args.bellman_iterations_scope}_PBO_{args.seed}_{argmax_j}_best_online_params"
                 )
                 os.remove(
-                    f"{experiment_path}/{args.bellman_iterations_scope}_PBO_{args.seed}_{argmax_j}_current_batch_weights"
+                    f"{experiment_path}/{args.bellman_iterations_scope}_PBO_{args.seed}_{argmax_j}_best_current_batch_weights"
                 )
 
             argmax_j = idx_epoch

@@ -105,7 +105,7 @@ class BaseQ:
     @partial(jax.jit, static_argnames="self")
     def best_action(self, params: FrozenDict, state: jnp.ndarray, key: jax.random.PRNGKey) -> jnp.int8:
         # key is not used here
-        return jnp.argmax(self.apply(params, jnp.array(state, dtype=jnp.float32))[0]).astype(jnp.int8)
+        return jnp.argmax(self.apply(params, jnp.array(state, dtype=jnp.float32))).astype(jnp.int8)
 
     def draw_current_batch_weights(self, n_weights: int) -> jnp.ndarray:
         weights = jnp.zeros((n_weights, self.convert_params.weights_dimension))
