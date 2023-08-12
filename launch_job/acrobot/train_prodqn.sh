@@ -5,4 +5,4 @@ parse_arguments $@
 
 source env_cpu/bin/activate
 
-acrobot_dqn -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID
+acrobot_prodqn -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID -b $BELLMAN_ITERATIONS_SCOPE
