@@ -10,7 +10,7 @@ from gymnasium.wrappers.monitoring import video_recorder
 from pbo.networks.base_q import BaseQ
 from pbo.networks.base_pbo import BasePBO
 from pbo.sample_collection.replay_buffer import ReplayBuffer
-from idqn.sample_collection.exploration import EpsilonGreedySchedule
+from pbo.sample_collection.exploration import EpsilonGreedySchedule
 
 
 class BaseEnv:
@@ -27,8 +27,8 @@ class BaseEnv:
 
         return self.state
 
-    def step(self, action: int) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, dict]:
-        self.state, reward, absorbing, _, info = self.env.step(action)
+    def step(self, action: jnp.int8) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, dict]:
+        self.state, reward, absorbing, _, info = self.env.step(int(action))
         self.n_steps += 1
 
         return self.state, reward, absorbing, info

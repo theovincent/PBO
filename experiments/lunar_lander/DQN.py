@@ -15,7 +15,7 @@ def run_cli(argvs=sys.argv[1:]):
     parser = argparse.ArgumentParser("Train DQN on Lunar Lander.")
     addparse(parser)
     args = parser.parse_args(argvs)
-    print_info(args.experiment_name, "DQN", "Lunar Lander", args.max_bellman_iterations, args.seed)
+    print_info(args.experiment_name, "DQN", "Lunar Lander", args.bellman_iterations_scope, args.seed)
     p = json.load(open(f"experiments/lunar_lander/figures/{args.experiment_name}/parameters.json"))  # p for parameters
 
     from pbo.environments.lunar_lander import LunarLanderEnv

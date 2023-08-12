@@ -53,17 +53,19 @@ def train(
 
         js[idx_epoch] = sum_reward / n_episodes
         np.save(
-            f"{experiment_path}/J_{args.seed}.npy",
+            f"{experiment_path}/{args.bellman_iterations_scope}_J_{args.seed}.npy",
             js,
         )
         np.save(
-            f"{experiment_path}/L_{args.seed}.npy",
+            f"{experiment_path}/{args.bellman_iterations_scope}_L_{args.seed}.npy",
             losses,
         )
         if js[idx_epoch] > max_j:
             if argmax_j is not None:
-                os.remove(f"{experiment_path}/PBO_{args.seed}_{argmax_j}_best_online_params")
+                os.remove(
+                    f"{experiment_path}/{args.bellman_iterations_scope}_PBO_{args.seed}_{argmax_j}_best_online_params"
+                )
 
             argmax_j = idx_epoch
             max_j = js[idx_epoch]
-            pbo.save(f"{experiment_path}/PBO_{args.seed}_{argmax_j}_best")
+            pbo.save(f"{experiment_path}/{args.bellman_iterations_scope}_PBO_{args.seed}_{argmax_j}_best")

@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import t as student_variable
 
 
-def single_confidence_interval(mean, std, n_samples, confidence_level):
+def confidence_interval(mean, std, n_samples, confidence_level=0.95):
     t_crit = np.abs(student_variable.ppf((1 - confidence_level) / 2, n_samples - 1))
     lower_bound = mean - t_crit * (std / np.sqrt(n_samples))
     upper_bound = mean + t_crit * (std / np.sqrt(n_samples))
@@ -10,16 +10,15 @@ def single_confidence_interval(mean, std, n_samples, confidence_level):
     return lower_bound, upper_bound
 
 
-def confidence_interval(means, stds, n_samples, confidence_level=0.95):
-    confidence_intervals = np.zeros((2, len(means)))
+def means_and_confidence_interval(metrics):
+    means = np.mean(metrics, axis=0)
+    stds = np.std(metrics, axis=0)
+    n_seeds = metrics.shape[0]
+    confidence_intervals = np.zeros((2, metrics.shape[1]))
 
-    if n_samples == 1:
-        confidence_intervals[0] = means
-        confidence_intervals[1] = means
-    else:
-        for idx_iteration in range(len(means)):
-            confidence_intervals[0, idx_iteration], confidence_intervals[1, idx_iteration] = single_confidence_interval(
-                means[idx_iteration], stds[idx_iteration], n_samples, confidence_level
-            )
+    for idx_element in range(metrics.shape[1]):
+        confidence_intervals[0, idx_element], confidence_intervals[1, idx_element] = confidence_interval(
+            means[idx_element], stds[idx_element], n_seeds
+        )
 
-    return confidence_intervals
+    return means, confidence_intervals

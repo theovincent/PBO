@@ -12,10 +12,10 @@ class MLPNet(nn.Module):
     weights_dimension: int
 
     @nn.compact
-    def __call__(self, state):
-        x = state
+    def __call__(self, weights):
+        x = weights
         for feature in self.features:
-            x = nn.relu(nn.Dense(jnp.round(feature * self.weights_dimension).astype(int))(x))
+            x = nn.relu(nn.Dense(int(feature * self.weights_dimension))(x))
         x = nn.Dense(self.weights_dimension)(x)
 
         return x

@@ -7,6 +7,7 @@ import jax
 
 from pbo.networks.base_q import BaseQ
 from pbo.sample_collection.replay_buffer import ReplayBuffer
+from pbo.utils.params import save_pickled_data
 
 
 class BasePBO:
@@ -26,7 +27,7 @@ class BasePBO:
         self.bellman_iterations_scope = bellman_iterations_scope
         self.network = network
         self.params = self.network.init(
-            rng=network_key, weights=jnp.zeros((1, self.q.convert_params.weights_dimension))
+            network_key, weights=jnp.zeros(self.q.convert_params.weights_dimension, dtype=jnp.float32)
         )
         self.target_params = self.params
         self.n_training_steps_per_online_update = n_training_steps_per_online_update
@@ -75,7 +76,7 @@ class BasePBO:
 
         return loss
 
-    @partial(jax.jit, static_argnames=("self", "ord"))
+    @partial(jax.jit, static_argnames="self")
     def learn_on_batch(
         self,
         params: FrozenDict,
@@ -83,18 +84,15 @@ class BasePBO:
         optimizer_state: tuple,
         batch_weights: jnp.ndarray,
         batch_samples: jnp.ndarray,
-        importance_iteration: jnp.ndarray,
     ) -> tuple:
-        loss, grad_loss = self.loss_and_grad(
-            params, params_target, batch_weights, batch_samples, importance_iteration, ord
-        )
+        loss, grad_loss = self.loss_and_grad(params, params_target, batch_weights, batch_samples)
         updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
         params = optax.apply_updates(params, updates)
 
         return params, optimizer_state, loss
 
     def update_current_weights(self, params: FrozenDict) -> None:
-        self.current_weights = self.apply(params, self.current_weights)
+        self.current_batch_weights = self.apply(params, self.current_batch_weights)
 
     def update_online_params(self, step: int, replay_buffer: ReplayBuffer, key: jax.random.PRNGKeyArray) -> jnp.float32:
         if step % self.n_training_steps_per_current_weight_update == 0:
@@ -127,14 +125,18 @@ class BasePBO:
 
         return self.best_action_from_weigths(params, self.current_batch_weights[idx_current_weights], state, key)
 
-    @partial(jax.jit, static_argnames="self")
+    # @partial(jax.jit, static_argnames="self")
     def best_action_from_weigths(
         self, params: FrozenDict, iterated_weigths: jnp.ndarray, state: jnp.ndarray, key: jax.random.PRNGKey
     ):
         key, iteration_key = jax.random.split(key)
         n_iterations = jax.random.choice(iteration_key, jnp.arange(self.bellman_iterations_scope))
 
-        for _ in range(n_iterations):
+        for _ in jnp.arange(n_iterations):
             iterated_weigths = self.apply(params, iterated_weigths)
 
         return self.q.best_action(self.q.convert_params.to_params(iterated_weigths), state, key)
+
+    def save(self, path: str) -> None:
+        save_pickled_data(path + "_online_params", self.params)
+        save_pickled_data(path + "_current_batch_weights", self.current_batch_weights)

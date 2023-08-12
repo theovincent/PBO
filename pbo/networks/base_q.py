@@ -28,7 +28,7 @@ class BaseQ:
         self.network_key = network_key
         self.q_inputs = q_inputs
         self.params = self.network.init(self.network_key, **q_inputs)
-        self.convert_params = ParameterConverter(self.q.params)
+        self.convert_params = ParameterConverter(self.params)
         self.target_params = self.params
         self.n_training_steps_per_online_update = n_training_steps_per_online_update
         self.n_training_steps_per_target_update = n_training_steps_per_target_update
@@ -110,11 +110,11 @@ class BaseQ:
     def draw_current_batch_weights(self, n_weights: int) -> jnp.ndarray:
         weights = jnp.zeros((n_weights, self.convert_params.weights_dimension))
         ### The first set of weights is the one FQI would have i.e. generate with the same seed.
-        weights[0] = self.convert_params.to_weights(self.params)
+        weights = weights.at[0].set(self.convert_params.to_weights(self.params))
 
         for i in range(1, n_weights):
             self.network_key, key = jax.random.split(self.network_key)
-            weights[i] = self.convert_params.to_weights(self.network.init(key, **self.q_inputs))
+            weights = weights.at[i].set(self.convert_params.to_weights(self.network.init(key, **self.q_inputs)))
 
         return weights
 
