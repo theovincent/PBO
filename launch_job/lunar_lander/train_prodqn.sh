@@ -5,4 +5,4 @@ parse_arguments $@
 
 source env_cpu/bin/activate
 
-lunar_lander_dqn -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID
+lunar_lander_prodqn -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID -b $BELLMAN_ITERATIONS_SCOPE

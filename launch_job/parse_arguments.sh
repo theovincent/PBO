@@ -18,57 +18,9 @@ function parse_arguments() {
                 shift
                 shift
                 ;;
-            -b | --max_bellman_iterations)
-                MAX_BELLMAN_ITERATION=$2
+            -b | --bellman_iterations_scope)
+                BELLMAN_ITERATIONS_SCOPE=$2
                 shift
-                shift
-                ;;
-            -sfqi | --skip_fqi)
-                FQI=false
-                shift
-                ;;
-            -slspi | --skip_lspi)
-                LSPI=false
-                shift
-                ;;
-            -sdqn | --skip_dqn)
-                DQN=false
-                shift
-                ;;
-            -spbo_linear | --skip_pbo_linear)
-                PBO_linear=false
-                shift
-                ;;
-            -spbo_max_linear | --skip_pbo_max_linear)
-                PBO_max_linear=false
-                shift
-                ;;
-            -spbo_custom_linear | --skip_pbo_custom_linear)
-                PBO_custom_linear=false
-                shift
-                ;;
-            -spbo_deep | --skip_pbo_deep)
-                PBO_deep=false
-                shift
-                ;;
-            -spbo_optimal | --skip_pbo_optimal)
-                PBO_optimal=false
-                shift
-                ;;
-            -sifqi | --skip_ifqi)
-                IFQI=false
-                shift
-                ;;
-            -sidqn | --skip_idqn)
-                IDQN=false
-                shift
-                ;;
-            -c | --conv)
-                CONV="-c"
-                shift
-                ;;
-            -g | --gpu)
-                GPU=true
                 shift
                 ;;
             -?*)
@@ -89,55 +41,7 @@ function parse_arguments() {
         exit
     elif ( [[ $FIRST_SEED != "" ]] && [[ $LAST_SEED = "" ]] ) || ( [[ $FIRST_SEED == "" ]] && [[ $LAST_SEED != "" ]] )
     then
-        echo "you need to specify -fs and -ls, not only one" >&2
+        echo "you need to specify the first and last seed, use -fs and -ls" >&2
         exit
-    elif [[ $MAX_BELLMAN_ITERATION == "" ]]
-    then
-        echo "max_bellman_iterations is missing, use -b" >&2
-        exit
-    fi
-    if [[ $FQI == "" ]]
-    then
-        FQI=true
-    fi
-    if [[ $LSPI == "" ]]
-    then
-        LSPI=true
-    fi
-    if [[ $DQN == "" ]]
-    then
-        DQN=true
-    fi
-    if [[ $PBO_linear == "" ]]
-    then
-        PBO_linear=true
-    fi
-    if [[ $PBO_max_linear == "" ]]
-    then
-        PBO_max_linear=true
-    fi
-    if [[ $PBO_custom_linear == "" ]]
-    then
-        PBO_custom_linear=true
-    fi
-    if [[ $PBO_deep == "" ]]
-    then
-        PBO_deep=true
-    fi
-    if [[ $PBO_optimal == "" ]]
-    then
-        PBO_optimal=true
-    fi
-    if [[ $IFQI == "" ]]
-    then
-        IFQI=true
-    fi
-    if [[ $IDQN == "" ]]
-    then
-        IDQN=true
-    fi
-    if [[ $GPU == "" ]]
-    then
-        GPU=false
     fi
 }

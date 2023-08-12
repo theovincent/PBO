@@ -1,0 +1,15 @@
+#!/bin/bash
+
+source launch_job/parse_arguments.sh
+parse_arguments $@
+
+[ -d out/lunar_lander/$EXPERIMENT_NAME ] || mkdir -p out/lunar_lander/$EXPERIMENT_NAME
+
+[ -d experiments/lunar_lander/figures/$EXPERIMENT_NAME ] || mkdir -p experiments/lunar_lander/figures/$EXPERIMENT_NAME
+[ -f experiments/lunar_lander/figures/$EXPERIMENT_NAME/parameters.json ] || cp experiments/lunar_lander/parameters.json experiments/lunar_lander/figures/$EXPERIMENT_NAME/parameters.json
+[ -d experiments/lunar_lander/figures/$EXPERIMENT_NAME/DQN ] || mkdir experiments/lunar_lander/figures/$EXPERIMENT_NAME/DQN
+
+
+# DQN
+echo "launch train dqn"
+submission_train_dqn_1=$(sbatch -J L_$EXPERIMENT_NAME --array=$FIRST_SEED-$LAST_SEED --cpus-per-task=4 --mem-per-cpu=250M --time=01:00:00 --output=out/lunar_lander/$EXPERIMENT_NAME/train_dqn_%a.out launch_job/lunar_lander/train_dqn.sh -e $EXPERIMENT_NAME)
