@@ -12,4 +12,4 @@ parse_arguments $@
 
 # DQN
 echo "launch train dqn"
-submission_train_dqn_1=$(sbatch -J L_$EXPERIMENT_NAME --array=$FIRST_SEED-$LAST_SEED --ntasks=4 --mem-per-cpu=250M --time=01:00:00 --output=out/acrobot/$EXPERIMENT_NAME/train_dqn_%a.out launch_job/acrobot/train_dqn.sh -e $EXPERIMENT_NAME)
+submission_train_dqn_1=$(sbatch -J A_$EXPERIMENT_NAME --array=$FIRST_SEED-$LAST_SEED --ntasks=4 --mem-per-cpu=250M --time=01:00:00 --output=out/acrobot/$EXPERIMENT_NAME/train_dqn_%a.out launch_job/acrobot/train_dqn.sh -e $EXPERIMENT_NAME)

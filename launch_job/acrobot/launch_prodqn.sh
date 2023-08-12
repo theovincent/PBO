@@ -12,4 +12,4 @@ parse_arguments $@
 
 # ProDQN
 echo "launch train prodqn"
-submission_train_prodqn_1=$(sbatch -J L_$EXPERIMENT_NAME --array=$FIRST_SEED-$LAST_SEED --ntasks=4 --mem-per-cpu=2G --time=1-00:00:00 --gres=gpu:1 -p gpu --output=out/acrobot/$EXPERIMENT_NAME/$BELLMAN_ITERATIONS_SCOPE\_train_prodqn_%a.out launch_job/acrobot/train_prodqn.sh -e $EXPERIMENT_NAME -b $BELLMAN_ITERATIONS_SCOPE)
+submission_train_prodqn_1=$(sbatch -J A_$EXPERIMENT_NAME --array=$FIRST_SEED-$LAST_SEED --ntasks=4 --mem-per-cpu=2G --time=03:00:00 --gres=gpu:1 -p gpu --output=out/acrobot/$EXPERIMENT_NAME/$BELLMAN_ITERATIONS_SCOPE\_train_prodqn_%a.out launch_job/acrobot/train_prodqn.sh -e $EXPERIMENT_NAME -b $BELLMAN_ITERATIONS_SCOPE)
