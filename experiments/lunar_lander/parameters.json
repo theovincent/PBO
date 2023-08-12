@@ -5,7 +5,7 @@
         30,
         30
     ],
-    "replay_buffer_size": 100000,
+    "replay_buffer_size": 20000,
     "n_initial_samples": 1000,
     "n_epochs": 100,
     "n_training_steps_per_epoch": 6000,
@@ -26,7 +26,7 @@
         2
     ],
     "prodqn_learning_rate": 1e-05,
-    "prodqn_n_training_steps_per_target_update": 20,
+    "prodqn_n_training_steps_per_target_update": 30,
     "prodqn_n_current_weights": 15,
-    "prodqn_n_training_steps_per_current_weight_update": 500
+    "prodqn_n_training_steps_per_current_weight_update": 6000
 }
