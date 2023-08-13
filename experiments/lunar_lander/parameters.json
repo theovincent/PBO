@@ -17,7 +17,7 @@
     "batch_size": 512,
     "---- DQN ---": "-",
     "dqn_learning_rate": 0.0001,
-    "dqn_n_training_steps_per_target_update": 6000,
+    "dqn_n_training_steps_per_target_update": 1000,
     "---- ProDQN ---": "-",
     "prodqn_features": [
         2,
@@ -26,7 +26,7 @@
         2
     ],
     "prodqn_learning_rate": 1e-05,
-    "prodqn_n_training_steps_per_target_update": 30,
+    "prodqn_n_training_steps_per_target_update": 100,
     "prodqn_n_current_weights": 15,
     "prodqn_n_training_steps_per_current_weight_update": 6000
 }
