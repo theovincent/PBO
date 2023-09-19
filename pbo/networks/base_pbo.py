@@ -1,3 +1,4 @@
+from typing import Tuple, Union, Dict
 from functools import partial
 from flax.core import FrozenDict
 import flax.linen as nn
@@ -17,11 +18,11 @@ class BasePBO:
         bellman_iterations_scope: int,
         network: nn.Module,
         network_key: jax.random.PRNGKeyArray,
-        learning_rate: float,
-        n_training_steps_per_online_update: int,
-        n_training_steps_per_target_update: int,
-        n_current_weights: int,
-        n_training_steps_per_current_weight_update: int,
+        learning_rate: Union[float, None],
+        n_training_steps_per_online_update: Union[int, None],
+        n_training_steps_per_target_update: Union[int, None],
+        n_current_weights: Union[int, None],
+        n_training_steps_per_current_weight_update: Union[int, None],
     ) -> None:
         self.q = q
         self.bellman_iterations_scope = bellman_iterations_scope
@@ -30,25 +31,32 @@ class BasePBO:
         self.params = self.network.init(
             self.network_key, weights=jnp.zeros(self.q.convert_params.weights_dimension, dtype=jnp.float32)
         )
-        self.target_params = self.params
-        self.n_training_steps_per_online_update = n_training_steps_per_online_update
-        self.n_training_steps_per_target_update = n_training_steps_per_target_update
-        self.n_current_weights = n_current_weights
-        self.current_batch_weights = self.q.draw_current_batch_weights(self.n_current_weights)
-        self.n_training_steps_per_current_weight_update = n_training_steps_per_current_weight_update
-
-        self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
         if learning_rate is not None:
+            self.target_params = self.params
+
+            self.n_training_steps_per_online_update = n_training_steps_per_online_update
+            self.n_training_steps_per_target_update = n_training_steps_per_target_update
+            self.n_current_weights = n_current_weights
+            self.current_batch_weights = self.q.draw_current_batch_weights(self.n_current_weights)
+            self.n_training_steps_per_current_weight_update = n_training_steps_per_current_weight_update
+
+            self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
+
             self.optimizer = optax.adam(learning_rate)
             self.optimizer_state = self.optimizer.init(self.params)
+        else:
+            # We define the current weights for being able to sample actions.
+            self.n_current_weights = 1
+            self.current_batch_weights = self.q.draw_current_batch_weights(self.n_current_weights)
 
     @partial(jax.jit, static_argnames="self")
     def apply(self, params: FrozenDict, weights: jnp.ndarray) -> jnp.ndarray:
         return self.network.apply(params, weights)
 
     @partial(jax.jit, static_argnames="self")
-    def td_error(self, weights: jnp.ndarray, weights_target: jnp.ndarray, samples: dict) -> float:
+    def td_error(self, weights: jnp.ndarray, weights_target: jnp.ndarray, samples: Dict) -> float:
+        # Compute the td error for each pair of weight and target weight and then take the mean over the computed values
         return jnp.mean(
             jax.vmap(
                 lambda weights_, weights_target_: self.q.loss(
@@ -60,7 +68,7 @@ class BasePBO:
         )
 
     @partial(jax.jit, static_argnames="self")
-    def loss(self, pbo_params: FrozenDict, pbo_params_target: FrozenDict, weights: jnp.ndarray, samples: dict) -> float:
+    def loss(self, pbo_params: FrozenDict, pbo_params_target: FrozenDict, weights: jnp.ndarray, samples: Dict) -> float:
         iterated_weights_target = weights
         iterated_weights = self.apply(pbo_params, weights)
 
@@ -85,7 +93,7 @@ class BasePBO:
         optimizer_state: tuple,
         batch_weights: jnp.ndarray,
         batch_samples: jnp.ndarray,
-    ) -> tuple:
+    ) -> Tuple[FrozenDict, FrozenDict, jnp.float32]:
         loss, grad_loss = self.loss_and_grad(params, params_target, batch_weights, batch_samples)
         updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
         params = optax.apply_updates(params, updates)
@@ -94,11 +102,6 @@ class BasePBO:
 
     def update_current_weights(self, params: FrozenDict) -> None:
         self.current_batch_weights = self.apply(params, self.current_batch_weights)
-        self.network_key, key = jax.random.split(self.network_key)
-        self.params = self.network.init(
-            key, weights=jnp.zeros(self.q.convert_params.weights_dimension, dtype=jnp.float32)
-        )
-        self.target_params = self.params
 
     def update_online_params(self, step: int, replay_buffer: ReplayBuffer, key: jax.random.PRNGKeyArray) -> jnp.float32:
         if step % self.n_training_steps_per_current_weight_update == 0:
@@ -126,18 +129,11 @@ class BasePBO:
         return self.q.random_action(key)
 
     def best_action(self, params: FrozenDict, state: jnp.ndarray, key: jax.random.PRNGKey) -> jnp.int8:
-        key, weights_key = jax.random.split(key, 2)
-        idx_current_weights = jax.random.choice(weights_key, jnp.arange(self.n_current_weights))
-
-        return self.best_action_from_weigths(params, self.current_batch_weights[idx_current_weights], state, key)
-
-    # @partial(jax.jit, static_argnames="self")
-    def best_action_from_weigths(
-        self, params: FrozenDict, iterated_weigths: jnp.ndarray, state: jnp.ndarray, key: jax.random.PRNGKey
-    ):
+        # Decide the number of bellman iteration.
         key, iteration_key = jax.random.split(key)
-        n_iterations = jax.random.choice(iteration_key, jnp.arange(self.bellman_iterations_scope // 2, self.bellman_iterations_scope))
+        n_iterations = jax.random.choice(iteration_key, jnp.arange(self.bellman_iterations_scope))
 
+        iterated_weigths = self.current_batch_weights[0]
         for _ in jnp.arange(n_iterations):
             iterated_weigths = self.apply(params, iterated_weigths)
 

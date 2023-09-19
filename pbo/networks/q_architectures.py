@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Union
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
@@ -11,7 +11,7 @@ class MLPNet(nn.Module):
     n_actions: int
 
     @nn.compact
-    def __call__(self, state):
+    def __call__(self, state: jnp.ndarray) -> jnp.ndarray:
         x = state
         for feature in self.features:
             x = nn.relu(nn.Dense(feature)(x))
@@ -28,9 +28,9 @@ class MLPQ(BaseQ):
         gamma: float,
         features: Sequence[int],
         network_key: jax.random.PRNGKeyArray,
-        learning_rate: float,
-        n_training_steps_per_online_update: int,
-        n_training_steps_per_target_update: int,
+        learning_rate: Union[float, None] = None,
+        n_training_steps_per_online_update: Union[int, None] = None,
+        n_training_steps_per_target_update: Union[int, None] = None,
     ) -> None:
         super().__init__(
             {"state": jnp.zeros(state_shape, dtype=jnp.float32)},

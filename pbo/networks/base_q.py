@@ -18,9 +18,9 @@ class BaseQ:
         gamma: float,
         network: nn.Module,
         network_key: jax.random.PRNGKeyArray,
-        learning_rate: Union[float, None] = None,
-        n_training_steps_per_online_update: Union[int, None] = None,
-        n_training_steps_per_target_update: Union[int, None] = None,
+        learning_rate: Union[float, None],
+        n_training_steps_per_online_update: Union[int, None],
+        n_training_steps_per_target_update: Union[int, None],
     ) -> None:
         self.n_actions = n_actions
         self.gamma = gamma
@@ -29,9 +29,10 @@ class BaseQ:
         self.q_inputs = q_inputs
         self.params = self.network.init(self.network_key, **self.q_inputs)
         self.convert_params = ParameterConverter(self.params)
-        self.target_params = self.params
 
         if learning_rate is not None:
+            self.target_params = self.params
+
             self.n_training_steps_per_online_update = n_training_steps_per_online_update
             self.n_training_steps_per_target_update = n_training_steps_per_target_update
 
