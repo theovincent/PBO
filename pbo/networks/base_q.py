@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union, Dict
 from functools import partial
 from flax.core import FrozenDict
 import flax.linen as nn
@@ -18,24 +18,25 @@ class BaseQ:
         gamma: float,
         network: nn.Module,
         network_key: jax.random.PRNGKeyArray,
-        learning_rate: float,
-        n_training_steps_per_online_update: int,
-        n_training_steps_per_target_update: int,
+        learning_rate: Union[float, None] = None,
+        n_training_steps_per_online_update: Union[int, None] = None,
+        n_training_steps_per_target_update: Union[int, None] = None,
     ) -> None:
         self.n_actions = n_actions
         self.gamma = gamma
         self.network = network
         self.network_key = network_key
         self.q_inputs = q_inputs
-        self.params = self.network.init(self.network_key, **q_inputs)
+        self.params = self.network.init(self.network_key, **self.q_inputs)
         self.convert_params = ParameterConverter(self.params)
         self.target_params = self.params
-        self.n_training_steps_per_online_update = n_training_steps_per_online_update
-        self.n_training_steps_per_target_update = n_training_steps_per_target_update
-
-        self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
         if learning_rate is not None:
+            self.n_training_steps_per_online_update = n_training_steps_per_online_update
+            self.n_training_steps_per_target_update = n_training_steps_per_target_update
+
+            self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
+
             self.optimizer = optax.adam(learning_rate)
             self.optimizer_state = self.optimizer.init(self.params)
 
@@ -44,13 +45,13 @@ class BaseQ:
         return self.network.apply(params, states)
 
     @partial(jax.jit, static_argnames="self")
-    def compute_target(self, params: FrozenDict, samples: FrozenDict) -> jnp.ndarray:
+    def compute_target(self, params: FrozenDict, samples: Dict) -> jnp.ndarray:
         return samples["reward"] + (1 - samples["absorbing"]) * self.gamma * self.apply(
             params, samples["next_state"]
         ).max(axis=1)
 
     @partial(jax.jit, static_argnames="self")
-    def loss(self, params: FrozenDict, params_target: FrozenDict, samples: FrozenDict) -> jnp.float32:
+    def loss(self, params: FrozenDict, params_target: FrozenDict, samples: Dict) -> jnp.float32:
         targets = self.compute_target(params_target, samples)
         q_states_actions = self.apply(params, samples["state"])
 
@@ -74,7 +75,7 @@ class BaseQ:
 
     @partial(jax.jit, static_argnames="self")
     def learn_on_batch(
-        self, params: FrozenDict, params_target: FrozenDict, optimizer_state: Tuple, batch_samples: jnp.ndarray
+        self, params: FrozenDict, params_target: FrozenDict, optimizer_state: Tuple, batch_samples: Dict
     ) -> Tuple[FrozenDict, FrozenDict, jnp.float32]:
         loss, grad_loss = self.loss_and_grad(params, params_target, batch_samples)
         updates, optimizer_state = self.optimizer.update(grad_loss, optimizer_state)
