@@ -26,8 +26,9 @@ class BasePBO:
         self.q = q
         self.bellman_iterations_scope = bellman_iterations_scope
         self.network = network
+        self.network_key = network_key
         self.params = self.network.init(
-            network_key, weights=jnp.zeros(self.q.convert_params.weights_dimension, dtype=jnp.float32)
+            self.network_key, weights=jnp.zeros(self.q.convert_params.weights_dimension, dtype=jnp.float32)
         )
         self.target_params = self.params
         self.n_training_steps_per_online_update = n_training_steps_per_online_update
@@ -93,6 +94,11 @@ class BasePBO:
 
     def update_current_weights(self, params: FrozenDict) -> None:
         self.current_batch_weights = self.apply(params, self.current_batch_weights)
+        self.network_key, key = jax.random.split(self.network_key)
+        self.params = self.network.init(
+            key, weights=jnp.zeros(self.q.convert_params.weights_dimension, dtype=jnp.float32)
+        )
+        self.target_params = self.params
 
     def update_online_params(self, step: int, replay_buffer: ReplayBuffer, key: jax.random.PRNGKeyArray) -> jnp.float32:
         if step % self.n_training_steps_per_current_weight_update == 0:
@@ -130,7 +136,7 @@ class BasePBO:
         self, params: FrozenDict, iterated_weigths: jnp.ndarray, state: jnp.ndarray, key: jax.random.PRNGKey
     ):
         key, iteration_key = jax.random.split(key)
-        n_iterations = jax.random.choice(iteration_key, jnp.arange(self.bellman_iterations_scope))
+        n_iterations = jax.random.choice(iteration_key, jnp.arange(self.bellman_iterations_scope // 2, self.bellman_iterations_scope))
 
         for _ in jnp.arange(n_iterations):
             iterated_weigths = self.apply(params, iterated_weigths)
