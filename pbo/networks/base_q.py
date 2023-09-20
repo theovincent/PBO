@@ -19,6 +19,7 @@ class BaseQ:
         network: nn.Module,
         network_key: jax.random.PRNGKeyArray,
         learning_rate: Union[float, None],
+        epsilon_optimizer: Union[float, None],
         n_training_steps_per_online_update: Union[int, None],
         n_training_steps_per_target_update: Union[int, None],
     ) -> None:
@@ -38,7 +39,7 @@ class BaseQ:
 
             self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
-            self.optimizer = optax.adam(learning_rate)
+            self.optimizer = optax.adam(learning_rate, eps=epsilon_optimizer)
             self.optimizer_state = self.optimizer.init(self.params)
 
     @partial(jax.jit, static_argnames="self")

@@ -29,6 +29,7 @@ class MLPQ(BaseQ):
         features: Sequence[int],
         network_key: jax.random.PRNGKeyArray,
         learning_rate: Union[float, None] = None,
+        epsilon_optimizer: Union[float, None] = None,
         n_training_steps_per_online_update: Union[int, None] = None,
         n_training_steps_per_target_update: Union[int, None] = None,
     ) -> None:
@@ -39,6 +40,7 @@ class MLPQ(BaseQ):
             MLPNet(features, n_actions),
             network_key,
             learning_rate,
+            epsilon_optimizer,
             n_training_steps_per_online_update,
             n_training_steps_per_target_update,
         )
