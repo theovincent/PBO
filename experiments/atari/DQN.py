@@ -37,7 +37,7 @@ def run_cli(argvs=sys.argv[1:]):
         env.state_shape,
         env.n_actions,
         p["gamma"],
-        p["features"],
+        [],
         network_key,
         p["dqn_learning_rate"],
         p["n_training_steps_per_online_update"],

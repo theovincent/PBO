@@ -1,4 +1,4 @@
-from typing import Dict, Type, Callable
+from typing import Dict, Type, Callable, Union
 from functools import partial
 import numpy as np
 import jax
@@ -28,12 +28,7 @@ class ReplayBuffer:
         self.idx = 0
 
     def add(
-        self,
-        state: np.ndarray,
-        action: np.ndarray,
-        reward: np.ndarray,
-        next_state: np.ndarray,
-        absorbing: np.ndarray,
+        self, state: np.ndarray, action: np.ndarray, reward: np.ndarray, next_state: np.ndarray, absorbing: np.ndarray
     ) -> None:
         self.states[self.idx] = state
         self.actions[self.idx] = action

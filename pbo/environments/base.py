@@ -68,7 +68,7 @@ class BaseEnv:
         next_state, reward, absorbing, _ = self.step(action)
 
         truncated = self.n_steps >= horizon
-        replay_buffer.add(state, action, reward, next_state, absorbing, truncated)
+        replay_buffer.add(state, action, reward, next_state, absorbing)
 
         if absorbing or truncated:
             self.reset()

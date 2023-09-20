@@ -42,7 +42,7 @@ class AtariEnv(BaseEnv):
 
     @property
     def state(self) -> np.ndarray:
-        return self.encoder(np.array(self.stacked_frames / 255.0, ndmin=4).transpose((0, 2, 3, 1))).astype(np.float32)
+        return self.encoder(np.array(self.stacked_frames, ndmin=4).transpose((0, 2, 3, 1)) / 255.0).astype(np.float32)
 
     def reset(self) -> np.ndarray:
         self.env.reset()
