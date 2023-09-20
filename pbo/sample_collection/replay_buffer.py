@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Type, Callable
 from functools import partial
 import numpy as np
 import jax
@@ -6,18 +6,22 @@ import jax.numpy as jnp
 
 
 class ReplayBuffer:
-    def __init__(self, max_size: int, batch_size: int, state_shape: list, clipping) -> None:
+    def __init__(
+        self, max_size: int, batch_size: int, state_shape: list, state_dtype: Type, clipping: Callable
+    ) -> None:
         self.max_size = max_size
         self.batch_size = batch_size
         self.state_shape = state_shape
+        self.state_dtype = state_dtype
         self.action_dtype = np.int8
+        self.reward_dtype = np.float32
         self.absorbing_dtype = np.bool_
         self.clipping = clipping
 
-        self.states = np.zeros((self.max_size,) + self.state_shape)
+        self.states = np.zeros((self.max_size,) + self.state_shape, dtype=self.state_dtype)
         self.actions = np.zeros(self.max_size, dtype=self.action_dtype)
-        self.rewards = np.zeros(self.max_size)
-        self.next_states = np.zeros((self.max_size,) + self.state_shape)
+        self.rewards = np.zeros(self.max_size, dtype=self.reward_dtype)
+        self.next_states = np.zeros((self.max_size,) + self.state_shape, dtype=self.state_dtype)
         self.absorbings = np.zeros(self.max_size, dtype=self.absorbing_dtype)
 
         self.len = 0

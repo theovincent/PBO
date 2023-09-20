@@ -1,0 +1,27 @@
+{
+    "gamma": 0.99,
+    "replay_buffer_size": 20000,
+    "n_initial_samples": 1000,
+    "n_epochs": 100,
+    "n_training_steps_per_epoch": 6000,
+    "n_training_steps_per_online_update": 2,
+    "horizon": 1000,
+    "starting_eps": 1,
+    "ending_eps": 0.01,
+    "duration_eps": 300000,
+    "batch_size": 512,
+    "---- DQN ---": "-",
+    "dqn_learning_rate": 0.0001,
+    "dqn_n_training_steps_per_target_update": 1000,
+    "---- ProDQN ---": "-",
+    "prodqn_features": [
+        2,
+        2,
+        2,
+        2
+    ],
+    "prodqn_learning_rate": 1e-05,
+    "prodqn_n_training_steps_per_target_update": 100,
+    "prodqn_n_current_weights": 15,
+    "prodqn_n_training_steps_per_current_weight_update": 6000
+}
