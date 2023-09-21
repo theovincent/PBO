@@ -16,13 +16,13 @@
     "dqn_n_training_steps_per_target_update": 2000,
     "---- ProDQN ---": "-",
     "prodqn_features": [
-        2,
-        2,
-        2,
-        2
+        1,
+        1,
+        1
     ],
-    "prodqn_learning_rate": 1e-05,
-    "prodqn_n_training_steps_per_target_update": 100,
+    "prodqn_learning_rate": 6.25e-5,
+    "prodqn_optimizer_eps": 1.5e-4,
+    "prodqn_n_training_steps_per_target_update": 20,
     "prodqn_n_current_weights": 15,
-    "prodqn_n_training_steps_per_current_weight_update": 6000
+    "prodqn_n_training_steps_per_current_weights_update": 2000
 }

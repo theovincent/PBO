@@ -19,10 +19,11 @@ class BasePBO:
         network: nn.Module,
         network_key: jax.random.PRNGKeyArray,
         learning_rate: Union[float, None],
+        epsilon_optimizer: Union[float, None],
         n_training_steps_per_online_update: Union[int, None],
         n_training_steps_per_target_update: Union[int, None],
         n_current_weights: Union[int, None],
-        n_training_steps_per_current_weight_update: Union[int, None],
+        n_training_steps_per_current_weights_update: Union[int, None],
     ) -> None:
         self.q = q
         self.bellman_iterations_scope = bellman_iterations_scope
@@ -31,6 +32,7 @@ class BasePBO:
         self.params = self.network.init(
             self.network_key, weights=jnp.zeros(self.q.convert_params.weights_dimension, dtype=jnp.float32)
         )
+        print("\n\n\n", f"The PBO has {sum(x.size for x in jax.tree_leaves(self.params))} parameters", "\n\n\n")
 
         if learning_rate is not None:
             self.target_params = self.params
@@ -39,11 +41,11 @@ class BasePBO:
             self.n_training_steps_per_target_update = n_training_steps_per_target_update
             self.n_current_weights = n_current_weights
             self.current_batch_weights = self.q.draw_current_batch_weights(self.n_current_weights)
-            self.n_training_steps_per_current_weight_update = n_training_steps_per_current_weight_update
+            self.n_training_steps_per_current_weight_update = n_training_steps_per_current_weights_update
 
             self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
-            self.optimizer = optax.adam(learning_rate)
+            self.optimizer = optax.adam(learning_rate, eps=epsilon_optimizer)
             self.optimizer_state = self.optimizer.init(self.params)
         else:
             # We define the current weights for being able to sample actions.
