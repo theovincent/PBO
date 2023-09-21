@@ -7,7 +7,6 @@ In the folder where the code is, create a Python virtual environment, activate i
 python3 -m venv env
 source env/bin/activate
 pip install --upgrade pip
-pip install tensorflow tf2jax
 pip install -e .
 ```
 
@@ -38,8 +37,9 @@ In the folder where the code is, create a Python virtual environment, activate i
 ```bash
 python3 -m venv env_gpu
 source env_gpu/bin/activate
-pip install -e .
+pip install tensorflow tf2jax
 pip install --upgrade "jax[cuda12_pip]==0.4.14" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+pip install -e .
 ```
 (Taken from https://github.com/google/jax/discussions/10323)
 
