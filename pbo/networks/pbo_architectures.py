@@ -64,7 +64,7 @@ class SplittedMLPNet(nn.Module):
                 self.apply_on_splitted_weigths(batch_weights[:, idx_split : idx_split + self.split_size])
             )
 
-        return jnp.squeeze(applied_weights)
+        return applied_weights.reshape(weights.shape)
 
     def apply_on_splitted_weigths(self, splitted_weights):
         splitted_weights_dimension = splitted_weights.shape[1]
