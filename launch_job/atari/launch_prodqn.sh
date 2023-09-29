@@ -14,4 +14,4 @@ EXPERIMENT_GENERAL_NAME=${split_experiment_name[0]}
 
 # ProDQN
 echo "launch train prodqn"
-submission_train_prodqn_1=$(sbatch -J A_$EXPERIMENT_NAME --array=$FIRST_SEED-$LAST_SEED --ntasks=2 --mem-per-cpu=20G --time=1-00:00:00 --gres=gpu:1 -p gpu --output=out/atari/$EXPERIMENT_NAME/$BELLMAN_ITERATIONS_SCOPE\_train_prodqn_%a.out launch_job/atari/train_prodqn.sh -e $EXPERIMENT_NAME -b $BELLMAN_ITERATIONS_SCOPE)
+submission_train_prodqn_1=$(sbatch -J A_$EXPERIMENT_NAME --array=$FIRST_SEED-$LAST_SEED --ntasks=2 --mem-per-cpu=20G --time=1-10:00:00 --gres=gpu:1 -p gpu --output=out/atari/$EXPERIMENT_NAME/$BELLMAN_ITERATIONS_SCOPE\_train_prodqn_%a.out launch_job/atari/train_prodqn.sh -e $EXPERIMENT_NAME -b $BELLMAN_ITERATIONS_SCOPE)

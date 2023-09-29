@@ -9,6 +9,10 @@ source env/bin/activate
 pip install --upgrade pip
 pip install -e .
 ```
+When using pvns you might to download gsutil:
+```bash
+conda install -c conda-forge gsutil
+```
 
 ### With Docker
 Please see the [README](./docker/README.md) file made for that.
