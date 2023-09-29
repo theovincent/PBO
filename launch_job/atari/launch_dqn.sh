@@ -15,4 +15,4 @@ EXPERIMENT_GENERAL_NAME=${split_experiment_name[0]}
 
 # DQN
 echo "launch train dqn"
-submission_train_dqn_1=$(sbatch -J A_$EXPERIMENT_NAME --array=$FIRST_SEED-$LAST_SEED --ntasks=3 --mem-per-cpu=10G --time=5:00:00 --gres=gpu:1 -p gpu --output=out/atari/$EXPERIMENT_NAME/train_dqn_%a.out launch_job/atari/train_dqn.sh -e $EXPERIMENT_NAME)
+submission_train_dqn_1=$(sbatch -J A_$EXPERIMENT_NAME --array=$FIRST_SEED-$LAST_SEED --ntasks=2 --mem-per-cpu=20G --time=10:00:00 --gres=gpu:1 -p gpu --output=out/atari/$EXPERIMENT_NAME/train_dqn_%a.out launch_job/atari/train_dqn.sh -e $EXPERIMENT_NAME)
