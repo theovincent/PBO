@@ -55,6 +55,7 @@ def run_cli(argvs=sys.argv[1:]):
         n_training_steps_per_target_update=1,  # always wanted when called
         n_current_weights=p["profqi_n_current_weights"],
         n_training_steps_per_current_weights_update=1e15,  # not wanted
+        initial_std=p["profqi_initial_std"],
     )
 
     train(key, f"experiments/car_on_hill/figures/{args.experiment_name}/ProFQI", args, p, pbo, replay_buffer)

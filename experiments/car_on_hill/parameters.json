@@ -35,5 +35,6 @@
     "profqi_n_fitting_steps": 10,
     "profqi_learning_rate": 0.00001,
     "profqi_optimizer_eps": 1e-8,
-    "profqi_n_current_weights": 10
+    "profqi_n_current_weights": 10,
+    "profqi_initial_std": 0.000005
 }

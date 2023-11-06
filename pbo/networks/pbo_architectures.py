@@ -8,15 +8,27 @@ from pbo.networks.base_pbo import BasePBO
 
 
 class MLPNet(nn.Module):
-    features: Sequence[int]
+    features: Sequence
     weights_dimension: int
+    initial_std: float
 
     @nn.compact
     def __call__(self, weights: jnp.ndarray) -> jnp.ndarray:
+        initializer = (
+            nn.initializers.variance_scaling(self.initial_std, "fan_in", "truncated_normal")
+            if self.initial_std is not None
+            else nn.linear.default_kernel_init
+        )
+
         x = weights
         for feature in self.features:
-            x = nn.relu(nn.Dense(int(feature * self.weights_dimension))(x))
-        x = nn.Dense(self.weights_dimension)(x)
+            x = nn.relu(
+                nn.Dense(
+                    int(feature * self.weights_dimension),
+                    kernel_init=initializer,
+                )(x)
+            )
+        x = nn.Dense(self.weights_dimension, kernel_init=initializer)(x)
 
         return x
 
@@ -34,11 +46,12 @@ class MLPPBO(BasePBO):
         n_training_steps_per_target_update: Union[int, None] = None,
         n_current_weights: Union[int, None] = None,
         n_training_steps_per_current_weights_update: Union[int, None] = None,
+        initial_std: Union[float, None] = None,
     ) -> None:
         super().__init__(
             q,
             bellman_iterations_scope,
-            MLPNet(features, q.convert_params.weights_dimension),
+            MLPNet(features, q.convert_params.weights_dimension, initial_std),
             network_key,
             learning_rate,
             epsilon_optimizer,
