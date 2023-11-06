@@ -9,13 +9,13 @@ parse_arguments $@
 
 # Collect data
 echo "launch collect sample"
-# car_on_hill_sample -e $EXPERIMENT_NAME
+car_on_hill_sample -e $EXPERIMENT_NAME
 
 for (( seed=$FIRST_SEED; seed<=$LAST_SEED; seed++ ))
 do
     # ProFQI
     echo "launch train profqi"
-    # car_on_hill_profqi -e $EXPERIMENT_NAME -b $BELLMAN_ITERATIONS_SCOPE -s $seed
+    car_on_hill_profqi -e $EXPERIMENT_NAME -b $BELLMAN_ITERATIONS_SCOPE -s $seed
 
     echo "launch evaluate profqi"
     car_on_hill_profqi_evaluate -e $EXPERIMENT_NAME -b $BELLMAN_ITERATIONS_SCOPE -s $seed
