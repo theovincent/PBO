@@ -1,4 +1,4 @@
-from typing import Dict, Type, Callable, Union
+from typing import Dict, Type, Callable
 from functools import partial
 import numpy as np
 import jax
@@ -63,3 +63,23 @@ class ReplayBuffer:
             "next_state": jnp.array(next_states, dtype=jnp.float32),
             "absorbing": jnp.array(absorbings, dtype=jnp.bool_),
         }
+
+    def save(self, path) -> None:
+        np.save(path + "_states", self.states)
+        np.save(path + "_actions", self.actions)
+        np.save(path + "_rewards", self.rewards)
+        np.save(path + "_next_states", self.next_states)
+        np.save(path + "_absorbings", self.absorbings)
+
+        np.save(path + "_len", self.len)
+        np.save(path + "_idx", self.idx)
+
+    def load(self, path: str) -> None:
+        self.states = np.load(path + "_states.npy", self.len).astype(self.state_dtype)
+        self.actions = np.load(path + "_actions.npy", self.idx).astype(self.action_dtype)
+        self.rewards = np.load(path + "_rewards.npy", self.len).astype(self.reward_dtype)
+        self.next_states = np.load(path + "_next_states.npy", self.idx).astype(self.state_dtype)
+        self.absorbings = np.load(path + "_absorbings.npy", self.len).astype(self.absorbing_dtype)
+
+        self.len = np.load(path + "_len.npy").astype(int)
+        self.idx = np.load(path + "_idx.npy").astype(int)

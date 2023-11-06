@@ -14,14 +14,11 @@ def save_pickled_data(path: str, object):
         pickle.dump(object, handle)
 
 
-def load_pickled_data(path: str, device_put: bool = False):
+def load_pickled_data(path: str):
     with open(path, "rb") as handle:
         object = pickle.load(handle)
 
-    if device_put:
-        return jax.device_put(object)
-    else:
-        return object
+    return object
 
 
 class ParameterConverter:

@@ -26,7 +26,7 @@ def count_samples(
     )
     dimensions_inside_boxes = np.logical_and(dim_one_inside_boxes, dim_two_inside_boxes)
 
-    pruned_rewards = rewards.reshape(-1)[dimensions_inside_boxes]
+    pruned_rewards = rewards[dimensions_inside_boxes]
 
     samples_count = np.zeros((len(discrete_dim_one_boxes) - 1, len(discrete_dim_two_boxes) - 1))
     rewards_count = np.zeros((len(discrete_dim_one_boxes) - 1, len(discrete_dim_two_boxes) - 1))

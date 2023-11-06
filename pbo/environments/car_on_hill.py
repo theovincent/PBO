@@ -1,26 +1,28 @@
 # This file was inspired by https://github.com/MushroomRL/mushroom-rl
-
+from typing import Union
 from functools import partial
 import numpy as np
 import jax
 import jax.numpy as jnp
-import haiku as hk
 from scipy.integrate import odeint
+from flax.core import FrozenDict
 
-
+from pbo.networks.base_q import BaseQ
+from pbo.networks.base_pbo import BasePBO
+from pbo.environments.base import BaseEnv
 from pbo.environments.viewer import Viewer
-from pbo.networks.base_q import BaseQ, BaseMultiHeadQ
 
 
-class CarOnHillEnv:
+class CarOnHillEnv(BaseEnv):
     """
-    The Car On Hill selfironment as presented in:
+    The Car On Hill environment as presented in:
     "Tree-Based Batch Mode Reinforcement Learning". Ernst D. et al.. 2005.
     """
 
     def __init__(self, gamma: float) -> None:
         self.gamma = gamma
-        self.actions_on_max = jnp.array([[-1], [1]])
+        self.n_actions = 2
+        self.state_shape = (2,)
         self.max_position = 1.0
         self.max_velocity = 3.0
         self._g = 9.81
@@ -31,6 +33,8 @@ class CarOnHillEnv:
         self._viewer = Viewer(1, 1)
 
     def reset(self, state: jnp.ndarray = None) -> jnp.ndarray:
+        self.n_steps = 0
+
         if state is None:
             self.state = jnp.array([-0.5, 0])
         else:
@@ -53,16 +57,19 @@ class CarOnHillEnv:
             [-1.0, 1]
         ) + too_far_right_and_not_too_fast * jnp.array([1.0, 1])
 
-        return state, jnp.array([reward]), jnp.array([absorbing], dtype=bool)
+        return state, reward, absorbing.astype(jnp.bool_)
 
     @partial(jax.jit, static_argnames="self")
     def state_action(self, state, action):
-        return jnp.append(state, 4 * action[0])
+        # bring the action from [0, 1] to [-4, 4].
+        return jnp.append(state, 8 * (action - 0.5))
 
-    def step(self, action: jnp.ndarray) -> tuple:
+    def step(self, action: int) -> tuple:
         new_state = odeint(self._dpds, self.state_action(self.state, action), [0, self._dt])
 
         self.state, reward, absorbing = self.boundery_conditions(new_state)
+
+        self.n_steps += 1
 
         return self.state, reward, absorbing, {}
 
@@ -89,7 +96,8 @@ class CarOnHillEnv:
         self._viewer.polygon(c_car, angle, car_body, color=(32, 193, 54))
 
         # Action
-        self._viewer.force_arrow(c_car, np.array([action[0], 0]), 1, 20, 1, width=3)
+        # bring the action from [0, 1] to [-1, 1].
+        self._viewer.force_arrow(c_car, np.array([2 * (action - 0.5), 0]), 1, 20, 1, width=3)
 
         self._viewer.display(self._dt)
 
@@ -146,9 +154,9 @@ class CarOnHillEnv:
         while len(current_states) > 0 and step < max_steps:
             next_states = []
             for state_ in current_states:
-                for idx_action in range(2):
+                for action in range(self.n_actions):
                     self.state = state_
-                    next_state, reward, _, _ = self.step(self.actions_on_max[idx_action])
+                    next_state, reward, _, _ = self.step(action)
 
                     if reward == 1:
                         return True, step + 1
@@ -171,7 +179,7 @@ class CarOnHillEnv:
 
     @partial(jax.jit, static_argnames=("self", "q"))
     def diff_q_estimate_mesh(
-        self, q: BaseQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray
+        self, q: BaseQ, q_params: FrozenDict, states_x: jnp.ndarray, states_v: jnp.ndarray
     ) -> jnp.ndarray:
         q_mesh_ = self.q_estimate_mesh(q, q_params, states_x, states_v)
 
@@ -179,128 +187,54 @@ class CarOnHillEnv:
 
     @partial(jax.jit, static_argnames=("self", "q"))
     def q_estimate_mesh(
-        self, q: BaseQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray
+        self, q: BaseQ, q_params: FrozenDict, states_x: jnp.ndarray, states_v: jnp.ndarray
     ) -> jnp.ndarray:
-        n_boxes = states_x.shape[0] * states_v.shape[0]
-        states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
-
-        states = jnp.hstack((states_x_mesh.reshape((n_boxes, 1)), states_v_mesh.reshape((n_boxes, 1))))
-
-        idx_states_mesh, idx_actions_mesh = jnp.meshgrid(
-            jnp.arange(states.shape[0]), jnp.arange(self.actions_on_max.shape[0]), indexing="ij"
-        )
-        states_ = states[idx_states_mesh.flatten()]
-        actions_ = self.actions_on_max[idx_actions_mesh.flatten()]
-
-        # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return q(q_params, states_, actions_).reshape(
-            (states_x.shape[0], states_v.shape[0], self.actions_on_max.shape[0])
+        idx_states_x_mesh, idx_states_v_mesh = jnp.meshgrid(
+            jnp.arange(states_x.shape[0]), jnp.arange(states_v.shape[0]), indexing="ij"
         )
 
-    @partial(jax.jit, static_argnames=("self", "q"))
-    def q_multi_head_estimate_mesh(
-        self, q: BaseMultiHeadQ, q_params: hk.Params, states_x: jnp.ndarray, states_v: jnp.ndarray
-    ) -> jnp.ndarray:
-        n_boxes = states_x.shape[0] * states_v.shape[0]
-        states_x_mesh, states_v_mesh = jnp.meshgrid(states_x, states_v, indexing="ij")
-
-        states = jnp.hstack((states_x_mesh.reshape((n_boxes, 1)), states_v_mesh.reshape((n_boxes, 1))))
-
-        idx_states_mesh, idx_actions_mesh = jnp.meshgrid(
-            jnp.arange(states.shape[0]), jnp.arange(self.actions_on_max.shape[0]), indexing="ij"
-        )
-        states_ = states[idx_states_mesh.flatten()]
-        actions_ = self.actions_on_max[idx_actions_mesh.flatten()]
-
-        # Dangerous reshape: the indexing of meshgrid is 'ij'.
-        return q(q_params, states_, actions_).reshape(
-            (states_x.shape[0], states_v.shape[0], self.actions_on_max.shape[0], q.n_heads)
+        q_mesh_ = jax.vmap(lambda state_x, state_v: q.apply(q_params, jnp.array([state_x, state_v])))(
+            states_x[idx_states_x_mesh.flatten()], states_v[idx_states_v_mesh.flatten()]
         )
 
-    def simulate(self, q: BaseQ, horizon: int, initial_state: jnp.ndarray) -> bool:
-        self.reset(initial_state)
-        absorbing = False
-        step = 0
+        return q_mesh_.reshape(states_x.shape[0], states_v.shape[0], q.n_actions)
 
-        while not absorbing and step < horizon:
-            if q(q.params, self.state, self.actions_on_max[1]) > q(q.params, self.state, self.actions_on_max[0]):
-                action = self.actions_on_max[1]
-            else:
-                action = self.actions_on_max[0]
-            _, reward, absorbing, _ = self.step(action)
-
-            step += 1
-            self.render(action)
-
-        self.close()
-
-        return reward == 1
-
-    def evaluate(self, q: BaseQ, q_params: hk.Params, horizon: int, initial_state: jnp.ndarray) -> float:
+    def evaluate(
+        self,
+        q_or_pbo: Union[BaseQ, BasePBO],
+        q_or_pbo_params: FrozenDict,
+        horizon: int,
+        initial_state: jnp.ndarray,
+        display_video: bool = False,
+    ) -> float:
         performance = 0
-        discount = 1
-        self.reset(initial_state)
+        cumulative_gamma = 1
         absorbing = False
-        step = 0
+        self.reset(initial_state)
 
-        while not absorbing and step < horizon:
-            if q(q_params, self.state, self.actions_on_max[1]) > q(q_params, self.state, self.actions_on_max[0]):
-                action = self.actions_on_max[1]
-            else:
-                action = self.actions_on_max[0]
+        while not absorbing and self.n_steps < horizon:
+            action = q_or_pbo.best_action(q_or_pbo_params, self.state, None)
+
             _, reward, absorbing, _ = self.step(action)
 
-            performance += discount * reward[0]
-            discount *= self.gamma
-            step += 1
+            performance += cumulative_gamma * reward
+            cumulative_gamma *= self.gamma
+
+            if display_video:
+                self.render(action)
+
+        if display_video:
+            self.close()
 
         return performance
 
     def v_mesh(
-        self, q: BaseQ, q_params: hk.Params, horizon: int, states_x: jnp.ndarray, states_v: jnp.ndarray
+        self, q: BaseQ, q_params: FrozenDict, horizon: int, states_x: jnp.ndarray, states_v: jnp.ndarray
     ) -> np.ndarray:
         v_mesh_ = np.zeros((len(states_x), len(states_v)))
 
         for idx_state_x, state_x in enumerate(states_x):
             for idx_state_v, state_v in enumerate(states_v):
                 v_mesh_[idx_state_x, idx_state_v] = self.evaluate(q, q_params, horizon, jnp.array([state_x, state_v]))
-
-        return v_mesh_
-
-    def multi_head_evaluate(
-        self, head_idx: int, q: BaseQ, q_params: hk.Params, horizon: int, initial_state: jnp.ndarray
-    ) -> float:
-        performance = 0
-        discount = 1
-        self.reset(initial_state)
-        absorbing = False
-        step = 0
-
-        while not absorbing and step < horizon:
-            if (
-                q(q_params, self.state, self.actions_on_max[1])[0, head_idx]
-                > q(q_params, self.state, self.actions_on_max[0])[0, head_idx]
-            ):
-                action = self.actions_on_max[1]
-            else:
-                action = self.actions_on_max[0]
-            _, reward, absorbing, _ = self.step(action)
-
-            performance += discount * reward[0]
-            discount *= self.gamma
-            step += 1
-
-        return performance
-
-    def multi_head_v_mesh(
-        self, head_idx: int, q: BaseQ, q_params: hk.Params, horizon: int, states_x: jnp.ndarray, states_v: jnp.ndarray
-    ) -> np.ndarray:
-        v_mesh_ = np.zeros((len(states_x), len(states_v)))
-
-        for idx_state_x, state_x in enumerate(states_x):
-            for idx_state_v, state_v in enumerate(states_v):
-                v_mesh_[idx_state_x, idx_state_v] = self.multi_head_evaluate(
-                    head_idx, q, q_params, horizon, jnp.array([state_x, state_v])
-                )
 
         return v_mesh_

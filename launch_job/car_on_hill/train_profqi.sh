@@ -5,4 +5,4 @@ parse_arguments $@
 
 source env_cpu/bin/activate
 
-car_on_hill_fqi -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID -b $BELLMAN_ITERATIONS_SCOPE
+car_on_hill_profqi -e $EXPERIMENT_NAME -s $SLURM_ARRAY_TASK_ID -b $BELLMAN_ITERATIONS_SCOPE
