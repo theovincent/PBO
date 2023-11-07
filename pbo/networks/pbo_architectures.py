@@ -1,4 +1,4 @@
-from typing import Sequence, Union
+from typing import Sequence, Union, Dict
 import jax
 import jax.numpy as jnp
 import flax.linen as nn
@@ -40,7 +40,7 @@ class MLPPBO(BasePBO):
         bellman_iterations_scope: int,
         features: Sequence[int],
         network_key: jax.random.PRNGKeyArray,
-        learning_rate: Union[float, None] = None,
+        learning_rate: Union[Dict, float, None] = None,
         epsilon_optimizer: Union[float, None] = None,
         n_training_steps_per_online_update: Union[int, None] = None,
         n_training_steps_per_target_update: Union[int, None] = None,
@@ -98,7 +98,7 @@ class SplittedMLPPBO(BasePBO):
         split_size: int,
         features: Sequence[int],
         network_key: jax.random.PRNGKeyArray,
-        learning_rate: Union[float, None] = None,
+        learning_rate: Union[Dict, float, None] = None,
         epsilon_optimizer: Union[float, None] = None,
         n_training_steps_per_online_update: Union[int, None] = None,
         n_training_steps_per_target_update: Union[int, None] = None,

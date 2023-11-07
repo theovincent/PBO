@@ -18,7 +18,7 @@ class BasePBO:
         bellman_iterations_scope: int,
         network: nn.Module,
         network_key: jax.random.PRNGKeyArray,
-        learning_rate: Union[float, None],
+        learning_rate: Union[Dict, float, None],
         epsilon_optimizer: Union[float, None],
         n_training_steps_per_online_update: Union[int, None],
         n_training_steps_per_target_update: Union[int, None],
@@ -45,7 +45,14 @@ class BasePBO:
 
             self.loss_and_grad = jax.jit(jax.value_and_grad(self.loss))
 
-            self.optimizer = optax.adam(learning_rate, eps=epsilon_optimizer)
+            if type(learning_rate) == dict:
+                self.learning_rate_schedule = optax.linear_schedule(
+                    learning_rate["start"], learning_rate["end"], learning_rate["duration"]
+                )
+            else:
+                self.learning_rate_schedule = learning_rate
+
+            self.optimizer = optax.adam(self.learning_rate_schedule, eps=epsilon_optimizer)
             self.optimizer_state = self.optimizer.init(self.params)
         else:
             # We define the current weights for being able to sample actions.

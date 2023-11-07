@@ -49,7 +49,14 @@ def run_cli(argvs=sys.argv[1:]):
         args.bellman_iterations_scope,
         p["profqi_features"],
         jax.random.split(network_key)[0],
-        p["profqi_learning_rate"],
+        {
+            "start": p["profqi_learning_rate_start"],
+            "end": p["profqi_learning_rate_end"],
+            "duration": p["profqi_n_training_steps"]
+            * p["profqi_n_fitting_steps"]
+            * replay_buffer.len
+            // replay_buffer.batch_size,
+        },
         p["profqi_optimizer_eps"],
         n_training_steps_per_online_update=1,  # always wanted when called
         n_training_steps_per_target_update=1,  # always wanted when called
