@@ -1,5 +1,7 @@
 # Projected Bellman Operator (PBO)
 
+This is the official code base of the paper **[Parameterized Projected Bellman Operator](https://arxiv.org/pdf/2312.12869.pdf)**, which was presented at the Association for the Advancement of Artificial Intelligence (AAAI 2024).
+
 ## User installation
 ### Without Docker, with Python 3.8 or 3.9 installed
 In the folder where the code is, create a Python virtual environment, activate it, update pip and install the package and its dependencies in editable mode:
